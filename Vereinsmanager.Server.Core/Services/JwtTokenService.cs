@@ -3,7 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
-using Vereinsmanager.Database.Authentication;
+using Vereinsmanager.Database.Base;
 
 namespace Vereinsmanager.Services;
 
@@ -16,14 +16,14 @@ public class JwtTokenService
         _config = config;
     }
 
-    public string GenerateToken(UserModel userModel, double hours)
+    public string GenerateToken(User user, double hours)
     {
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userModel.UserId.ToString()), 
-            new Claim("user_id", userModel.UserId.ToString()), // Trik 17, da "sub" im HttpIntersceptor falsch aufgelößt wird
-            new Claim(JwtRegisteredClaimNames.Name, userModel.Username),
-            new Claim("last_edited", userModel.UpdatedAt.Ticks.ToString()),
+            new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()), 
+            new Claim("user_id", user.UserId.ToString()), // Trik 17, da "sub" im HttpIntersceptor falsch aufgelößt wird
+            new Claim(JwtRegisteredClaimNames.Name, user.Username),
+            new Claim("last_edited", user.UpdatedAt.Ticks.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 

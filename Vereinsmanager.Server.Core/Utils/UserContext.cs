@@ -1,6 +1,6 @@
 #nullable enable
 using System.IdentityModel.Tokens.Jwt;
-using Vereinsmanager.Database.Authentication;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services;
 
 namespace Vereinsmanager.Utils;
@@ -10,7 +10,7 @@ public class UserContext
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly Lazy<UserService> _userServiceLazy;
     
-    private UserModel? _userModel;
+    private User? _userModel;
 
     public UserContext(IHttpContextAccessor httpContextAccessor, Lazy<UserService> userServiceLazy)
     {
@@ -18,10 +18,10 @@ public class UserContext
         _userServiceLazy = userServiceLazy;
     }
     
-    public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-    public string? UserName => _httpContextAccessor.HttpContext?.User?.Identity?.Name;
+    public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirst("user_id")?.Value;
+    public string? UserName => _httpContextAccessor.HttpContext?.User?.FindFirst(JwtRegisteredClaimNames.Name)?.Value;
 
-    public UserModel? GetUserModel()
+    public User? GetUserModel()
     {
         if (UserId == null)
             return null;

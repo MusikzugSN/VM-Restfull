@@ -1,7 +1,7 @@
 #nullable enable
 using Vereinsmanager.Controllers;
 using Vereinsmanager.Database;
-using Vereinsmanager.Database.Authentication;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
@@ -18,10 +18,10 @@ public class UserService
         _dbContext = dbContext;
     }
 
-    private UserModel? _installUserModel;
-    public UserModel GetInstallUser()
+    private User? _installUserModel;
+    public User GetInstallUser()
     {
-        _installUserModel ??= new UserModel
+        _installUserModel ??= new User
         {
             UserId = -1,
             Username = "install",
@@ -42,27 +42,27 @@ public class UserService
         return _dbContext.Users.Count(x => x.IsAdmin);
     }
     
-    public UserModel? LoadUserByUsername(string username)
+    public User? LoadUserByUsername(string username)
     {
         return _dbContext.Users.FirstOrDefault(x => x.Username == username);
     }
 
-    public UserModel? LoadUserById(int id)
+    public User? LoadUserById(int id)
     {
         return _dbContext.Users.FirstOrDefault(x => x.UserId == id);
     }
     
-    public ReturnValue<UserModel> CreateUser(UserCreate userCreate)
+    public ReturnValue<User> CreateUser(UserCreate userCreate)
     {
         var username = userCreate.Username;
         var existingUser = LoadUserByUsername(username);
 
         if (existingUser != null)
         {
-            return ErrorUtils.AlreadyExists(nameof(UserModel), username);
+            return ErrorUtils.AlreadyExists(nameof(User), username);
         }
 
-        var newUser = new UserModel
+        var newUser = new User
         {
             Username = username,
             PasswordHash = userCreate.Password,
@@ -75,12 +75,12 @@ public class UserService
         return newUser;
     }
 
-    public ReturnValue<UserModel> UpdateUser(int id, UpdateUser updateUser)
+    public ReturnValue<User> UpdateUser(int id, UpdateUser updateUser)
     {
         var userResult = LoadUserById(id);
         if (userResult is null)
         {
-            return ErrorUtils.ValueNotFound(nameof(UserModel), id.ToString());
+            return ErrorUtils.ValueNotFound(nameof(User), id.ToString());
         }
 
         if (updateUser.Username is not null)

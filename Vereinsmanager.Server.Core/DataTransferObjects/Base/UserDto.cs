@@ -1,18 +1,18 @@
 #nullable enable
-using Vereinsmanager.Database.Authentication;
+using Vereinsmanager.Database.Base;
 
-namespace Vereinsmanager.DataTransferObjects.Authentication;
+namespace Vereinsmanager.DataTransferObjects.Base;
 
-public class UserDto : MetaDataDTO
+public class UserDto : MetaDataDto
 {
-    public int UserId { get; set; }
-    public string Username { get; set; }
+    public int UserId { get; init; }
+    public string Username { get; init; }
 
-    public bool IsAdmin { get; set; }
+    public bool IsAdmin { get; init; }
     
-    public bool IsEnabled { get; set; }
+    public bool IsEnabled { get; init; }
     
-    public UserDto(UserModel  user)
+    public UserDto(User  user)
     {
         UserId = user.UserId;
         Username = user.Username;

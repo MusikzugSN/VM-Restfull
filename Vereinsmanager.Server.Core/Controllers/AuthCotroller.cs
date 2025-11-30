@@ -2,7 +2,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.Database.Authentication;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 

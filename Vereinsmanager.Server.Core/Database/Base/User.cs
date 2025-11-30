@@ -1,9 +1,9 @@
 #nullable enable
 using System.ComponentModel.DataAnnotations;
 
-namespace Vereinsmanager.Database.Authentication;
+namespace Vereinsmanager.Database.Base;
 
-public class UserModel : MetaData
+public class User : MetaData
 {
     [Key]
     public int UserId { get; set; }

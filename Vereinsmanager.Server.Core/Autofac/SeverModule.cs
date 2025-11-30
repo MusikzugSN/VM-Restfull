@@ -19,9 +19,13 @@ public class SeverModule : Module
     protected override void Load(ContainerBuilder builder)
     {
         RegisterDbContext(builder);
+        
         builder.RegisterType<JwtTokenService>().AsSelf().InstancePerLifetimeScope();
-        builder.RegisterType<UserService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<UserContext>().AsSelf().InstancePerLifetimeScope();
+        
+        builder.RegisterType<UserService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
+        
     }
 
     private void RegisterDbContext(ContainerBuilder builder)

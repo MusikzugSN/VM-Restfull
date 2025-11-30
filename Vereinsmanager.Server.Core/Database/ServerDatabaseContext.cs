@@ -1,6 +1,6 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
-using Vereinsmanager.Database.Authentication;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 
@@ -14,7 +14,8 @@ public class ServerDatabaseContext : DbContext
         _userContext = userContext;
     }
     
-    public DbSet<UserModel> Users { get; set; }
+    public DbSet<User> Users { get; set; }
+    public DbSet<Group> Groups { get; set; }
     
     public override int SaveChanges()
     {

@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.DataTransferObjects;
-using Vereinsmanager.DataTransferObjects.Authentication;
+using Vereinsmanager.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 
 namespace Vereinsmanager.Controllers;
