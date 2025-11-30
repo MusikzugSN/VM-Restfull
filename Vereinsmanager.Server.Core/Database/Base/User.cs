@@ -9,7 +9,7 @@ public class User : MetaData
     public int UserId { get; set; }
     
     [Required]
-    [MaxLength(50)]
+    [MaxLength(24)]
     public required string Username { get; set; }
     [Required]
     [MaxLength(255)]

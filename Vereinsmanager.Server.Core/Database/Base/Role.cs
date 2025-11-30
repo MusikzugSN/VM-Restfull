@@ -3,13 +3,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Vereinsmanager.Database.Base;
 
-
-public class Group : MetaData
+public class Role : MetaData
 {
     [Key]
-    public int GroupId { get; set; }
+    public int RoleId { get; set; }
     
     [Required]
     [MaxLength(24)]
-    public required string Name { get; set; }
+    public string Name { get; set; }
+    
 }

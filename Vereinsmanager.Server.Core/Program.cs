@@ -61,7 +61,7 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ServerDatabaseContext>();
     //db.Database.Migrate(); // applies migrations and creates DB if missing
-    db.Database.EnsureCreated(); // quick create without migrations
+    db.Database.Migrate(); // quick create without migrations
 }
 
 app.Run();
