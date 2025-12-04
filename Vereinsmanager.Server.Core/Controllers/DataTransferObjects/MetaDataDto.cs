@@ -1,5 +1,5 @@
 #nullable enable
-namespace Vereinsmanager.DataTransferObjects;
+namespace Vereinsmanager.Controllers.DataTransferObjects;
 
 public class MetaDataDto
 {

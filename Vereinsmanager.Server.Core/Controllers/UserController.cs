@@ -1,8 +1,7 @@
 #nullable enable
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.DataTransferObjects;
-using Vereinsmanager.DataTransferObjects.Base;
+using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 
 namespace Vereinsmanager.Controllers;

@@ -17,6 +17,8 @@ public class ServerDatabaseContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Group> Groups { get; set; }
     public DbSet<Role> Roles { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<UserRole> UserRoles { get; set; }
     
     public override int SaveChanges()
     {
@@ -46,7 +48,7 @@ public class ServerDatabaseContext : DbContext
                 entry.Entity.CreatedBy = userName;
                 entry.Entity.UpdatedBy = userName;
             }
-            else if (entry.State == EntityState.Modified)
+            else if (entry.State == EntityState.Modified) //todo far: only update if specific fields are changed, not if forin key is changed
             {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
                 entry.Entity.UpdatedBy = userName;

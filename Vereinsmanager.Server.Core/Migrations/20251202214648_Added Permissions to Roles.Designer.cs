@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vereinsmanager.Database;
 
@@ -11,9 +12,11 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    partial class ServerDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20251202214648_Added Permissions to Roles")]
+    partial class AddedPermissionstoRoles
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,6 +71,9 @@ namespace Vereinsmanager.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PermissionId"));
 
+                    b.Property<int?>("GroupId")
+                        .HasColumnType("int");
+
                     b.Property<int>("PermissionType")
                         .HasColumnType("int");
 
@@ -78,6 +84,8 @@ namespace Vereinsmanager.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("PermissionId");
+
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("RoleId");
 
@@ -171,72 +179,11 @@ namespace Vereinsmanager.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.Base.UserRole", b =>
-                {
-                    b.Property<int>("UserRoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("UserRoleId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("GroupId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserRoleId");
-
-                    b.HasIndex("GroupId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserRoles");
-                });
-
             modelBuilder.Entity("Vereinsmanager.Database.Base.Permission", b =>
                 {
-                    b.HasOne("Vereinsmanager.Database.Base.Role", "Role")
+                    b.HasOne("Vereinsmanager.Database.Base.Group", null)
                         .WithMany("Permissions")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("Vereinsmanager.Database.Base.UserRole", b =>
-                {
-                    b.HasOne("Vereinsmanager.Database.Base.Group", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("GroupId");
 
                     b.HasOne("Vereinsmanager.Database.Base.Role", "Role")
                         .WithMany()
@@ -244,27 +191,12 @@ namespace Vereinsmanager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Vereinsmanager.Database.Base.User", "User")
-                        .WithMany("UserRoles")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Group");
-
                     b.Navigation("Role");
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.Base.Role", b =>
+            modelBuilder.Entity("Vereinsmanager.Database.Base.Group", b =>
                 {
                     b.Navigation("Permissions");
-                });
-
-            modelBuilder.Entity("Vereinsmanager.Database.Base.User", b =>
-                {
-                    b.Navigation("UserRoles");
                 });
 #pragma warning restore 612, 618
         }

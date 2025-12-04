@@ -1,0 +1,19 @@
+#nullable enable
+using System.ComponentModel.DataAnnotations;
+
+namespace Vereinsmanager.Database.Base;
+
+public class Permission
+{
+    [Key]
+    public int PermissionId { get; set; }
+    
+    [Required]
+    public required Role Role { get; set; }
+    
+    [Required]
+    public required int PermissionType { get; set; }
+    
+    [Required]
+    public required int PermissionValue { get; set; }
+}

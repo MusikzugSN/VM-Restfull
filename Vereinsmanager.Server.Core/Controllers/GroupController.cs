@@ -1,6 +1,6 @@
 #nullable enable
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.DataTransferObjects.Base;
+using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 
 namespace Vereinsmanager.Controllers;
@@ -9,7 +9,6 @@ namespace Vereinsmanager.Controllers;
 [Route("api/v1/group")]
 public class GroupController : ControllerBase
 {
-
     [HttpPost]
     public ActionResult<GroupDto> CreateGroup(
         [FromBody] CreateGroup createGroup,

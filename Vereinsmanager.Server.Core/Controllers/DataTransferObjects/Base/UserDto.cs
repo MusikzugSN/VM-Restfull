@@ -1,7 +1,7 @@
 #nullable enable
 using Vereinsmanager.Database.Base;
 
-namespace Vereinsmanager.DataTransferObjects.Base;
+namespace Vereinsmanager.Controllers.DataTransferObjects.Base;
 
 public class UserDto : MetaDataDto
 {

@@ -20,4 +20,6 @@ public class User : MetaData
     
     [Required]
     public bool IsEnabled { get; set; }
+    
+    public virtual ICollection<UserRole> UserRoles { get; set; } = [];
 }
