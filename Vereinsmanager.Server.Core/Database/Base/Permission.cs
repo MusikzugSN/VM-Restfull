@@ -11,6 +11,8 @@ public class Permission
     [Required]
     public required Role Role { get; set; }
     
+    public virtual int RoleId { get; private set; }
+    
     [Required]
     public required int PermissionType { get; set; }
     

@@ -22,4 +22,13 @@ public static class ErrorUtils
             Title = item + "(" + identifier + ") already exists"
         };
     }
+    
+    public static ProblemDetails NotPermitted(string item, string identifier)
+    {
+        return new ProblemDetails
+        {
+            Status = StatusCodes.Status403Forbidden,
+            Title = item + "(" + identifier + ") is not permitted"
+        };
+    }
 }

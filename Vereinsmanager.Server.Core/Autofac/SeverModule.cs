@@ -26,6 +26,7 @@ public class SeverModule : Module
         builder.RegisterType<UserService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<RoleService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<PermissionService>().AsSelf().InstancePerLifetimeScope();
         
     }
 

@@ -1,22 +1,25 @@
 #nullable enable
-using Vereinsmanager.Controllers;
+using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(String Username, String Password, bool? isAdmin, List<UserRoleTeaser>? Roles);
-public record UpdateUser(String? Username, String? Password, bool? isAdmin, bool? isEnabled, List<UserRoleTeaser>? Roles);
-public record UserRoleTeaser(int RoleId, int GroupId, bool? delete);
+public record UserCreate(String Username, String Password, bool? IsAdmin, List<UserRoleTeaser>? Roles);
+public record UpdateUser(String? Username, String? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
+public record UserRoleTeaser(int RoleId, int GroupId, bool? Delete);
 
 public class UserService
 {
     private readonly ServerDatabaseContext _dbContext;
+    private readonly Lazy<PermissionService> _permissionServiceLazy;
     
-    public UserService(ServerDatabaseContext dbContext)
+    public UserService(ServerDatabaseContext dbContext, Lazy<PermissionService> permissionServiceLazy)
     {
         _dbContext = dbContext;
+        _permissionServiceLazy = permissionServiceLazy;
     }
 
     private User? _installUserModel;
@@ -55,6 +58,9 @@ public class UserService
     
     public ReturnValue<User> CreateUser(UserCreate userCreate)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Create_User))
+            return ErrorUtils.NotPermitted(nameof(UserCreate), userCreate.Username);
+        
         var username = userCreate.Username;
         var existingUser = LoadUserByUsername(username);
 
@@ -67,7 +73,7 @@ public class UserService
         {
             Username = username,
             PasswordHash = userCreate.Password,
-            IsAdmin = userCreate.isAdmin ?? false //todo florian: berechtigungen prüfen
+            IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator)
         };
         
         if (userCreate.Roles?.Count > 0)
@@ -83,6 +89,9 @@ public class UserService
 
     public ReturnValue<User> UpdateUser(int id, UpdateUser updateUser)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Update_User))
+            return ErrorUtils.NotPermitted(nameof(UpdateUser), id.ToString());
+        
         var userResult = LoadUserById(id);
         if (userResult is null)
         {
@@ -99,14 +108,14 @@ public class UserService
             userResult.PasswordHash = updateUser.Password;
         }
 
-        if (updateUser.isAdmin is not null)
+        if (updateUser.IsAdmin is not null &&  _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
         {
-            userResult.IsAdmin = updateUser.isAdmin ?? false;
+            userResult.IsAdmin = updateUser.IsAdmin ?? false;
         }
 
-        if (updateUser.isEnabled is not null)
+        if (updateUser.IsEnabled is not null)
         {
-            userResult.IsEnabled = updateUser.isEnabled ?? false;
+            userResult.IsEnabled = updateUser.IsEnabled ?? false;
         }
 
         if (updateUser.Roles?.Count > 0)
@@ -126,16 +135,20 @@ public class UserService
         var groupIdsToAssign = updateUserRoles.Select(x => x.GroupId).ToList();
         var groupsToAssign = _dbContext.Groups.Where(x => groupIdsToAssign.Contains(x.GroupId)).ToList();
         
-        var existingUserRoles = _dbContext.UserRoles.Where(ur => ur.User.UserId == user.UserId).ToList();
+        var existingUserRoles = _dbContext.UserRoles
+            .Include(x => x.Group).Include(x => x.Role)
+            .Where(ur => ur.User.UserId == user.UserId)
+            .ToList();
+        
         var userRolesToRemove = existingUserRoles
             .Where(x => updateUserRoles
-                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.delete ?? false)))
+                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Delete ?? false)))
             .ToList();
         
         _dbContext.UserRoles.RemoveRange(userRolesToRemove);
 
         var userRolesToAdd = updateUserRoles
-            .Where(x => (x.delete ?? false) == false)
+            .Where(x => (x.Delete ?? false) == false)
             .Select(x => new UserRole
             {
                 User = user,

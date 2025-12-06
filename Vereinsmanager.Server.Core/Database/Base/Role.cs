@@ -12,5 +12,5 @@ public class Role : MetaData
     [MaxLength(24)]
     public string Name { get; set; }
     
-    public virtual ICollection<Permission> Permissions { get; set; } = [];
+    public virtual ICollection<Permission> Permissions { get; private set; } = [];
 }

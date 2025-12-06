@@ -1,5 +1,7 @@
 #nullable enable
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.EntityFrameworkCore;
+using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services;
 
@@ -8,14 +10,14 @@ namespace Vereinsmanager.Utils;
 public class UserContext
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
-    private readonly Lazy<UserService> _userServiceLazy;
+    private readonly Lazy<ServerDatabaseContext> _dbContextLazy;
     
     private User? _userModel;
 
-    public UserContext(IHttpContextAccessor httpContextAccessor, Lazy<UserService> userServiceLazy)
+    public UserContext(IHttpContextAccessor httpContextAccessor, Lazy<ServerDatabaseContext> dbContextLazy)
     {
         _httpContextAccessor = httpContextAccessor;
-        _userServiceLazy = userServiceLazy;
+        _dbContextLazy = dbContextLazy;
     }
     
     public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirst("user_id")?.Value;
@@ -26,7 +28,7 @@ public class UserContext
         if (UserId == null)
             return null;
         
-        _userModel ??= _userServiceLazy.Value.LoadUserById(int.Parse(UserId));
+        _userModel ??= _dbContextLazy.Value.Users.FirstOrDefault(x => x.UserId == int.Parse(UserId));
         
         return _userModel;
     }

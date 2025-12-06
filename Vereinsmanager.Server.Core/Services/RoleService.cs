@@ -1,6 +1,7 @@
 #nullable enable
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
@@ -13,10 +14,12 @@ public record PermissionTeaser(int Type, int Value);
 public class RoleService
 {
     private readonly ServerDatabaseContext _dbContext;
+    private readonly Lazy<PermissionService> _permissionServiceLazy;
     
-    public RoleService(ServerDatabaseContext dbContext)
+    public RoleService(ServerDatabaseContext dbContext, Lazy<PermissionService> permissionServiceLazy)
     {
         _dbContext = dbContext;
+        _permissionServiceLazy = permissionServiceLazy;
     }
 
     public Role? LoadRoleByName(string name)
@@ -31,6 +34,9 @@ public class RoleService
 
     public ReturnValue<Role> CreateRole(CreateRole createRole)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Create_Role))
+            return ErrorUtils.ValueNotFound(nameof(CreateRole), createRole.Name);
+        
         var existingRole = LoadRoleByName(createRole.Name);
         if (existingRole != null)
         {
@@ -54,6 +60,9 @@ public class RoleService
     
     public ReturnValue<Role> UpdateRole(int roleId, UpdateRole updateRole)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Update_Role))
+            return ErrorUtils.ValueNotFound(nameof(UpdateRole), roleId.ToString());
+        
         var role = LoadRoleById(roleId);
         if (role == null)
         {
