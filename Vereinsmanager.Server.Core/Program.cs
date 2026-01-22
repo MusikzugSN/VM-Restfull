@@ -12,6 +12,26 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 
+var allowedOrigin = builder.Configuration["FRONTEND_URL"];
+
+builder.Services.AddCors(options => {
+    options.AddPolicy("DynamicCors", policy => {
+        if (!string.IsNullOrWhiteSpace(allowedOrigin))
+        {
+            policy.WithOrigins(allowedOrigin)
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        } else { 
+            // fallback for dev if env var is missing
+            policy.WithOrigins("http://localhost:4200")
+                .AllowAnyHeader()
+                .AllowAnyMethod()
+                .AllowCredentials();
+        } 
+    }); 
+});
+
 // Configure autofac
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
 builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
@@ -46,6 +66,8 @@ builder.Services.AddControllers();
 //builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors("DynamicCors");
 
 // Configure the HTTP request pipeline.
 app.UseHttpsRedirection();
