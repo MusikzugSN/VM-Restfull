@@ -19,6 +19,14 @@ public class GroupService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
+    public ReturnValue<Group[]> ListGroups()
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.List_Groups))
+            return ErrorUtils.NotPermitted(nameof(Group), "read all");
+        
+        return _dbContext.Groups.ToArray();
+    }
+    
     public Group? LoadGroupByName(string name)
     {
         return _dbContext.Groups.FirstOrDefault(g => g.Name == name);
@@ -27,7 +35,7 @@ public class GroupService
     public ReturnValue<Group> CreateGroup(CreateGroup createGroup)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Create_Group))
-            return ErrorUtils.ValueNotFound(nameof(CreateRole), createGroup.Name);
+            return ErrorUtils.NotPermitted(nameof(CreateRole), createGroup.Name);
         
         var name = createGroup.Name;
         var existingGroup = LoadGroupByName(name);

@@ -9,6 +9,7 @@ public enum PermissionType
     Update_User,
     
     Open_Groups = 20,
+    List_Groups,
     Create_Group,
     Update_Group,
     Delete_Group,
