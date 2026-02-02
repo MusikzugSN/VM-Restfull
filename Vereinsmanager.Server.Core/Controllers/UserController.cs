@@ -23,8 +23,21 @@ public class UserController : ControllerBase
             return new UserDto(newUser.GetValue()!);
         }
 
-        var problemDetails = newUser.GetProblemDetails();
-        return StatusCode(problemDetails?.Status ?? 500, problemDetails?.Title ?? "Unknown Error");
+        return (ObjectResult) newUser;
+    }
+
+    [HttpGet]
+    public ActionResult<UserDto[]> GetAllUsers(
+        [FromServices] UserService userService)
+    {
+        var allUsers = userService.ListUsers();
+        
+        if (allUsers.IsSuccessful())
+        {
+            return allUsers.GetValue()!.Select(u => new UserDto(u)).ToArray();
+        }
+        
+        return (ObjectResult) allUsers;
     }
 
     [HttpPatch]
@@ -40,11 +53,23 @@ public class UserController : ControllerBase
         {
             return new UserDto(updatedUser.GetValue()!);
         }
-        
-        var problemDetials = updatedUser.GetProblemDetails();
-        return StatusCode(problemDetials?.Status ?? 500, problemDetials?.Title ?? "Unknown Error");
+
+        return (ObjectResult)updatedUser;
     }
-    
-    
+
+    [HttpDelete]
+    [Route("{userId:int}")]
+    public ActionResult<bool> DeleteUser(
+        [FromRoute] int userId,
+        [FromServices] UserService userService)
+    {
+        var deletedUser = userService.DeleteUser(userId);
+
+        if (deletedUser.IsSuccessful())
+        {
+            return  deletedUser.GetValue()!;
+        }
+        return (ObjectResult) deletedUser;
+    }
 }
 

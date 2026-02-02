@@ -13,4 +13,16 @@ public class Role : MetaData
     public string Name { get; set; }
     
     public virtual ICollection<Permission> Permissions { get; private set; } = [];
+    
+    public MetaData NewestMetaData =>
+        Permissions
+            .Select(x => x as MetaData)
+            .Append(this)
+            .OrderByDescending(x => x.UpdatedAt)
+            .First();
+
+    public DateTime EffectiveLastChangedAt => NewestMetaData.UpdatedAt;
+
+    public string EffectiveLastChangedBy => NewestMetaData.UpdatedBy;
+
 }

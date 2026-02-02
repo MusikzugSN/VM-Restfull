@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Vereinsmanager.Database.Base;
 
-public class Permission
+public class Permission : MetaData
 {
     [Key]
     public int PermissionId { get; set; }

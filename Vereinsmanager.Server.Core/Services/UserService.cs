@@ -56,9 +56,17 @@ public class UserService
         return _dbContext.Users.FirstOrDefault(x => x.UserId == id);
     }
     
+    public ReturnValue<User[]> ListUsers()
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListUser))
+            return ErrorUtils.NotPermitted(nameof(User), "read all");
+        
+        return _dbContext.Users.ToArray();
+    }
+    
     public ReturnValue<User> CreateUser(UserCreate userCreate)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Create_User))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateUser))
             return ErrorUtils.NotPermitted(nameof(UserCreate), userCreate.Username);
         
         var username = userCreate.Username;
@@ -89,7 +97,7 @@ public class UserService
 
     public ReturnValue<User> UpdateUser(int id, UpdateUser updateUser)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Update_User))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateUser))
             return ErrorUtils.NotPermitted(nameof(UpdateUser), id.ToString());
         
         var userResult = LoadUserById(id);
@@ -108,7 +116,7 @@ public class UserService
             userResult.PasswordHash = updateUser.Password;
         }
 
-        if (updateUser.IsAdmin is not null &&  _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
+        if (updateUser.IsAdmin is not null && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
         {
             userResult.IsAdmin = updateUser.IsAdmin ?? false;
         }
@@ -125,6 +133,22 @@ public class UserService
 
         _dbContext.SaveChanges();
         return userResult;
+    }
+
+    public ReturnValue<bool?> DeleteUser(int id)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteUser))
+            return ErrorUtils.NotPermitted(nameof(User), id.ToString());
+        
+        var userResult = LoadUserById(id);
+        if (userResult is null)
+        {
+            return ErrorUtils.ValueNotFound(nameof(User), id.ToString());
+        }
+
+        _dbContext.Users.Remove(userResult);
+        _dbContext.SaveChanges();
+        return true;
     }
     
     private void UpdateUserRoles(User user, List<UserRoleTeaser> updateUserRoles)

@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services.Models;
@@ -32,10 +33,18 @@ public class RoleService
         return _dbContext.Roles.FirstOrDefault(role => role.RoleId == roleId);
     }
 
+    public ReturnValue<Role[]> ListRoles()
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListRole))
+            return ErrorUtils.NotPermitted(nameof(Role), "read all");
+        
+        return _dbContext.Roles.Include(x => x.Permissions).ToArray();
+    }
+    
     public ReturnValue<Role> CreateRole(CreateRole createRole)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Create_Role))
-            return ErrorUtils.ValueNotFound(nameof(CreateRole), createRole.Name);
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateRole))
+            return ErrorUtils.NotPermitted(nameof(CreateRole), createRole.Name);
         
         var existingRole = LoadRoleByName(createRole.Name);
         if (existingRole != null)
@@ -58,9 +67,25 @@ public class RoleService
         return newRole;
     }
     
+    public ReturnValue<bool>DeleteRole(int roleId)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteRole))
+            return ErrorUtils.NotPermitted(nameof(DeleteRole), roleId.ToString());
+        
+        var role = LoadRoleById(roleId);
+        if (role == null)
+        {
+            return ErrorUtils.ValueNotFound(nameof(Role), roleId.ToString());
+        }
+
+        _dbContext.Roles.Remove(role);
+        _dbContext.SaveChanges();
+        return true;
+    }
+    
     public ReturnValue<Role> UpdateRole(int roleId, UpdateRole updateRole)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.Update_Role))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateRole))
             return ErrorUtils.ValueNotFound(nameof(UpdateRole), roleId.ToString());
         
         var role = LoadRoleById(roleId);

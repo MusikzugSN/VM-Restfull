@@ -1,4 +1,5 @@
 #nullable enable
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Vereinsmanager.Utils;
@@ -31,6 +32,23 @@ public class ReturnValue<TReturnType>
     public bool IsSuccessful()
     {
         return _value != null;
+    }
+
+    public static implicit operator TReturnType?(ReturnValue<TReturnType> value)
+    {
+        return value.IsSuccessful() ? value.GetValue() : default;
+    }
+
+    public static implicit operator ObjectResult(ReturnValue<TReturnType> value)
+    {
+        var problemDetails = value.GetProblemDetails();
+        return value.IsSuccessful() ? new ObjectResult(null)
+        {
+            StatusCode = 204 
+        } : new ObjectResult(problemDetails?.Detail ?? "Unknown Error")
+        {
+            StatusCode = problemDetails?.Status ?? 500
+        };
     }
     
     public static implicit operator ReturnValue<TReturnType>(ProblemDetails problemDetails)

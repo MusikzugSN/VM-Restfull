@@ -1,7 +1,7 @@
 #nullable enable
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Cryptography;
 using Microsoft.IdentityModel.Tokens;
 using Vereinsmanager.Database.Base;
 
@@ -27,16 +27,32 @@ public class JwtTokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var privateRsa = LoadPrivateKey(_config["Jwt:PrivateKeyPath"] ?? "keys/private_key.pem"); 
+        var key = new RsaSecurityKey(privateRsa); 
+        var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
             expires: DateTime.Now.AddHours(hours),
-            signingCredentials: creds); // todo far: public private keypair einbauen und mischicken?! 
+            signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
+    
+    public static RSA LoadPrivateKey(string path)
+    {
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(File.ReadAllText(path));
+        return rsa;
+    }
+
+    public static RsaSecurityKey LoadPublicKey(string path)
+    {
+        var rsa = RSA.Create();
+        rsa.ImportFromPem(File.ReadAllText(path));
+        return new RsaSecurityKey(rsa);
+    }
+
 }

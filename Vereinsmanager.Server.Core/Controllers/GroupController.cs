@@ -19,9 +19,41 @@ public class GroupController : ControllerBase
         {
             return groups.GetValue()!.Select(g => new GroupDto(g)).ToArray();
         }
-        
-        var problemDetails = groups.GetProblemDetails();
-        return StatusCode(problemDetails?.Status ?? 500, problemDetails?.Title ?? "Unknown error");
+
+        return(ObjectResult)groups;
+    }
+
+    [HttpPatch]
+    [Route("{groupId:int}")]
+    public ActionResult<GroupDto> UpdateGroup(
+        [FromRoute] int groupId,
+        [FromBody] UpdateGroup updateGroup,
+        [FromServices] GroupService groupService)
+    {
+        var updatedGroup = groupService.UpdateGroup(groupId, updateGroup);
+
+        if (updatedGroup.IsSuccessful())
+        {
+            return new GroupDto(updatedGroup.GetValue()!);
+        }
+
+        return (ObjectResult)updatedGroup;
+    }
+    
+    [HttpDelete]
+    [Route("{deleteGroup:int}")]
+    public ActionResult<bool> DeleteGroup(
+        [FromRoute] int deleteGroup,
+        [FromServices] GroupService groupService)
+    {
+        var deletedGroup = groupService.DeleteGroup(deleteGroup);
+
+        if (deletedGroup.IsSuccessful())
+        {
+            return deletedGroup.GetValue();
+        }
+
+        return (ObjectResult)deletedGroup;
     }
     
     [HttpPost]
@@ -30,13 +62,12 @@ public class GroupController : ControllerBase
         [FromServices] GroupService groupService)
     {
         var newGroup = groupService.CreateGroup(createGroup);
-
+        
         if (newGroup.IsSuccessful())
         {
             return new GroupDto(newGroup.GetValue()!);
         }
 
-        var problemDetails = newGroup.GetProblemDetails();
-        return StatusCode(problemDetails?.Status ?? 500, problemDetails?.Title ?? "Unknown error");
+        return (ObjectResult)newGroup;
     }
 }

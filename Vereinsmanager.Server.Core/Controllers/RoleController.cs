@@ -2,13 +2,30 @@
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.Models;
 
 namespace Vereinsmanager.Controllers;
+
+public record PermissionGroup(string? Name, List<PermissionValue> PermissionValues);
+public record PermissionValue(PermissionType PermissionType, PermissionCategory PermissionCategory);
 
 [ApiController]
 [Route("api/v1/role")]
 public class RoleController : ControllerBase
 {
+    [HttpGet]
+    [Route("permissionValues")]
+    public ActionResult<List<PermissionGroup>> GetPermissionValues()
+    {
+        return Enum.GetValues<PermissionType>()
+            .GroupBy(x => x.GetPermissionGroup())
+            .Select(g =>
+                new PermissionGroup(g.Key.GetDescription(),
+                g.Select(x => 
+                        new PermissionValue(x, x.GetPermissionCategory()))
+                    .ToList()))
+            .ToList();
+    }
 
     [HttpPost]
     public ActionResult<RoleDto> CreateRole(
@@ -22,10 +39,8 @@ public class RoleController : ControllerBase
             return new RoleDto(newRole.GetValue()!);
         }
         
-        var problemDetails = newRole.GetProblemDetails();
-        return StatusCode(problemDetails?.Status ?? 500, problemDetails?.Title ?? "Unkown error");
+        return (ObjectResult) newRole;
     }
-
     
     [HttpPatch]
     [Route("{id:int}")]
@@ -41,7 +56,35 @@ public class RoleController : ControllerBase
             return new RoleDto(updatedRole.GetValue()!);
         }
         
-        var problemDetails = updatedRole.GetProblemDetails();
-        return StatusCode(problemDetails?.Status ?? 500, problemDetails?.Title ?? "Unkown error");
+        return (ObjectResult) updatedRole;
+    }
+    
+    [HttpGet]
+    public ActionResult<RoleDto[]> GetRoles([FromServices] RoleService roleService)
+    {
+        var roles = roleService.ListRoles();
+
+        if (roles.IsSuccessful())
+        {
+            return roles.GetValue()!
+                .Select(r => new RoleDto(r))
+                .ToArray();
+        }
+
+        return (ObjectResult)roles;
+    }
+
+    [HttpDelete]
+    [Route("{roleId:int}")]
+    public ActionResult<bool> DeleteRole([FromRoute] int roleId, [FromServices] RoleService roleService)
+    {
+        var deletedRole = roleService.DeleteRole(roleId);
+
+        if (deletedRole.IsSuccessful())
+        {
+            return deletedRole.GetValue();
+        }
+        
+        return (ObjectResult)deletedRole;
     }
 }
