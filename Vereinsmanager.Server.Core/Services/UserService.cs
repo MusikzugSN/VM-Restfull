@@ -7,7 +7,7 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(String Username, String Password, bool? IsAdmin, List<UserRoleTeaser>? Roles);
+public record UserCreate(String Username, String Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
 public record UpdateUser(String? Username, String? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
 public record UserRoleTeaser(int RoleId, int GroupId, bool? Delete);
 
@@ -61,7 +61,7 @@ public class UserService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListUser))
             return ErrorUtils.NotPermitted(nameof(User), "read all");
         
-        return _dbContext.Users.ToArray();
+        return _dbContext.Users.Include(x => x.UserRoles).ToArray();
     }
     
     public ReturnValue<User> CreateUser(UserCreate userCreate)
@@ -81,7 +81,8 @@ public class UserService
         {
             Username = username,
             PasswordHash = userCreate.Password,
-            IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator)
+            IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator),
+            IsEnabled = userCreate.IsEnabled ?? false
         };
         
         if (userCreate.Roles?.Count > 0)

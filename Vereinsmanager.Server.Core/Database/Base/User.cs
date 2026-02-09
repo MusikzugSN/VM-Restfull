@@ -22,4 +22,15 @@ public class User : MetaData
     public bool IsEnabled { get; set; }
     
     public virtual ICollection<UserRole> UserRoles { get; set; } = [];
+    
+    public MetaData NewestMetaData =>
+        UserRoles
+            .Select(x => x as MetaData)
+            .Append(this)
+            .OrderByDescending(x => x.UpdatedAt)
+            .First();
+
+    public DateTime EffectiveLastChangedAt => NewestMetaData.UpdatedAt;
+
+    public string EffectiveLastChangedBy => NewestMetaData.UpdatedBy;
 }
