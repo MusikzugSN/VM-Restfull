@@ -12,7 +12,7 @@ public class UserDto : MetaDataDto
     
     public bool IsEnabled { get; init; }
     
-    public UserGroupTeaser[] UserGroupTeasers { get; init; }
+    public UserGroupTeaser[] Roles { get; init; }
     
     public UserDto(User  user)
     {
@@ -20,7 +20,7 @@ public class UserDto : MetaDataDto
         Username = user.Username;
         IsAdmin = user.IsAdmin;
         IsEnabled = user.IsEnabled;
-        UserGroupTeasers = user.UserRoles
+        Roles = user.UserRoles
             .Select(ug => new UserGroupTeaser(ug.GroupId, ug.RoleId))
             .ToArray();
         
