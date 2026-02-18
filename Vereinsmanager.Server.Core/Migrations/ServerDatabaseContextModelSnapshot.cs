@@ -239,6 +239,417 @@ namespace Vereinsmanager.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
+                {
+                    b.Property<int>("AlternateVoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AlternateVoiceId"));
+
+                    b.Property<string>("Alternative")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VoiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AlternateVoiceId");
+
+                    b.HasIndex("VoiceId");
+
+                    b.HasIndex("Alternative", "VoiceId", "Priority")
+                        .IsUnique();
+
+                    b.ToTable("AlternateVoices");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Event", b =>
+                {
+                    b.Property<int>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EventId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("EventId");
+
+                    b.ToTable("Events");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.EventScore", b =>
+                {
+                    b.Property<int>("EventScoreId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("EventScoreId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("EventId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("EventScoreId");
+
+                    b.HasIndex("ScoreId");
+
+                    b.HasIndex("EventId", "ScoreId")
+                        .IsUnique();
+
+                    b.ToTable("EventScores");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Instrument", b =>
+                {
+                    b.Property<int>("InstrumentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("InstrumentId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("InstrumentId");
+
+                    b.ToTable("Instruments");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicFolder", b =>
+                {
+                    b.Property<int>("MusicFolderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MusicFolderId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("MusicFolderId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("MusicFolders");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheed", b =>
+                {
+                    b.Property<int>("MusicSheedId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MusicSheedId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("FileHash")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("FileModifiedDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("Filesize")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("VoiceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("MusicSheedId");
+
+                    b.HasIndex("ScoreId");
+
+                    b.HasIndex("VoiceId");
+
+                    b.HasIndex("FileHash", "FilePath")
+                        .IsUnique();
+
+                    b.ToTable("MusicSheeds");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
+                {
+                    b.Property<int>("ScoreId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ScoreId"));
+
+                    b.Property<string>("Composer")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Duration")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("ScoreId");
+
+                    b.ToTable("Scores");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.ScoreMusicFolder", b =>
+                {
+                    b.Property<int>("ScoreMusicFolderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ScoreMusicFolderId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("MusicFolderId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ScoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("ScoreMusicFolderId");
+
+                    b.HasIndex("MusicFolderId");
+
+                    b.HasIndex("ScoreId", "MusicFolderId")
+                        .IsUnique();
+
+                    b.ToTable("ScoreMusicFolders");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
+                {
+                    b.Property<int>("VoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("VoiceId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("InstrumentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("VoiceId");
+
+                    b.HasIndex("InstrumentId");
+
+                    b.ToTable("Voices");
+                });
+
             modelBuilder.Entity("Vereinsmanager.Database.Base.Permission", b =>
                 {
                     b.HasOne("Vereinsmanager.Database.Base.Role", "Role")
@@ -277,6 +688,96 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "Voice")
+                        .WithMany("AlternateVoices")
+                        .HasForeignKey("VoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voice");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.EventScore", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Event", "Event")
+                        .WithMany("EventScore")
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
+                        .WithMany()
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Event");
+
+                    b.Navigation("Score");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicFolder", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.Base.Group", "Group")
+                        .WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Group");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheed", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
+                        .WithMany()
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "Voice")
+                        .WithMany("SheetMusic")
+                        .HasForeignKey("VoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Score");
+
+                    b.Navigation("Voice");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.ScoreMusicFolder", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.MusicFolder", "MusicFolder")
+                        .WithMany()
+                        .HasForeignKey("MusicFolderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
+                        .WithMany()
+                        .HasForeignKey("ScoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MusicFolder");
+
+                    b.Navigation("Score");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Instrument", "Instrument")
+                        .WithMany("Voices")
+                        .HasForeignKey("InstrumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Instrument");
+                });
+
             modelBuilder.Entity("Vereinsmanager.Database.Base.Role", b =>
                 {
                     b.Navigation("Permissions");
@@ -285,6 +786,23 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.Base.User", b =>
                 {
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Event", b =>
+                {
+                    b.Navigation("EventScore");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Instrument", b =>
+                {
+                    b.Navigation("Voices");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
+                {
+                    b.Navigation("AlternateVoices");
+
+                    b.Navigation("SheetMusic");
                 });
 #pragma warning restore 612, 618
         }

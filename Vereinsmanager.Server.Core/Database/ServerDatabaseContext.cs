@@ -1,6 +1,7 @@
 #nullable enable
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 
@@ -19,7 +20,15 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
-    
+    public DbSet<AlternateVoice>  AlternateVoices { get; set; }
+    public DbSet<Event> Events { get; set; }
+    public DbSet<EventScore> EventScores { get; set; }
+    public DbSet<Score> Scores { get; set; }
+    public DbSet<Instrument>  Instruments { get; set; }
+    public DbSet<MusicFolder> MusicFolders { get; set; }
+    public DbSet<MusicSheed> MusicSheeds { get; set; }
+    public DbSet<ScoreMusicFolder> ScoreMusicFolders { get; set; }
+    public DbSet<Voice> Voices { get; set; }
     public override int SaveChanges()
     {
         ApplyMetaData();
