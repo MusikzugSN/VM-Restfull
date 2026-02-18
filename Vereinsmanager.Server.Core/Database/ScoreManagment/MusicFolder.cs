@@ -7,9 +7,11 @@ public class MusicFolder: MetaData
 {
     [Key]
     public int MusicFolderId { get; set; }
+    
     [Required]
     public required Group Group { get; set; }
     public int GroupId { get; set; }
+    
     [Required]
     [MaxLength(255)]
     public string Name { get; set; } = string.Empty;

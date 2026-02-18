@@ -7,6 +7,7 @@ public class EventScore: MetaData
 {
     [Key]
     public int EventScoreId { get; set; }
+    
     [Required]
     public required Event Event { get; set; } 
     public int EventId { get; set; }

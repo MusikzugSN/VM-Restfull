@@ -23,8 +23,10 @@ public class MusicSheed : MetaData
     
     [Required]
     public int Filesize { get; set; }
+    
     [Required]
     public int PageCount { get; set; }
+    
     [Required]
     public DateTime FileModifiedDate { get; set; }
     

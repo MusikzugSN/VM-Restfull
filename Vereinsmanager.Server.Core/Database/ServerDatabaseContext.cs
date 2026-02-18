@@ -20,6 +20,8 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
+
+    // ScoreManagement
     public DbSet<AlternateVoice>  AlternateVoices { get; set; }
     public DbSet<Event> Events { get; set; }
     public DbSet<EventScore> EventScores { get; set; }
