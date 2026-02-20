@@ -7,9 +7,9 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(String Username, String Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
-public record UpdateUser(String? Username, String? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
-public record UserRoleTeaser(int RoleId, int GroupId, bool? Delete);
+public record UserCreate(string Username, string Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
+public record UpdateUser(string? Username, string? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
+public record UserRoleTeaser(int RoleId, int GroupId, bool? Deleted);
 
 public class UserService
 {
@@ -167,13 +167,13 @@ public class UserService
         
         var userRolesToRemove = existingUserRoles
             .Where(x => updateUserRoles
-                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Delete ?? false)))
+                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Deleted ?? false)))
             .ToList();
         
         _dbContext.UserRoles.RemoveRange(userRolesToRemove);
 
         var userRolesToAdd = updateUserRoles
-            .Where(x => (x.Delete ?? false) == false)
+            .Where(x => (x.Deleted ?? false) == false)
             .Select(x => new UserRole
             {
                 User = user,
