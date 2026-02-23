@@ -1,6 +1,3 @@
-#nullable enable
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
@@ -29,17 +26,17 @@ public class AuthCotroller : ControllerBase
                     return new LoginResponse(jwtTokenService.GenerateToken(installUser, 0.2));
             }
             
-            return BadRequest(AuthFailedMessage + " username");
+            return BadRequest(AuthFailedMessage);
         }
 
         if (user.PasswordHash != loginRequest.Password)
         {
-            return BadRequest(AuthFailedMessage + " password");
+            return BadRequest(AuthFailedMessage);
         }
 
         if (!user.IsEnabled)
         {
-            return BadRequest(AuthFailedMessage + "  disabled");
+            return BadRequest(AuthFailedMessage);
         }
         
         var token = jwtTokenService.GenerateToken(user, 12.0);
@@ -47,4 +44,13 @@ public class AuthCotroller : ControllerBase
     }
     public record LoginResponse(string Token);
     public record LoginRequest(string Username, string Password);
+    
+    [HttpGet("oAuthProvider")]
+    public ActionResult<OAuthConfig[]> ListProvider(
+        [FromServices] IConfiguration configuration)
+    {
+        return configuration
+            .GetSection("OAuthProviders")
+            .Get<OAuthConfig[]>() ?? [];
+    }
 }

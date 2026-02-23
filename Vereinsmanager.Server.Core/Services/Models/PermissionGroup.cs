@@ -12,7 +12,9 @@ public enum PermissionGroup
     [Description("Gruppenverwaltung (übergreifend)")]
     GroupManagement = 2,
     [Description("Rollenverwaltung (übergreifend)")]
-    RoleManagement = 3
+    RoleManagement = 3,
+    [Description("Logineinstellungen (übergreifend)")]
+    LoginSettings = 4,
 }
 
 public static class PermissionGroupHelper

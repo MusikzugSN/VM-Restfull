@@ -38,6 +38,17 @@ public enum PermissionType
     UpdateRole,
     [PermissionDescription(PermissionGroup.RoleManagement, PermissionCategory.Delete)]
     DeleteRole,
+    
+    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Start)]
+    OpenLoginSettings,
+    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Read)]
+    ListLoginSettings,
+    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Create)]
+    CreateLoginSettings,
+    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Update)]
+    UpdateLoginSettings,
+    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Delete)]
+    DeleteLoginSettings,
 }
 
 public static class PermissionTypeHelper

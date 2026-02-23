@@ -1,8 +1,11 @@
 #nullable enable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.Base;
 
+[Index(nameof(Username), IsUnique = true)]
+[Index(nameof(Provider), nameof(OAuthSubject), IsUnique = true)]
 public class User : MetaData
 {
     [Key]
@@ -11,6 +14,7 @@ public class User : MetaData
     [Required]
     [MaxLength(24)]
     public required string Username { get; set; }
+    
     [Required]
     [MaxLength(255)]
     public required string PasswordHash { get; set; }
@@ -20,6 +24,12 @@ public class User : MetaData
     
     [Required]
     public bool IsEnabled { get; set; }
+    
+    [MaxLength(64)]
+    public string? Provider { get; set; }
+    
+    [MaxLength(255)]
+    public string? OAuthSubject { get; set; }
     
     public virtual ICollection<UserRole> UserRoles { get; set; } = [];
     
