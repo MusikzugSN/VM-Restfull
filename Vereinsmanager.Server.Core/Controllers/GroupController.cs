@@ -1,10 +1,12 @@
 #nullable enable
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 
 namespace Vereinsmanager.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/v1/group")]
 public class GroupController : ControllerBase

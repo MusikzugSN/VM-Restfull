@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 
@@ -53,4 +55,24 @@ public class AuthCotroller : ControllerBase
             .GetSection("OAuthProviders")
             .Get<OAuthConfig[]>() ?? [];
     }
+    
+    [HttpGet("me")]
+    [Authorize]
+    public ActionResult<MeDto> GetCurrentUser(
+        [FromServices] UserContext userContext,
+        [FromServices] IConfiguration configuration)
+    {
+        var user = userContext.GetUserModel();
+        if (user == null)
+            return Unauthorized();
+        
+        var providers = configuration
+            .GetSection("OAuthProviders")
+            .Get<OAuthConfig[]>() ?? [];
+        var provider = providers.FirstOrDefault(p => p.ProviderKey == user.Provider);
+        
+        return new MeDto(user.UserId, user.Username, provider?.DisplayName ?? user.Provider, user.OAuthSubject);
+    }
+    
+    public record MeDto(int UserId, string Username, string? Provider, string? OAuthSubject);
 }

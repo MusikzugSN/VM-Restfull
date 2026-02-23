@@ -1,4 +1,5 @@
 #nullable enable
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
@@ -9,6 +10,7 @@ namespace Vereinsmanager.Controllers;
 public record PermissionGroup(string? Name, List<PermissionValue> PermissionValues);
 public record PermissionValue(PermissionType PermissionType, PermissionCategory PermissionCategory);
 
+[Authorize]
 [ApiController]
 [Route("api/v1/role")]
 public class RoleController : ControllerBase
