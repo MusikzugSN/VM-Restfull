@@ -12,7 +12,20 @@ public enum PermissionGroup
     [Description("Gruppenverwaltung (übergreifend)")]
     GroupManagement = 2,
     [Description("Rollenverwaltung (übergreifend)")]
-    RoleManagement = 3
+    RoleManagement = 3,
+    [Description("Stimmenverwaltung")]
+    VoiceManagement = 4,
+    [Description("Notenverwaltung")]
+    ScoreManagement = 5,
+    [Description("Eventverwaltung")]
+    EventManagement = 6,
+    [Description("Musikmappenverwaltung")]
+    MusicFolderManagement = 7,
+    [Description("Musikblattverwaltung")]
+    MusicSheetManagement = 8,
+    [Description("Instrumentenverwaltung")]
+    InstrumentManagement = 9,
+    
 }
 
 public static class PermissionGroupHelper

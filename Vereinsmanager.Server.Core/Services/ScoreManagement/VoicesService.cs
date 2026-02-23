@@ -5,7 +5,7 @@ using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
-namespace Vereinsmanager.Services;
+namespace Vereinsmanager.Services.ScoreManagement;
 
 public record CreateVoice(string Name, int InstrumentId);
 public record UpdateVoice(string? Name, int? InstrumentId);
@@ -39,7 +39,7 @@ public class VoiceService
         return q.FirstOrDefault(v => v.VoiceId == voiceId);
     }
 
-    public ReturnValue<Voice[]> GetVoices(bool includeInstrument = true, bool includeAlternateVoices = true)
+    public ReturnValue<Voice[]> ListVoices(bool includeInstrument = true, bool includeAlternateVoices = true)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), "read all");

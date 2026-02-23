@@ -9,14 +9,14 @@ public class Voice : MetaData
 
     [Required]
     [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; }
     
     [Required]
     public required Instrument Instrument { get; set; } 
     public int InstrumentId { get; set; }
     
     [Required]
-    public List<MusicSheed> SheetMusic { get; set; } = new();
+    public List<MusicSheet> MusicSheets { get; set; } = new();
     [Required]
     public List<AlternateVoice> AlternateVoices { get; set; } = new();
 }

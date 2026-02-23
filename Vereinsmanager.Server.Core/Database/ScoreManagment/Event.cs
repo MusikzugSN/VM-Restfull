@@ -10,7 +10,7 @@ public class Event : MetaData
 
     [Required]
     [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; }
     
     [Required]
     public DateTime Date { get; set; }

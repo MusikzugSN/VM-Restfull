@@ -4,7 +4,7 @@ using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
-namespace Vereinsmanager.Services;
+namespace Vereinsmanager.Services.ScoreManagement;
 
 public record CreateScore(string Title, string Composer, string Link, int Duration);
 public record UpdateScore(string? Title, string? Composer, string? Link, int? Duration);
@@ -34,7 +34,7 @@ public class ScoreService
 
     public ReturnValue<Score[]> ListScores()
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScores))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), "read all");
 
         return _dbContext.Scores.ToArray();
@@ -43,7 +43,7 @@ public class ScoreService
 
     public ReturnValue<Score> CreateScore(CreateScore dto)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScores))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScore))
             return ErrorUtils.NotPermitted(nameof(Score), dto.Title);
 
         var duplicate = _dbContext.Scores.Any(s => s.Title == dto.Title);
@@ -68,7 +68,7 @@ public class ScoreService
 
     public ReturnValue<Score> UpdateScore(int scoreId, UpdateScore dto)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateScores))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateScore))
             return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
 
         var score = LoadScoreById(scoreId);
@@ -101,7 +101,7 @@ public class ScoreService
 
     public ReturnValue<bool> DeleteScore(int scoreId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteScores))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteScore))
             return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
 
         var score = LoadScoreById(scoreId);

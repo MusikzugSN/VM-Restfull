@@ -8,11 +8,11 @@ public class Instrument:MetaData
     
     [Required]
     [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Type { get; set; } = string.Empty;
+    public required string Type { get; set; }
     
     [Required]
     public List<Voice> Voices { get; set; } = new();

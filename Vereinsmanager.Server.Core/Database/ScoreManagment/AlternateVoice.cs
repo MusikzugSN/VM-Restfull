@@ -11,7 +11,7 @@ public class AlternateVoice
     
     [Required]
     [MaxLength(255)]
-    public string Alternative { get; set; } = string.Empty;
+    public required string Alternative { get; set; }
     
     [Required]
     public int Priority { get; set; }

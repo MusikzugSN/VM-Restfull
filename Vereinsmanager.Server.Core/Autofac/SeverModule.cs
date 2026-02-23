@@ -2,7 +2,9 @@
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
+using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.ScoreManagement;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Autofac;
@@ -27,6 +29,14 @@ public class SeverModule : Module
         builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<RoleService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PermissionService>().AsSelf().InstancePerLifetimeScope();
+        
+        //ScoreManagement
+        builder.RegisterType<ScoreService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<MusicSheetService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<MusicFolderService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<VoiceService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<EventService>().AsSelf().InstancePerLifetimeScope();
         
     }
 
