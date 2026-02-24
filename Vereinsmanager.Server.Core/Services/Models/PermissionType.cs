@@ -39,15 +39,15 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.RoleManagement, PermissionCategory.Delete)]
     DeleteRole,
     
-    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Start)]
+    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Start)]
     OpenLoginSettings,
-    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Read)]
+    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Read)]
     ListLoginSettings,
-    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Create)]
+    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Create)]
     CreateLoginSettings,
-    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Update)]
+    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Update)]
     UpdateLoginSettings,
-    [PermissionDescription(PermissionGroup.UserManagement, PermissionCategory.Delete)]
+    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Delete)]
     DeleteLoginSettings,
 }
 
