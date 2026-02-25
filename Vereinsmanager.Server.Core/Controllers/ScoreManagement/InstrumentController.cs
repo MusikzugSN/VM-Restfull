@@ -1,8 +1,5 @@
-#nullable enable
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
-using Vereinsmanager.Services.Models;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -16,33 +13,32 @@ public class InstrumentController : ControllerBase
         [FromQuery] bool includeVoices,
         [FromServices] InstrumentService instrumentService)
     {
-        var instruments = instrumentService.ListInstruments(includeVoices);
+        var instrumentsResult = instrumentService.ListInstruments(includeVoices);
 
-        if (instruments.IsSuccessful())
+        if (instrumentsResult.IsSuccessful())
         {
-            return instruments.GetValue()!
-                .Select(i => new InstrumentDto(i))
+            return instrumentsResult.GetValue()
+                .Select(instrument => new InstrumentDto(instrument))
                 .ToArray();
         }
 
-        return (ObjectResult)instruments;
+        return (ObjectResult)instrumentsResult;
     }
 
-    [HttpGet]
-    [Route("{instrumentId:int}")]
+    [HttpGet("{instrumentId:int}")]
     public ActionResult<InstrumentDto> GetInstrumentById(
         [FromRoute] int instrumentId,
         [FromQuery] bool includeVoices,
         [FromServices] InstrumentService instrumentService)
     {
-        var instrument = instrumentService.GetInstrumentById(instrumentId, includeVoices);
+        var instrumentResult = instrumentService.GetInstrumentById(instrumentId, includeVoices);
 
-        if (instrument.IsSuccessful())
+        if (instrumentResult.IsSuccessful())
         {
-            return new InstrumentDto(instrument.GetValue()!);
+            return new InstrumentDto(instrumentResult.GetValue());
         }
 
-        return (ObjectResult)instrument;
+        return (ObjectResult)instrumentResult;
     }
 
     [HttpPost]
@@ -50,46 +46,44 @@ public class InstrumentController : ControllerBase
         [FromBody] CreateInstrument createInstrument,
         [FromServices] InstrumentService instrumentService)
     {
-        var created = instrumentService.CreateInstrument(createInstrument);
+        var createdResult = instrumentService.CreateInstrument(createInstrument);
 
-        if (created.IsSuccessful())
+        if (createdResult.IsSuccessful())
         {
-            return new InstrumentDto(created.GetValue()!);
+            return new InstrumentDto(createdResult.GetValue());
         }
 
-        return (ObjectResult)created;
+        return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("{instrumentId:int}")]
+    [HttpPatch("{instrumentId:int}")]
     public ActionResult<InstrumentDto> UpdateInstrument(
         [FromRoute] int instrumentId,
         [FromBody] UpdateInstrument updateInstrument,
         [FromServices] InstrumentService instrumentService)
     {
-        var updated = instrumentService.UpdateInstrument(instrumentId, updateInstrument);
+        var updatedResult = instrumentService.UpdateInstrument(instrumentId, updateInstrument);
 
-        if (updated.IsSuccessful())
+        if (updatedResult.IsSuccessful())
         {
-            return new InstrumentDto(updated.GetValue()!);
+            return new InstrumentDto(updatedResult.GetValue());
         }
 
-        return (ObjectResult)updated;
+        return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("{instrumentId:int}")]
+    [HttpDelete("{instrumentId:int}")]
     public ActionResult<bool> DeleteInstrument(
         [FromRoute] int instrumentId,
         [FromServices] InstrumentService instrumentService)
     {
-        var deleted = instrumentService.DeleteInstrument(instrumentId);
+        var deletedResult = instrumentService.DeleteInstrument(instrumentId);
 
-        if (deleted.IsSuccessful())
+        if (deletedResult.IsSuccessful())
         {
-            return deleted.GetValue();
+            return deletedResult.GetValue();
         }
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)deletedResult;
     }
 }

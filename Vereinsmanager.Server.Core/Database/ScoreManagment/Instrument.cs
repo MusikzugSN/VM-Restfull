@@ -1,7 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
-public class Instrument:MetaData
+
+[Index(nameof(Name), IsUnique = true)]
+public class Instrument : MetaData
 {
     [Required]
     public int InstrumentId { get; set; }

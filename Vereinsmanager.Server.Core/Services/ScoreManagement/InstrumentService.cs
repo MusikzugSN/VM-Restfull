@@ -1,4 +1,3 @@
-#nullable enable
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
@@ -21,20 +20,13 @@ public class InstrumentService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
-
     public Instrument? LoadInstrumentById(int instrumentId, bool includeVoices = false)
     {
         IQueryable<Instrument> q = _dbContext.Instruments;
         if (includeVoices) q = q.Include(i => i.Voices);
         return q.FirstOrDefault(i => i.InstrumentId == instrumentId);
     }
-
-    public Instrument? LoadInstrumentByName(string name)
-    {
-        return _dbContext.Instruments.FirstOrDefault(i => i.Name == name);
-    }
-
-
+    
     public ReturnValue<Instrument[]> ListInstruments(bool includeVoices = false)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
@@ -63,15 +55,14 @@ public class InstrumentService
         return instrument;
     }
 
-
     public ReturnValue<Instrument> CreateInstrument(CreateInstrument dto)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateInstrument))
             return ErrorUtils.NotPermitted(nameof(Instrument), dto.Name);
 
-        var duplicate = _dbContext.Instruments.Any(i => i.Name == dto.Name && i.Type == dto.Type);
+        var duplicate = _dbContext.Instruments.Any(i => i.Name == dto.Name);
         if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(Instrument), $"{dto.Name} (Type={dto.Type})");
+            return ErrorUtils.AlreadyExists(nameof(Instrument), dto.Name);
 
         var instrument = new Instrument
         {
@@ -98,11 +89,10 @@ public class InstrumentService
 
         var wouldDuplicate = _dbContext.Instruments.Any(i =>
             i.InstrumentId != instrumentId &&
-            i.Name == newName &&
-            i.Type == newType);
+            i.Name == newName);
 
         if (wouldDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(Instrument), $"{newName} (Type={newType})");
+            return ErrorUtils.AlreadyExists(nameof(Instrument), newName);
 
         instrument.Name = newName;
         instrument.Type = newType;
@@ -110,7 +100,6 @@ public class InstrumentService
         _dbContext.SaveChanges();
         return instrument;
     }
-
 
     public ReturnValue<bool> DeleteInstrument(int instrumentId)
     {

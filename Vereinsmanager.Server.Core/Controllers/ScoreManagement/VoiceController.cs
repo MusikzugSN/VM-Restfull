@@ -1,4 +1,3 @@
-#nullable enable
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;

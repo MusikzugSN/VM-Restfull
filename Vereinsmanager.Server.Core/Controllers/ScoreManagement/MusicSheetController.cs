@@ -1,4 +1,3 @@
-#nullable enable
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
@@ -19,20 +18,20 @@ public class MusicSheetController : ControllerBase
         [FromQuery] bool includeVoice,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var sheets = musicSheetService.ListMusicSheets(
+        var sheetsResult = musicSheetService.ListMusicSheets(
             scoreId: scoreId,
             voiceId: voiceId,
             includeScore: includeScore,
             includeVoice: includeVoice);
 
-        if (sheets.IsSuccessful())
+        if (sheetsResult.IsSuccessful())
         {
-            return sheets.GetValue()!
-                .Select(ms => new MusicSheetDto(ms))
+            return sheetsResult.GetValue()
+                .Select(sheet => new MusicSheetDto(sheet))
                 .ToArray();
         }
 
-        return (ObjectResult)sheets;
+        return (ObjectResult)sheetsResult;
     }
 
     [HttpPost]
@@ -40,14 +39,14 @@ public class MusicSheetController : ControllerBase
         [FromBody] CreateMusicSheet createMusicSheet,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var created = musicSheetService.CreateMusicSheet(createMusicSheet);
+        var createdResult = musicSheetService.CreateMusicSheet(createMusicSheet);
 
-        if (created.IsSuccessful())
+        if (createdResult.IsSuccessful())
         {
-            return new MusicSheetDto(created.GetValue()!);
+            return new MusicSheetDto(createdResult.GetValue());
         }
 
-        return (ObjectResult)created;
+        return (ObjectResult)createdResult;
     }
 
     [HttpPatch]
@@ -57,14 +56,14 @@ public class MusicSheetController : ControllerBase
         [FromBody] UpdateMusicSheet updateMusicSheet,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var updated = musicSheetService.UpdateMusicSheet(musicSheetId, updateMusicSheet);
+        var updatedResult = musicSheetService.UpdateMusicSheet(musicSheetId, updateMusicSheet);
 
-        if (updated.IsSuccessful())
+        if (updatedResult.IsSuccessful())
         {
-            return new MusicSheetDto(updated.GetValue()!);
+            return new MusicSheetDto(updatedResult.GetValue());
         }
 
-        return (ObjectResult)updated;
+        return (ObjectResult)updatedResult;
     }
 
     [HttpDelete]
@@ -73,13 +72,13 @@ public class MusicSheetController : ControllerBase
         [FromRoute] int musicSheetId,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var deleted = musicSheetService.DeleteMusicSheet(musicSheetId);
+        var deletedResult = musicSheetService.DeleteMusicSheet(musicSheetId);
 
-        if (deleted.IsSuccessful())
+        if (deletedResult.IsSuccessful())
         {
-            return deleted.GetValue();
+            return deletedResult.GetValue();
         }
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)deletedResult;
     }
 }

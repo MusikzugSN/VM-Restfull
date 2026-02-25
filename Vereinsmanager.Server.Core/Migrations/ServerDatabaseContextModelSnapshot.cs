@@ -57,7 +57,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("GroupId");
 
-                    b.ToTable("Groups");
+                    b.ToTable("Groups", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.Permission", b =>
@@ -101,7 +101,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.Role", b =>
@@ -139,7 +139,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("RoleId");
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.User", b =>
@@ -188,7 +188,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.UserRole", b =>
@@ -236,7 +236,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("UserRoles");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
@@ -265,7 +265,7 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("Alternative", "VoiceId", "Priority")
                         .IsUnique();
 
-                    b.ToTable("AlternateVoices");
+                    b.ToTable("AlternateVoices", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Event", b =>
@@ -306,7 +306,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("EventId");
 
-                    b.ToTable("Events");
+                    b.ToTable("Events", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.EventScore", b =>
@@ -350,7 +350,7 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("EventId", "ScoreId")
                         .IsUnique();
 
-                    b.ToTable("EventScores");
+                    b.ToTable("EventScores", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Instrument", b =>
@@ -393,7 +393,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("InstrumentId");
 
-                    b.ToTable("Instruments");
+                    b.ToTable("Instruments", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicFolder", b =>
@@ -436,7 +436,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasIndex("GroupId");
 
-                    b.ToTable("MusicFolders");
+                    b.ToTable("MusicFolders", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheet", b =>
@@ -501,7 +501,7 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("FileHash", "FilePath")
                         .IsUnique();
 
-                    b.ToTable("MusicSheets");
+                    b.ToTable("MusicSheets", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
@@ -552,7 +552,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("ScoreId");
 
-                    b.ToTable("Scores");
+                    b.ToTable("Scores", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.ScoreMusicFolder", b =>
@@ -599,7 +599,7 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("ScoreId", "MusicFolderId")
                         .IsUnique();
 
-                    b.ToTable("ScoreMusicFolders");
+                    b.ToTable("ScoreMusicFolders", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
@@ -642,7 +642,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasIndex("InstrumentId");
 
-                    b.ToTable("Voices");
+                    b.ToTable("Voices", (string)null);
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.Permission", b =>

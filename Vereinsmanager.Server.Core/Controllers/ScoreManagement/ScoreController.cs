@@ -1,9 +1,8 @@
-#nullable enable
 using Microsoft.AspNetCore.Mvc;
+using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 using Vereinsmanager.Services.Models;
-using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -15,16 +14,30 @@ public class ScoreController : ControllerBase
     [HttpGet]
     public ActionResult<ScoreDto[]> GetScores([FromServices] ScoreService scoreService)
     {
-        var scores = scoreService.ListScores();
+        var scoresResult = scoreService.ListScores();
 
-        if (scores.IsSuccessful())
+        if (scoresResult.IsSuccessful())
         {
-            return scores.GetValue()!
-                .Select(s => new ScoreDto(s))
+            return scoresResult.GetValue()
+                .Select(score => new ScoreDto(score))
                 .ToArray();
         }
 
-        return (ObjectResult)scores;
+        return (ObjectResult)scoresResult;
+    }
+    [HttpGet("{scoreId:int}")]
+    public ActionResult<ScoreDto> GetScoreById(
+        [FromRoute] int scoreId,
+        [FromServices] ScoreService scoreService)
+    {
+        var scoreResult = scoreService.LoadScoreById(scoreId);
+
+        if (scoreResult == null)
+        {
+            return NotFound();
+        }
+
+        return new ScoreDto(scoreResult);
     }
 
     [HttpPost]
@@ -32,14 +45,14 @@ public class ScoreController : ControllerBase
         [FromBody] CreateScore createScore,
         [FromServices] ScoreService scoreService)
     {
-        var newScore = scoreService.CreateScore(createScore);
+        var createdResult = scoreService.CreateScore(createScore);
 
-        if (newScore.IsSuccessful())
+        if (createdResult.IsSuccessful())
         {
-            return new ScoreDto(newScore.GetValue()!);
+            return new ScoreDto(createdResult.GetValue());
         }
 
-        return (ObjectResult)newScore;
+        return (ObjectResult)createdResult;
     }
 
     [HttpPatch]
@@ -49,14 +62,14 @@ public class ScoreController : ControllerBase
         [FromBody] UpdateScore updateScore,
         [FromServices] ScoreService scoreService)
     {
-        var updatedScore = scoreService.UpdateScore(scoreId, updateScore);
+        var updatedResult = scoreService.UpdateScore(scoreId, updateScore);
 
-        if (updatedScore.IsSuccessful())
+        if (updatedResult.IsSuccessful())
         {
-            return new ScoreDto(updatedScore.GetValue()!);
+            return new ScoreDto(updatedResult.GetValue());
         }
 
-        return (ObjectResult)updatedScore;
+        return (ObjectResult)updatedResult;
     }
 
     [HttpDelete]
@@ -65,13 +78,13 @@ public class ScoreController : ControllerBase
         [FromRoute] int scoreId,
         [FromServices] ScoreService scoreService)
     {
-        var deleted = scoreService.DeleteScore(scoreId);
+        var deletedResult = scoreService.DeleteScore(scoreId);
 
-        if (deleted.IsSuccessful())
+        if (deletedResult.IsSuccessful())
         {
-            return deleted.GetValue();
+            return deletedResult.GetValue();
         }
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)deletedResult;
     }
 }

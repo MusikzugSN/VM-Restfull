@@ -90,26 +90,26 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Delete)]
     DeleteEventScore,
     
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Start)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]
     OpenMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Read)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Read)]
     ListMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Create)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Create)]
     CreateMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Update)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Update)]
     UpdateMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Delete)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
     DeleteMusicFolder,
     
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Start)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]
     OpenScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Read)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Read)]
     ListScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Create)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Create)]
     CreateScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Update)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Update)]
     UpdateScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Delete)]
+    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
     DeleteScoreMusicFolder,
    
     [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]

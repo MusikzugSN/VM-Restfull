@@ -1,9 +1,11 @@
-using Vereinsmanager.Database.Base;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
+using Vereinsmanager.Database.Base;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
-public class MusicFolder: MetaData
+[Index(nameof(GroupId), nameof(Name), IsUnique = true)]
+public class MusicFolder : MetaData
 {
     [Key]
     public int MusicFolderId { get; set; }

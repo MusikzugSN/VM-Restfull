@@ -3,7 +3,7 @@ using Vereinsmanager.Database.ScoreManagment;
 
 namespace Vereinsmanager.Controllers.DataTransferObjects;
 
-public class AlternateVoiceDto
+public class AlternateVoiceDto : MetaDataDto
 {
     public int AlternateVoiceId { get; init; }
     public string Alternative { get; init; }
