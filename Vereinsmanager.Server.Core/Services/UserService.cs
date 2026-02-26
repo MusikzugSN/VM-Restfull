@@ -7,9 +7,9 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(String Username, String Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
-public record UpdateUser(String? Username, String? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
-public record UserRoleTeaser(int RoleId, int GroupId, bool? Delete);
+public record UserCreate(string Username, string? Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
+public record UpdateUser(string? Username, string? Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
+public record UserRoleTeaser(int RoleId, int GroupId, bool? Deleted);
 
 public class UserService
 {
@@ -80,9 +80,11 @@ public class UserService
         var newUser = new User
         {
             Username = username,
-            PasswordHash = userCreate.Password,
+            PasswordHash = userCreate.Password?.Length > 0 ? userCreate.Password : null,
             IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator),
-            IsEnabled = userCreate.IsEnabled ?? false
+            IsEnabled = userCreate.IsEnabled ?? false,
+            Provider = userCreate.Provider,
+            OAuthSubject = userCreate.OAuthSubject
         };
         
         if (userCreate.Roles?.Count > 0)
@@ -114,7 +116,7 @@ public class UserService
 
         if (updateUser.Password is not null)
         {
-            userResult.PasswordHash = updateUser.Password;
+            userResult.PasswordHash = updateUser.Password?.Length > 0 ? updateUser.Password : null;
         }
 
         if (updateUser.IsAdmin is not null && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
@@ -125,6 +127,16 @@ public class UserService
         if (updateUser.IsEnabled is not null)
         {
             userResult.IsEnabled = updateUser.IsEnabled ?? false;
+        }
+        
+        if (updateUser.Provider is not null)
+        {
+            userResult.Provider = updateUser.Provider;
+        }
+        
+        if (updateUser.OAuthSubject is not null)
+        {
+            userResult.OAuthSubject = updateUser.OAuthSubject;
         }
 
         if (updateUser.Roles?.Count > 0)
@@ -167,13 +179,13 @@ public class UserService
         
         var userRolesToRemove = existingUserRoles
             .Where(x => updateUserRoles
-                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Delete ?? false)))
+                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Deleted ?? false)))
             .ToList();
         
         _dbContext.UserRoles.RemoveRange(userRolesToRemove);
 
         var userRolesToAdd = updateUserRoles
-            .Where(x => (x.Delete ?? false) == false)
+            .Where(x => (x.Deleted ?? false) == false)
             .Select(x => new UserRole
             {
                 User = user,

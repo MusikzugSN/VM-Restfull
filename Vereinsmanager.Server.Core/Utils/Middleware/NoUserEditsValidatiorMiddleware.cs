@@ -22,9 +22,9 @@ public class NoUserEditsValidatiorMiddleware
             return;
         }
         
-        var tokenUserEditTimeStamp = httpContext.User.Claims.FirstOrDefault(x => x.Type == "last_edited")?.Value;
-        var userModeTimeStamp = userContext.GetUserModel()?.UpdatedAt.Ticks.ToString();
-        if (tokenUserEditTimeStamp != userModeTimeStamp)
+        var tokenUserEditTimeStamp = Convert.ToInt64(httpContext.User.FindFirst(JwtRegisteredClaimNames.Iat)?.Value);
+        var userModeTimeStamp = userContext.GetUserModel()?.UpdatedAt.Ticks;
+        if (tokenUserEditTimeStamp > userModeTimeStamp)
         {
             httpContext.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;

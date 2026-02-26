@@ -1,8 +1,9 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.Base;
 
+[Index(nameof(Name), IsUnique = true)]
 public class Role : MetaData
 {
     [Key]
@@ -10,7 +11,7 @@ public class Role : MetaData
     
     [Required]
     [MaxLength(24)]
-    public string Name { get; set; }
+    public required string Name { get; set; }
     
     public virtual ICollection<Permission> Permissions { get; private set; } = [];
     
