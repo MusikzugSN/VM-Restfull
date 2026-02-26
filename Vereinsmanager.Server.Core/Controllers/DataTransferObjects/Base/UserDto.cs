@@ -11,6 +11,7 @@ public class UserDto : MetaDataDto
     public bool IsEnabled { get; init; }
     public string? Provider { get; init; }
     public string? OAuthSubject { get; init; }
+    public bool IsPasswordSet { get; init; }
     
     public UserGroupTeaser[] Roles { get; init; }
     
@@ -20,6 +21,8 @@ public class UserDto : MetaDataDto
         Username = user.Username;
         IsAdmin = user.IsAdmin;
         IsEnabled = user.IsEnabled;
+        IsPasswordSet = user.PasswordHash != null;
+        
         Provider = user.Provider;
         OAuthSubject = user.OAuthSubject;
         Roles = user.UserRoles

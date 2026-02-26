@@ -15,9 +15,8 @@ public class User : MetaData
     [MaxLength(24)]
     public required string Username { get; set; }
     
-    [Required]
     [MaxLength(255)]
-    public required string PasswordHash { get; set; }
+    public string? PasswordHash { get; set; }
 
     [Required] 
     public bool IsAdmin { get; set; }

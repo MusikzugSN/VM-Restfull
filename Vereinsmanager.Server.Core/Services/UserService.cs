@@ -7,7 +7,7 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(string Username, string Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
+public record UserCreate(string Username, string? Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
 public record UpdateUser(string? Username, string? Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
 public record UserRoleTeaser(int RoleId, int GroupId, bool? Deleted);
 
@@ -80,7 +80,7 @@ public class UserService
         var newUser = new User
         {
             Username = username,
-            PasswordHash = userCreate.Password,
+            PasswordHash = userCreate.Password?.Length > 0 ? userCreate.Password : null,
             IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator),
             IsEnabled = userCreate.IsEnabled ?? false,
             Provider = userCreate.Provider,
@@ -116,7 +116,7 @@ public class UserService
 
         if (updateUser.Password is not null)
         {
-            userResult.PasswordHash = updateUser.Password;
+            userResult.PasswordHash = updateUser.Password?.Length > 0 ? updateUser.Password : null;
         }
 
         if (updateUser.IsAdmin is not null && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
