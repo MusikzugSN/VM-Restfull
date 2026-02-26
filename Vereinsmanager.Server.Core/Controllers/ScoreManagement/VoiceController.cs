@@ -1,8 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
-using Vereinsmanager.Services;
-using Vereinsmanager.Services.Models;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Services.Models;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -76,7 +74,6 @@ public class VoiceController : ControllerBase
 
         return (ObjectResult)deleted;
     }
-
 
     [HttpGet]
     [Route("{voiceId:int}/alternateVoices")]

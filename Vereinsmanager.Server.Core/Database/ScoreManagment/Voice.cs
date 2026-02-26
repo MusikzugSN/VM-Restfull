@@ -21,6 +21,11 @@ public class Voice : MetaData
     [InverseProperty(nameof(AlternateVoice.Voice))]
     public List<AlternateVoice> AlternateVoices { get; set; } = new();
 
-    [InverseProperty(nameof(AlternateVoice.AlternativeVoice))]
+    [InverseProperty(nameof(AlternateVoice.AlternativeVoiceNav))]
     public List<AlternateVoice> UsedAsAlternativeIn { get; set; } = new();
+
+    public int? Alternative { get; set; }
+
+    [ForeignKey(nameof(Alternative))]
+    public Voice? AlternativeNav { get; set; }
 }

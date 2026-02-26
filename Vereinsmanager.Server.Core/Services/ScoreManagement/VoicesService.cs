@@ -7,11 +7,11 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateVoice(string Name, int InstrumentId);
-public record UpdateVoice(string? Name, int? InstrumentId);
+public record CreateVoice(string Name, int InstrumentId, int? Alternative);
+public record UpdateVoice(string? Name, int? InstrumentId, int? Alternative);
 
-public record CreateAlternateVoice(int AlternativeVoiceId, int Priority);
-public record UpdateAlternateVoice(int? AlternativeVoiceId, int? Priority);
+public record CreateAlternateVoice(int Alternative, int Priority);
+public record UpdateAlternateVoice(int? Alternative, int? Priority);
 
 public class VoiceService
 {
@@ -52,33 +52,38 @@ public class VoiceService
         return q.ToArray();
     }
 
-    public ReturnValue<Voice> CreateVoice(CreateVoice createVoice)
+    public ReturnValue<Voice> CreateVoice(CreateVoice dto)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateVoice))
-            return ErrorUtils.NotPermitted(nameof(Voice), createVoice.Name);
+            return ErrorUtils.NotPermitted(nameof(Voice), dto.Name);
 
-        var instrumentExists = _dbContext.Instruments.Any(i => i.InstrumentId == createVoice.InstrumentId);
+        var instrumentExists = _dbContext.Instruments.Any(i => i.InstrumentId == dto.InstrumentId);
         if (!instrumentExists)
-            return ErrorUtils.ValueNotFound(nameof(Instrument), createVoice.InstrumentId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(Instrument), dto.InstrumentId.ToString());
+
+        if (dto.Alternative.HasValue)
+        {
+            var altExists = _dbContext.Voices.Any(v => v.VoiceId == dto.Alternative.Value);
+            if (!altExists)
+                return ErrorUtils.ValueNotFound(nameof(Voice), dto.Alternative.Value.ToString());
+        }
 
         var duplicate = _dbContext.Voices.Any(v =>
-            v.Name == createVoice.Name && v.InstrumentId == createVoice.InstrumentId);
+            v.Name == dto.Name && v.InstrumentId == dto.InstrumentId);
 
         if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(Voice),
-                $"{createVoice.Name} (InstrumentId={createVoice.InstrumentId})");
+            return ErrorUtils.AlreadyExists(nameof(Voice), $"{dto.Name} (InstrumentId={dto.InstrumentId})");
 
-        var instrument = _dbContext.Instruments
-            .FirstOrDefault(i => i.InstrumentId == createVoice.InstrumentId);
-
+        var instrument = _dbContext.Instruments.FirstOrDefault(i => i.InstrumentId == dto.InstrumentId);
         if (instrument == null)
-            return ErrorUtils.ValueNotFound(nameof(Instrument), createVoice.InstrumentId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(Instrument), dto.InstrumentId.ToString());
 
         var newVoice = new Voice
         {
-            Name = createVoice.Name,
-            InstrumentId = createVoice.InstrumentId,
-            Instrument = instrument
+            Name = dto.Name,
+            InstrumentId = dto.InstrumentId,
+            Instrument = instrument,
+            Alternative = dto.Alternative
         };
 
         _dbContext.Voices.Add(newVoice);
@@ -86,7 +91,7 @@ public class VoiceService
         return newVoice;
     }
 
-    public ReturnValue<Voice> UpdateVoice(int voiceId, UpdateVoice updateVoice)
+    public ReturnValue<Voice> UpdateVoice(int voiceId, UpdateVoice dto)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), voiceId.ToString());
@@ -95,12 +100,23 @@ public class VoiceService
         if (voice == null)
             return ErrorUtils.ValueNotFound(nameof(Voice), voiceId.ToString());
 
-        var newName = updateVoice.Name ?? voice.Name;
-        var newInstrumentId = updateVoice.InstrumentId ?? voice.InstrumentId;
+        var newName = dto.Name ?? voice.Name;
+        var newInstrumentId = dto.InstrumentId ?? voice.InstrumentId;
+        var newAlternative = dto.Alternative ?? voice.Alternative;
 
         var instrumentExists = _dbContext.Instruments.Any(i => i.InstrumentId == newInstrumentId);
         if (!instrumentExists)
             return ErrorUtils.ValueNotFound(nameof(Instrument), newInstrumentId.ToString());
+
+        if (newAlternative.HasValue)
+        {
+            if (newAlternative.Value == voiceId)
+                return ErrorUtils.NotPermitted(nameof(Voice), "alternative cannot equal self");
+
+            var altExists = _dbContext.Voices.Any(v => v.VoiceId == newAlternative.Value);
+            if (!altExists)
+                return ErrorUtils.ValueNotFound(nameof(Voice), newAlternative.Value.ToString());
+        }
 
         var wouldDuplicate = _dbContext.Voices.Any(v =>
             v.VoiceId != voiceId &&
@@ -112,6 +128,7 @@ public class VoiceService
 
         voice.Name = newName;
         voice.InstrumentId = newInstrumentId;
+        voice.Alternative = newAlternative;
 
         _dbContext.SaveChanges();
         return voice;
@@ -171,17 +188,20 @@ public class VoiceService
         if (voice == null)
             return ErrorUtils.ValueNotFound(nameof(Voice), voiceId.ToString());
 
-        var alternativeVoice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == dto.AlternativeVoiceId);
+        var alternativeVoice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == dto.Alternative);
         if (alternativeVoice == null)
-            return ErrorUtils.ValueNotFound(nameof(Voice), dto.AlternativeVoiceId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(Voice), dto.Alternative.ToString());
+
+        if (dto.Alternative == voiceId)
+            return ErrorUtils.NotPermitted(nameof(AlternateVoice), "alternative cannot equal voiceId");
 
         var duplicateAlt = _dbContext.AlternateVoices.Any(av =>
             av.VoiceId == voiceId &&
-            av.AlternativeVoiceId == dto.AlternativeVoiceId);
+            av.Alternative == dto.Alternative);
 
         if (duplicateAlt)
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice),
-                $"VoiceId={voiceId} AlternativeVoiceId={dto.AlternativeVoiceId}");
+                $"VoiceId={voiceId} Alternative={dto.Alternative}");
 
         var duplicatePriority = _dbContext.AlternateVoices.Any(av =>
             av.VoiceId == voiceId &&
@@ -191,17 +211,12 @@ public class VoiceService
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice),
                 $"VoiceId={voiceId} Priority={dto.Priority}");
 
-        if (dto.AlternativeVoiceId == voiceId)
-            return ErrorUtils.NotPermitted(nameof(AlternateVoice), "alternative voice cannot equal base voice");
-
         var alt = new AlternateVoice
         {
             VoiceId = voiceId,
             Voice = voice,
-
-            AlternativeVoiceId = dto.AlternativeVoiceId,
-            AlternativeVoice = alternativeVoice,
-
+            Alternative = dto.Alternative,
+            AlternativeVoiceNav = alternativeVoice,
             Priority = dto.Priority
         };
 
@@ -219,24 +234,24 @@ public class VoiceService
         if (alt == null)
             return ErrorUtils.ValueNotFound(nameof(AlternateVoice), alternateVoiceId.ToString());
 
-        var newAlternativeVoiceId = dto.AlternativeVoiceId ?? alt.AlternativeVoiceId;
+        var newAlternative = dto.Alternative ?? alt.Alternative;
         var newPriority = dto.Priority ?? alt.Priority;
 
-        var newAltVoice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == newAlternativeVoiceId);
-        if (newAltVoice == null)
-            return ErrorUtils.ValueNotFound(nameof(Voice), newAlternativeVoiceId.ToString());
+        var newAlternativeVoice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == newAlternative);
+        if (newAlternativeVoice == null)
+            return ErrorUtils.ValueNotFound(nameof(Voice), newAlternative.ToString());
 
-        if (newAlternativeVoiceId == voiceId)
-            return ErrorUtils.NotPermitted(nameof(AlternateVoice), "alternative voice cannot equal base voice");
+        if (newAlternative == voiceId)
+            return ErrorUtils.NotPermitted(nameof(AlternateVoice), "alternative cannot equal voiceId");
 
         var duplicateAlt = _dbContext.AlternateVoices.Any(av =>
             av.AlternateVoiceId != alternateVoiceId &&
             av.VoiceId == voiceId &&
-            av.AlternativeVoiceId == newAlternativeVoiceId);
+            av.Alternative == newAlternative);
 
         if (duplicateAlt)
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice),
-                $"VoiceId={voiceId} AlternativeVoiceId={newAlternativeVoiceId}");
+                $"VoiceId={voiceId} Alternative={newAlternative}");
 
         var duplicatePriority = _dbContext.AlternateVoices.Any(av =>
             av.AlternateVoiceId != alternateVoiceId &&
@@ -247,8 +262,8 @@ public class VoiceService
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice),
                 $"VoiceId={voiceId} Priority={newPriority}");
 
-        alt.AlternativeVoiceId = newAlternativeVoiceId;
-        alt.AlternativeVoice = newAltVoice;
+        alt.Alternative = newAlternative;
+        alt.AlternativeVoiceNav = newAlternativeVoice;
         alt.Priority = newPriority;
 
         _dbContext.SaveChanges();
