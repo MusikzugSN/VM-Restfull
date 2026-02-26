@@ -1,4 +1,3 @@
-#nullable enable
 using Vereinsmanager.Database.ScoreManagment;
 
 namespace Vereinsmanager.Controllers.DataTransferObjects;

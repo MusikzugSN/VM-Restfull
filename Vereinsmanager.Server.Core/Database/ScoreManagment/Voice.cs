@@ -1,9 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
-[Index(nameof(InstrumentId), nameof(Name), IsUnique = true)]
 public class Voice : MetaData
 {
     [Key]
@@ -12,14 +11,16 @@ public class Voice : MetaData
     [Required]
     [MaxLength(100)]
     public required string Name { get; set; }
-    
+
     [Required]
-    public required Instrument Instrument { get; set; } 
+    public required Instrument Instrument { get; set; }
     public int InstrumentId { get; set; }
-    
-    [Required]
+
     public List<MusicSheet> MusicSheets { get; set; } = new();
-    
-    [Required]
+
+    [InverseProperty(nameof(AlternateVoice.Voice))]
     public List<AlternateVoice> AlternateVoices { get; set; } = new();
+
+    [InverseProperty(nameof(AlternateVoice.AlternativeVoice))]
+    public List<AlternateVoice> UsedAsAlternativeIn { get; set; } = new();
 }

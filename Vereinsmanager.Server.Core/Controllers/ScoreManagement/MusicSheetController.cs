@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
-using Vereinsmanager.Services.Models;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -11,18 +9,12 @@ namespace Vereinsmanager.Controllers.ScoreManagement;
 public class MusicSheetController : ControllerBase
 {
     [HttpGet]
-    public ActionResult<MusicSheetDto[]> ListMusicSheets(
+    public ActionResult<MusicSheetDto[]> GetMusicSheets(
         [FromQuery] int? scoreId,
         [FromQuery] int? voiceId,
-        [FromQuery] bool includeScore,
-        [FromQuery] bool includeVoice,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var sheetsResult = musicSheetService.ListMusicSheets(
-            scoreId: scoreId,
-            voiceId: voiceId,
-            includeScore: includeScore,
-            includeVoice: includeVoice);
+        var sheetsResult = musicSheetService.ListMusicSheets(scoreId, voiceId);
 
         if (sheetsResult.IsSuccessful())
         {
@@ -32,6 +24,21 @@ public class MusicSheetController : ControllerBase
         }
 
         return (ObjectResult)sheetsResult;
+    }
+
+    [HttpGet("{musicSheetId:int}")]
+    public ActionResult<MusicSheetDto> GetMusicSheetById(
+        [FromRoute] int musicSheetId,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        var sheetResult = musicSheetService.GetMusicSheetById(musicSheetId);
+
+        if (sheetResult.IsSuccessful())
+        {
+            return new MusicSheetDto(sheetResult.GetValue());
+        }
+
+        return (ObjectResult)sheetResult;
     }
 
     [HttpPost]
@@ -49,8 +56,7 @@ public class MusicSheetController : ControllerBase
         return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("{musicSheetId:int}")]
+    [HttpPatch("{musicSheetId:int}")]
     public ActionResult<MusicSheetDto> UpdateMusicSheet(
         [FromRoute] int musicSheetId,
         [FromBody] UpdateMusicSheet updateMusicSheet,
@@ -66,8 +72,7 @@ public class MusicSheetController : ControllerBase
         return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("{musicSheetId:int}")]
+    [HttpDelete("{musicSheetId:int}")]
     public ActionResult<bool> DeleteMusicSheet(
         [FromRoute] int musicSheetId,
         [FromServices] MusicSheetService musicSheetService)

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vereinsmanager.Database;
 
@@ -11,9 +12,11 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    partial class ServerDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260226090742_Alternate Voice Fix")]
+    partial class AlternateVoiceFix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -250,28 +253,8 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("AlternativeVoiceId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
-
                     b.Property<int>("Priority")
                         .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("datetime(6)");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
-
-                    b.Property<string>("UpdatedBy")
-                        .IsRequired()
-                        .HasColumnType("longtext");
 
                     b.Property<int>("VoiceId")
                         .HasColumnType("int");
@@ -671,7 +654,8 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("VoiceId");
 
-                    b.HasIndex("InstrumentId");
+                    b.HasIndex("InstrumentId", "Name")
+                        .IsUnique();
 
                     b.ToTable("Voices");
                 });
@@ -717,7 +701,7 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
                 {
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "AlternativeVoice")
-                        .WithMany("UsedAsAlternativeIn")
+                        .WithMany("UsedAsAlternativeVoices")
                         .HasForeignKey("AlternativeVoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -838,7 +822,7 @@ namespace Vereinsmanager.Migrations
 
                     b.Navigation("MusicSheets");
 
-                    b.Navigation("UsedAsAlternativeIn");
+                    b.Navigation("UsedAsAlternativeVoices");
                 });
 #pragma warning restore 612, 618
         }

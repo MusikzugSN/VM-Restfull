@@ -1,9 +1,6 @@
-#nullable enable
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
-using Vereinsmanager.Services.Models;
-using Vereinsmanager.Services.ScoreManagement;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
 
@@ -14,16 +11,31 @@ public class MusicFolderController : ControllerBase
     [HttpGet]
     public ActionResult<MusicFolderDto[]> GetMusicFolders([FromServices] MusicFolderService musicFolderService)
     {
-        var folders = musicFolderService.ListMusicFolders();
+        var foldersResult = musicFolderService.ListMusicFolders();
 
-        if (folders.IsSuccessful())
+        if (foldersResult.IsSuccessful())
         {
-            return folders.GetValue()!
-                .Select(f => new MusicFolderDto(f))
+            return foldersResult.GetValue()
+                .Select(folder => new MusicFolderDto(folder))
                 .ToArray();
         }
 
-        return (ObjectResult)folders;
+        return (ObjectResult)foldersResult;
+    }
+
+    [HttpGet("{musicFolderId:int}")]
+    public ActionResult<MusicFolderDto> GetMusicFolderById(
+        [FromRoute] int musicFolderId,
+        [FromServices] MusicFolderService musicFolderService)
+    {
+        var folderResult = musicFolderService.GetMusicFolderById(musicFolderId);
+
+        if (folderResult.IsSuccessful())
+        {
+            return new MusicFolderDto(folderResult.GetValue());
+        }
+
+        return (ObjectResult)folderResult;
     }
 
     [HttpPost]
@@ -31,115 +43,123 @@ public class MusicFolderController : ControllerBase
         [FromBody] CreateMusicFolder createMusicFolder,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var newFolder = musicFolderService.CreateMusicFolder(createMusicFolder);
+        var createdResult = musicFolderService.CreateMusicFolder(createMusicFolder);
 
-        if (newFolder.IsSuccessful())
+        if (createdResult.IsSuccessful())
         {
-            return new MusicFolderDto(newFolder.GetValue()!);
+            return new MusicFolderDto(createdResult.GetValue());
         }
 
-        return (ObjectResult)newFolder;
+        return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("{musicFolderId:int}")]
+    [HttpPatch("{musicFolderId:int}")]
     public ActionResult<MusicFolderDto> UpdateMusicFolder(
         [FromRoute] int musicFolderId,
         [FromBody] UpdateMusicFolder updateMusicFolder,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var updatedFolder = musicFolderService.UpdateMusicFolder(musicFolderId, updateMusicFolder);
+        var updatedResult = musicFolderService.UpdateMusicFolder(musicFolderId, updateMusicFolder);
 
-        if (updatedFolder.IsSuccessful())
+        if (updatedResult.IsSuccessful())
         {
-            return new MusicFolderDto(updatedFolder.GetValue()!);
+            return new MusicFolderDto(updatedResult.GetValue());
         }
 
-        return (ObjectResult)updatedFolder;
+        return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("{musicFolderId:int}")]
+    [HttpDelete("{musicFolderId:int}")]
     public ActionResult<bool> DeleteMusicFolder(
         [FromRoute] int musicFolderId,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var deleted = musicFolderService.DeleteMusicFolder(musicFolderId);
+        var deletedResult = musicFolderService.DeleteMusicFolder(musicFolderId);
 
-        if (deleted.IsSuccessful())
+        if (deletedResult.IsSuccessful())
         {
-            return deleted.GetValue();
+            return deletedResult.GetValue();
         }
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)deletedResult;
     }
 
-    [HttpGet]
-    [Route("{musicFolderId:int}/scores")]
+    [HttpGet("{musicFolderId:int}/scores")]
     public ActionResult<ScoreMusicFolderDto[]> ListScoresInFolder(
         [FromRoute] int musicFolderId,
-        [FromQuery] bool includeScore,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var scores = musicFolderService.ListScoresInFolder(musicFolderId, includeScore);
+        var scoresResult = musicFolderService.ListScoresInFolder(musicFolderId);
 
-        if (scores.IsSuccessful())
+        if (scoresResult.IsSuccessful())
         {
-            return scores.GetValue()!
-                .Select(sm => new ScoreMusicFolderDto(sm))
+            return scoresResult.GetValue()
+                .Select(link => new ScoreMusicFolderDto(link))
                 .ToArray();
         }
 
-        return (ObjectResult)scores;
+        return (ObjectResult)scoresResult;
     }
 
-    [HttpPost]
-    [Route("{musicFolderId:int}/scores")]
+    [HttpPost("{musicFolderId:int}/scores")]
     public ActionResult<ScoreMusicFolderDto> AddScoreToFolder(
         [FromRoute] int musicFolderId,
         [FromBody] AddScoreToMusicFolder addScoreToMusicFolder,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var added = musicFolderService.AddScoreToFolder(musicFolderId, addScoreToMusicFolder);
+        var createdResult = musicFolderService.AddScoreToFolder(musicFolderId, addScoreToMusicFolder);
 
-        if (added.IsSuccessful())
+        if (createdResult.IsSuccessful())
         {
-            return new ScoreMusicFolderDto(added.GetValue()!);
+            return new ScoreMusicFolderDto(createdResult.GetValue());
         }
 
-        return (ObjectResult)added;
+        return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("scores/{scoreMusicFolderId:int}")]
+    [HttpGet("scores/{scoreMusicFolderId:int}")]
+    public ActionResult<ScoreMusicFolderDto> GetScoreMusicFolderById(
+        [FromRoute] int scoreMusicFolderId,
+        [FromServices] MusicFolderService musicFolderService)
+    {
+        var linkResult = musicFolderService.GetScoreMusicFolderById(scoreMusicFolderId);
+
+        if (linkResult.IsSuccessful())
+        {
+            return new ScoreMusicFolderDto(linkResult.GetValue());
+        }
+
+        return (ObjectResult)linkResult;
+    }
+
+    [HttpPatch("scores/{scoreMusicFolderId:int}")]
     public ActionResult<ScoreMusicFolderDto> UpdateScoreMusicFolder(
         [FromRoute] int scoreMusicFolderId,
         [FromBody] UpdateScoreMusicFolder updateScoreMusicFolder,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var updated = musicFolderService.UpdateScoreMusicFolder(scoreMusicFolderId, updateScoreMusicFolder);
+        var updatedResult = musicFolderService.UpdateScoreMusicFolder(scoreMusicFolderId, updateScoreMusicFolder);
 
-        if (updated.IsSuccessful())
+        if (updatedResult.IsSuccessful())
         {
-            return new ScoreMusicFolderDto(updated.GetValue()!);
+            return new ScoreMusicFolderDto(updatedResult.GetValue());
         }
 
-        return (ObjectResult)updated;
+        return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("scores/{scoreMusicFolderId:int}")]
+    [HttpDelete("scores/{scoreMusicFolderId:int}")]
     public ActionResult<bool> DeleteScoreMusicFolder(
         [FromRoute] int scoreMusicFolderId,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var deleted = musicFolderService.DeleteScoreMusicFolder(scoreMusicFolderId);
+        var deletedResult = musicFolderService.DeleteScoreMusicFolder(scoreMusicFolderId);
 
-        if (deleted.IsSuccessful())
+        if (deletedResult.IsSuccessful())
         {
-            return deleted.GetValue();
+            return deletedResult.GetValue();
         }
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)deletedResult;
     }
 }

@@ -1,8 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
-using Vereinsmanager.Services;
-using Vereinsmanager.Services.Models;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -25,19 +22,20 @@ public class ScoreController : ControllerBase
 
         return (ObjectResult)scoresResult;
     }
+
     [HttpGet("{scoreId:int}")]
     public ActionResult<ScoreDto> GetScoreById(
         [FromRoute] int scoreId,
         [FromServices] ScoreService scoreService)
     {
-        var scoreResult = scoreService.LoadScoreById(scoreId);
+        var scoreResult = scoreService.GetScoreById(scoreId);
 
-        if (scoreResult == null)
+        if (scoreResult.IsSuccessful())
         {
-            return NotFound();
+            return new ScoreDto(scoreResult.GetValue());
         }
 
-        return new ScoreDto(scoreResult);
+        return (ObjectResult)scoreResult;
     }
 
     [HttpPost]
@@ -55,8 +53,7 @@ public class ScoreController : ControllerBase
         return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("{scoreId:int}")]
+    [HttpPatch("{scoreId:int}")]
     public ActionResult<ScoreDto> UpdateScore(
         [FromRoute] int scoreId,
         [FromBody] UpdateScore updateScore,
@@ -72,8 +69,7 @@ public class ScoreController : ControllerBase
         return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("{scoreId:int}")]
+    [HttpDelete("{scoreId:int}")]
     public ActionResult<bool> DeleteScore(
         [FromRoute] int scoreId,
         [FromServices] ScoreService scoreService)

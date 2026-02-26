@@ -1,4 +1,3 @@
-#nullable enable
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
@@ -20,45 +19,51 @@ public class ScoreService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
-
-    public Score? LoadScoreByTitle(string title)
+    private Score? LoadScoreById(int scoreId)
     {
-        return _dbContext.Scores.FirstOrDefault(s => s.Title == title);
+        return _dbContext.Scores.FirstOrDefault(score => score.ScoreId == scoreId);
     }
-
-    public Score? LoadScoreById(int scoreId)
-    {
-        return _dbContext.Scores.FirstOrDefault(s => s.ScoreId == scoreId);
-    }
-
 
     public ReturnValue<Score[]> ListScores()
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), "read all");
 
-        return _dbContext.Scores.ToArray();
+        return _dbContext.Scores
+            .OrderBy(score => score.Title)
+            .ToArray();
     }
 
+    public ReturnValue<Score> GetScoreById(int scoreId)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
+            return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
 
-    public ReturnValue<Score> CreateScore(CreateScore dto)
+        var score = LoadScoreById(scoreId);
+        if (score == null)
+            return ErrorUtils.ValueNotFound(nameof(Score), scoreId.ToString());
+
+        return score;
+    }
+
+    public ReturnValue<Score> CreateScore(CreateScore createScore)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScore))
-            return ErrorUtils.NotPermitted(nameof(Score), dto.Title);
+            return ErrorUtils.NotPermitted(nameof(Score), createScore.Title);
 
-        var duplicate = _dbContext.Scores.Any(s => s.Title == dto.Title);
+        if (createScore.Duration <= 0)
+            return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+
+        var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(Score), dto.Title);
-
-        if (dto.Duration <= 0)
-            return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0"); 
+            return ErrorUtils.AlreadyExists(nameof(Score), createScore.Title);
 
         var newScore = new Score
         {
-            Title = dto.Title,
-            Composer = dto.Composer,
-            Link = dto.Link,
-            Duration = dto.Duration
+            Title = createScore.Title,
+            Composer = createScore.Composer,
+            Link = createScore.Link,
+            Duration = createScore.Duration
         };
 
         _dbContext.Scores.Add(newScore);
@@ -66,7 +71,7 @@ public class ScoreService
         return newScore;
     }
 
-    public ReturnValue<Score> UpdateScore(int scoreId, UpdateScore dto)
+    public ReturnValue<Score> UpdateScore(int scoreId, UpdateScore updateScore)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateScore))
             return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
@@ -75,17 +80,17 @@ public class ScoreService
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), scoreId.ToString());
 
-        var newTitle = dto.Title ?? score.Title;
-        var newComposer = dto.Composer ?? score.Composer;
-        var newLink = dto.Link ?? score.Link;
-        var newDuration = dto.Duration ?? score.Duration;
+        var newTitle = updateScore.Title ?? score.Title;
+        var newComposer = updateScore.Composer ?? score.Composer;
+        var newLink = updateScore.Link ?? score.Link;
+        var newDuration = updateScore.Duration ?? score.Duration;
 
         if (newDuration <= 0)
             return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
 
-        var wouldDuplicate = _dbContext.Scores.Any(s =>
-            s.ScoreId != scoreId &&
-            s.Title == newTitle);
+        var wouldDuplicate = _dbContext.Scores.Any(existing =>
+            existing.ScoreId != scoreId &&
+            existing.Title == newTitle);
 
         if (wouldDuplicate)
             return ErrorUtils.AlreadyExists(nameof(Score), newTitle);
@@ -108,7 +113,7 @@ public class ScoreService
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), scoreId.ToString());
 
-        var hasSheets = _dbContext.MusicSheets.Any(ms => ms.ScoreId == scoreId);
+        var hasSheets = _dbContext.MusicSheets.Any(sheet => sheet.ScoreId == scoreId);
         if (hasSheets)
             return ErrorUtils.NotPermitted(nameof(Score), "delete (has MusicSheets)");
 
