@@ -641,9 +641,6 @@ namespace Vereinsmanager.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("VoiceId"));
 
-                    b.Property<int?>("Alternative")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime(6)");
@@ -673,8 +670,6 @@ namespace Vereinsmanager.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("VoiceId");
-
-                    b.HasIndex("Alternative");
 
                     b.HasIndex("InstrumentId");
 
@@ -808,17 +803,11 @@ namespace Vereinsmanager.Migrations
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
                 {
-                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "AlternativeNav")
-                        .WithMany()
-                        .HasForeignKey("Alternative");
-
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Instrument", "Instrument")
                         .WithMany("Voices")
                         .HasForeignKey("InstrumentId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AlternativeNav");
 
                     b.Navigation("Instrument");
                 });
