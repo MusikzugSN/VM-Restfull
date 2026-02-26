@@ -10,8 +10,9 @@ namespace Vereinsmanager.Controllers;
 [Route("api/v1/auth")]
 public class AuthCotroller : ControllerBase
 {
-    private static string AuthFailedMessage = "Authentication failed.";
+    private static string AuthFailedMessage = "login_failed";
     
+    [AllowAnonymous]
     [HttpPost("login")]
     public ActionResult<LoginResponse> LoginViaUsernamePassword(
         [FromBody] LoginRequest loginRequest,
@@ -28,17 +29,17 @@ public class AuthCotroller : ControllerBase
                     return new LoginResponse(jwtTokenService.GenerateToken(installUser, 0.2));
             }
             
-            return BadRequest(AuthFailedMessage);
+            return Unauthorized(AuthFailedMessage);
         }
 
         if (user.PasswordHash != loginRequest.Password)
         {
-            return BadRequest(AuthFailedMessage);
+            return Unauthorized(AuthFailedMessage);
         }
 
         if (!user.IsEnabled)
         {
-            return BadRequest(AuthFailedMessage);
+            return StatusCode(403, AuthFailedMessage);
         }
         
         var token = jwtTokenService.GenerateToken(user, 12.0);
@@ -47,6 +48,7 @@ public class AuthCotroller : ControllerBase
     public record LoginResponse(string Token);
     public record LoginRequest(string Username, string Password);
     
+    [AllowAnonymous]
     [HttpGet("oAuthProvider")]
     public ActionResult<OAuthConfig[]> ListProvider(
         [FromServices] IConfiguration configuration)
@@ -56,8 +58,8 @@ public class AuthCotroller : ControllerBase
             .Get<OAuthConfig[]>() ?? [];
     }
     
-    [HttpGet("me")]
     [Authorize]
+    [HttpGet("me")]
     public ActionResult<MeDto> GetCurrentUser(
         [FromServices] UserContext userContext,
         [FromServices] IConfiguration configuration)

@@ -7,8 +7,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services;
 
-public record UserCreate(string Username, string Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
-public record UpdateUser(string? Username, string? Password, bool? IsAdmin, bool? IsEnabled, List<UserRoleTeaser>? Roles);
+public record UserCreate(string Username, string Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
+public record UpdateUser(string? Username, string? Password, bool? IsAdmin, bool? IsEnabled, string? Provider, string? OAuthSubject, List<UserRoleTeaser>? Roles);
 public record UserRoleTeaser(int RoleId, int GroupId, bool? Deleted);
 
 public class UserService
@@ -82,7 +82,9 @@ public class UserService
             Username = username,
             PasswordHash = userCreate.Password,
             IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator),
-            IsEnabled = userCreate.IsEnabled ?? false
+            IsEnabled = userCreate.IsEnabled ?? false,
+            Provider = userCreate.Provider,
+            OAuthSubject = userCreate.OAuthSubject
         };
         
         if (userCreate.Roles?.Count > 0)
@@ -125,6 +127,16 @@ public class UserService
         if (updateUser.IsEnabled is not null)
         {
             userResult.IsEnabled = updateUser.IsEnabled ?? false;
+        }
+        
+        if (updateUser.Provider is not null)
+        {
+            userResult.Provider = updateUser.Provider;
+        }
+        
+        if (updateUser.OAuthSubject is not null)
+        {
+            userResult.OAuthSubject = updateUser.OAuthSubject;
         }
 
         if (updateUser.Roles?.Count > 0)

@@ -13,6 +13,7 @@ using Vereinsmanager.Utils.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHealthChecks();
 
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];
 builder.Services.AddCors(options => {
@@ -111,7 +112,7 @@ foreach (var provider in providerConfigs)
 
 builder.Services.AddControllers();
 var app = builder.Build();
-
+app.MapHealthChecks("/health");
 app.UseCors("DynamicCors");
 
 app.UseHttpsRedirection();
