@@ -10,8 +10,8 @@ namespace Vereinsmanager.Controllers;
 [Route("api/v1/auth")]
 public class AuthCotroller : ControllerBase
 {
-    private static string AuthFailedMessage = "login_failed";
-    
+    private const string AuthFailedMessage = "login_failed";
+
     [AllowAnonymous]
     [HttpPost("login")]
     public ActionResult<LoginResponse> LoginViaUsernamePassword(
