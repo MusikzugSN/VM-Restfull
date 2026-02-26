@@ -8,7 +8,7 @@ public static class JwksLoader
 {
     public static async Task<IEnumerable<SecurityKey>> LoadKeysAsync(string issuer)
     {
-        var retriever = new HttpDocumentRetriever { RequireHttps = false };
+        var retriever = new HttpDocumentRetriever { RequireHttps = issuer.StartsWith("https://") };
         
         var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
             $"{issuer}/.well-known/openid-configuration",
