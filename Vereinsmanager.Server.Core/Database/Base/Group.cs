@@ -1,9 +1,9 @@
-#nullable enable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.Base;
 
-
+[Index(nameof(Name), IsUnique = true)]
 public class Group : MetaData
 {
     [Key]

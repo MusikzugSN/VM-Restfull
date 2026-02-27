@@ -1,9 +1,6 @@
-#nullable enable
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Database.ScoreManagment;
-using Vereinsmanager.Services;
-using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Database;
 
@@ -46,7 +43,7 @@ public class ServerDatabaseContext : DbContext
     private void ApplyMetaData()
     {
         var entries = ChangeTracker.Entries<MetaData>();
-        var userName = _userContext.UserName ?? "unknown";
+        var userName = _userContext.UserModel?.Username ?? "unknown";
         
         foreach (var entry in entries)
         {

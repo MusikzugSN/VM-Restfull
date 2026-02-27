@@ -45,7 +45,7 @@ public class ReturnValue<TReturnType>
         return value.IsSuccessful() ? new ObjectResult(null)
         {
             StatusCode = 204 
-        } : new ObjectResult(problemDetails?.Detail ?? "Unknown Error")
+        } : new ObjectResult(problemDetails?.Title ?? "Unknown Error")
         {
             StatusCode = problemDetails?.Status ?? 500
         };

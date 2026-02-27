@@ -1,8 +1,10 @@
 #nullable enable
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.Base;
 
+[Index(nameof(RoleId), nameof(PermissionType), IsUnique = true)]
 public class Permission : MetaData
 {
     [Key]
