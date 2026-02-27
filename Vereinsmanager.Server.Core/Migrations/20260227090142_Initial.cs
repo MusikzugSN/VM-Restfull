@@ -146,10 +146,14 @@ namespace Vereinsmanager.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Username = table.Column<string>(type: "varchar(24)", maxLength: 24, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    PasswordHash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                    PasswordHash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     IsAdmin = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsEnabled = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    Provider = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    OAuthSubject = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -481,6 +485,12 @@ namespace Vereinsmanager.Migrations
                 column: "ScoreId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Groups_Name",
+                table: "Groups",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Instruments_Name",
                 table: "Instruments",
                 column: "Name",
@@ -509,9 +519,16 @@ namespace Vereinsmanager.Migrations
                 column: "VoiceId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Permissions_RoleId",
+                name: "IX_Permissions_RoleId_PermissionType",
                 table: "Permissions",
-                column: "RoleId");
+                columns: new[] { "RoleId", "PermissionType" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Roles_Name",
+                table: "Roles",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ScoreMusicFolders_MusicFolderId",
@@ -541,9 +558,22 @@ namespace Vereinsmanager.Migrations
                 column: "RoleId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserRoles_UserId",
+                name: "IX_UserRoles_UserId_RoleId_GroupId",
                 table: "UserRoles",
-                column: "UserId");
+                columns: new[] { "UserId", "RoleId", "GroupId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Provider_OAuthSubject",
+                table: "Users",
+                columns: new[] { "Provider", "OAuthSubject" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Voices_InstrumentId",
