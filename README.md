@@ -5,6 +5,8 @@
 ![Entity Framework](https://img.shields.io/badge/Entity_Framework-512BD4.svg?style=for-the-badge&logo=dotnet&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)
 
+Note: This repo is stil in development. Do not use in production. 
+
 # VM-Restfull
 Dieses Repository enthält das Backend der Verwaltungsplattform für deinen Musikverein. Die Anwendung basiert auf ASP.NET Core und stellt eine sichere, skalierbare REST-API für das Angular-Frontend bereit.
 
