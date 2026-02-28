@@ -43,6 +43,7 @@ public class SeverModule : Module
     private void RegisterDbContext(ContainerBuilder builder)
     {
         var mysqlConnectionString = _configuration.GetConnectionString("MySqlConnection");
+        Console.WriteLine(mysqlConnectionString);
         builder.Register(container =>
         {
             var options = new DbContextOptionsBuilder<ServerDatabaseContext>();
