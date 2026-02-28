@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
@@ -9,14 +10,17 @@ public class Voice : MetaData
 
     [Required]
     [MaxLength(100)]
-    public string Name { get; set; } = string.Empty;
-    
+    public required string Name { get; set; }
+
     [Required]
-    public required Instrument Instrument { get; set; } 
+    public required Instrument Instrument { get; set; }
     public int InstrumentId { get; set; }
-    
-    [Required]
-    public List<MusicSheed> SheetMusic { get; set; } = new();
-    [Required]
+
+    public List<MusicSheet> MusicSheets { get; set; } = new();
+
+    [InverseProperty(nameof(AlternateVoice.Voice))]
     public List<AlternateVoice> AlternateVoices { get; set; } = new();
+
+    [InverseProperty(nameof(AlternateVoice.AlternativeVoiceNav))]
+    public List<AlternateVoice> UsedAsAlternativeIn { get; set; } = new();
 }

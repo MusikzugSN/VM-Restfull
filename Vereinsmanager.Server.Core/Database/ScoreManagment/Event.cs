@@ -1,8 +1,9 @@
 using System.ComponentModel.DataAnnotations;
-using Vereinsmanager.Database.ScoreManagment;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
+[Index(nameof(Name), nameof(Date), IsUnique = true)]
 public class Event : MetaData
 {
     [Key]
@@ -10,8 +11,8 @@ public class Event : MetaData
 
     [Required]
     [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
-    
+    public required string Name { get; set; }
+
     [Required]
     public DateTime Date { get; set; }
 

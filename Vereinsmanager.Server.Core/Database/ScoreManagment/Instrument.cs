@@ -1,18 +1,21 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
-public class Instrument:MetaData
+
+[Index(nameof(Name), IsUnique = true)]
+public class Instrument : MetaData
 {
     [Required]
     public int InstrumentId { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Name { get; set; } = string.Empty;
+    public required string Name { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Type { get; set; } = string.Empty;
+    public required string Type { get; set; }
     
     [Required]
     public List<Voice> Voices { get; set; } = new();

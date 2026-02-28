@@ -12,8 +12,8 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260226092050_remove PW as requirement")]
-    partial class removePWasrequirement
+    [Migration("20260227090142_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -271,22 +271,43 @@ namespace Vereinsmanager.Migrations
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("AlternateVoiceId"));
 
-                    b.Property<string>("Alternative")
+                    b.Property<int>("Alternative")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("longtext");
 
                     b.Property<int>("Priority")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<int>("VoiceId")
                         .HasColumnType("int");
 
                     b.HasKey("AlternateVoiceId");
 
-                    b.HasIndex("VoiceId");
+                    b.HasIndex("Alternative");
 
-                    b.HasIndex("Alternative", "VoiceId", "Priority")
+                    b.HasIndex("VoiceId", "Alternative")
+                        .IsUnique();
+
+                    b.HasIndex("VoiceId", "Priority")
                         .IsUnique();
 
                     b.ToTable("AlternateVoices");
@@ -329,6 +350,9 @@ namespace Vereinsmanager.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("EventId");
+
+                    b.HasIndex("Name", "Date")
+                        .IsUnique();
 
                     b.ToTable("Events");
                 });
@@ -417,6 +441,9 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("InstrumentId");
 
+                    b.HasIndex("Name")
+                        .IsUnique();
+
                     b.ToTable("Instruments");
                 });
 
@@ -458,18 +485,19 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("MusicFolderId");
 
-                    b.HasIndex("GroupId");
+                    b.HasIndex("GroupId", "Name")
+                        .IsUnique();
 
                     b.ToTable("MusicFolders");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheed", b =>
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheet", b =>
                 {
-                    b.Property<int>("MusicSheedId")
+                    b.Property<int>("MusicSheetId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MusicSheedId"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MusicSheetId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -497,11 +525,6 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("Filesize")
                         .HasColumnType("int");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
 
@@ -521,7 +544,7 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("VoiceId")
                         .HasColumnType("int");
 
-                    b.HasKey("MusicSheedId");
+                    b.HasKey("MusicSheetId");
 
                     b.HasIndex("ScoreId");
 
@@ -530,7 +553,7 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("FileHash", "FilePath")
                         .IsUnique();
 
-                    b.ToTable("MusicSheeds");
+                    b.ToTable("MusicSheets");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
@@ -580,6 +603,9 @@ namespace Vereinsmanager.Migrations
                         .HasColumnType("longtext");
 
                     b.HasKey("ScoreId");
+
+                    b.HasIndex("Title")
+                        .IsUnique();
 
                     b.ToTable("Scores");
                 });
@@ -714,11 +740,19 @@ namespace Vereinsmanager.Migrations
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
                 {
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "AlternativeVoiceNav")
+                        .WithMany("UsedAsAlternativeIn")
+                        .HasForeignKey("Alternative")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "Voice")
                         .WithMany("AlternateVoices")
                         .HasForeignKey("VoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AlternativeVoiceNav");
 
                     b.Navigation("Voice");
                 });
@@ -753,7 +787,7 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("Group");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheed", b =>
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheet", b =>
                 {
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
                         .WithMany()
@@ -762,7 +796,7 @@ namespace Vereinsmanager.Migrations
                         .IsRequired();
 
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "Voice")
-                        .WithMany("SheetMusic")
+                        .WithMany("MusicSheets")
                         .HasForeignKey("VoiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -826,7 +860,9 @@ namespace Vereinsmanager.Migrations
                 {
                     b.Navigation("AlternateVoices");
 
-                    b.Navigation("SheetMusic");
+                    b.Navigation("MusicSheets");
+
+                    b.Navigation("UsedAsAlternativeIn");
                 });
 #pragma warning restore 612, 618
         }

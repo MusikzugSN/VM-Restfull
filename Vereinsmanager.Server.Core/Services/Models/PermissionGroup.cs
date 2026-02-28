@@ -15,6 +15,17 @@ public enum PermissionGroup
     RoleManagement = 3,
     [Description("Logineinstellungen (übergreifend)")]
     LoginSettings = 4,
+    [Description("Stimmenverwaltung (übergreifend)")]
+    VoiceManagement = 5,
+    [Description("Notenverwaltung (übergreifend)")]
+    ScoreManagement = 6,
+    [Description("Eventverwaltung (übergreifend)")]
+    EventManagement = 7,
+    [Description("Mappenverwaltung (übergreifend)")]
+    MusicSheetManagement = 8,
+    [Description("Instrumentenverwaltung (übergreifend)")]
+    InstrumentManagement = 10,
+    
 }
 
 public static class PermissionGroupHelper

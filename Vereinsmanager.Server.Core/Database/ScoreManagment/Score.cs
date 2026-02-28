@@ -1,7 +1,9 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
+[Index(nameof(Title), IsUnique = true)]
 public class Score : MetaData
 {
     [Key]
@@ -9,15 +11,15 @@ public class Score : MetaData
     
     [Required]
     [MaxLength(255)]
-    public string Title { get; set; } = string.Empty;
+    public required string Title { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Composer { get; set; } = string.Empty;
+    public required string Composer { get; set; }
     
     [Required]
     [MaxLength(255)]
-    public string Link { get; set; } = string.Empty;
+    public required string Link { get; set; }
     
     [Required]
     public int Duration { get; set; }

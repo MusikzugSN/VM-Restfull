@@ -1,22 +1,30 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
-[Index(nameof(Alternative), nameof(VoiceId), nameof(Priority), IsUnique = true)]
-public class AlternateVoice
-{ 
+[Index(nameof(VoiceId), nameof(Alternative), IsUnique = true)]
+[Index(nameof(VoiceId), nameof(Priority), IsUnique = true)]
+public class AlternateVoice : MetaData
+{
     [Key]
     public int AlternateVoiceId { get; set; }
-    
-    [Required]
-    [MaxLength(255)]
-    public string Alternative { get; set; } = string.Empty;
-    
+
     [Required]
     public int Priority { get; set; }
 
     [Required]
-    public required Voice Voice { get; set; } 
     public int VoiceId { get; set; }
+
+    [ForeignKey(nameof(VoiceId))]
+    [InverseProperty(nameof(Voice.AlternateVoices))]
+    public required Voice Voice { get; set; }
+
+    [Required]
+    public int Alternative { get; set; }
+
+    [ForeignKey(nameof(Alternative))]
+    [InverseProperty(nameof(Voice.UsedAsAlternativeIn))]
+    public required Voice AlternativeVoiceNav { get; set; }
 }

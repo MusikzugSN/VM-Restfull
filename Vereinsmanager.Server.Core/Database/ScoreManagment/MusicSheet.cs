@@ -4,22 +4,18 @@ using Microsoft.EntityFrameworkCore;
 namespace Vereinsmanager.Database.ScoreManagment;
 
 [Index(nameof(FileHash), nameof(FilePath), IsUnique = true)]
-public class MusicSheed : MetaData
+public class MusicSheet : MetaData
 {
     [Key]
-    public int MusicSheedId { get; set; }
-    
-    [Required] 
-    [MaxLength(255)] 
-    public string Name { get; set; } = string.Empty;
+    public int MusicSheetId { get; set; }
     
     [Required]
     [MaxLength(255)] 
-    public string FilePath { get; set; } = string.Empty;
+    public  required string FilePath { get; set; } 
     
     [Required] 
     [MaxLength(255)] 
-    public string FileHash { get; set; } = string.Empty;
+    public required string FileHash { get; set; }
     
     [Required]
     public int Filesize { get; set; }
