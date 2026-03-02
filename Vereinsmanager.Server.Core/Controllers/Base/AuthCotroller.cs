@@ -32,7 +32,7 @@ public class AuthCotroller : ControllerBase
             return Unauthorized(AuthFailedMessage);
         }
 
-        if (user.PasswordHash != loginRequest.Password)
+        if (!userService.VerifyUserPassword(loginRequest.Password, user.PasswordHash ?? ""))
         {
             return Unauthorized(AuthFailedMessage);
         }

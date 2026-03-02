@@ -1,4 +1,7 @@
 #nullable enable
+using System.Security.Cryptography;
+using System.Text;
+using DevOne.Security.Cryptography.BCrypt;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
@@ -80,7 +83,7 @@ public class UserService
         var newUser = new User
         {
             Username = username,
-            PasswordHash = userCreate.Password?.Length > 0 ? userCreate.Password : null,
+            PasswordHash = userCreate.Password?.Length > 0 ? CreateUserPasswordHash(userCreate.Password) : null,
             IsAdmin = (userCreate.IsAdmin ?? false) && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator),
             IsEnabled = userCreate.IsEnabled ?? false,
             Provider = userCreate.Provider,
@@ -116,7 +119,7 @@ public class UserService
 
         if (updateUser.Password is not null)
         {
-            userResult.PasswordHash = updateUser.Password?.Length > 0 ? updateUser.Password : null;
+            userResult.PasswordHash = updateUser.Password?.Length > 0 ? CreateUserPasswordHash(updateUser.Password) : null;
         }
 
         if (updateUser.IsAdmin is not null && _permissionServiceLazy.Value.HasPermission(PermissionType.Administrator))
@@ -196,5 +199,15 @@ public class UserService
         
         _dbContext.UserRoles.AddRange(userRolesToAdd);
         _dbContext.SaveChanges();
+    }
+    
+    private string CreateUserPasswordHash(string password)
+    {
+        return BCryptHelper.HashPassword(password, BCryptHelper.GenerateSalt());
+    }
+    
+    public bool VerifyUserPassword(string password, string passwordHash)
+    {
+        return BCryptHelper.CheckPassword(password, passwordHash);
     }
 }
