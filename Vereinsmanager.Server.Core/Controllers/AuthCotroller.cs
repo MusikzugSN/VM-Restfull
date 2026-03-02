@@ -58,6 +58,28 @@ public class AuthCotroller : ControllerBase
             .Get<OAuthConfig[]>() ?? [];
     }
     
+    [AllowAnonymous]
+    [HttpGet("print/verifyToken")]
+    public ActionResult<TokenData> VerifyToken([FromQuery] string token, 
+        [FromServices] CustomTokenService customTokenService)
+    {
+        var data = customTokenService.ValidateToken(token, "print");
+        if (data == null)
+            return BadRequest();
+        
+        return data;
+    }
+    
+    [Authorize]
+    [HttpGet("print/generateToken")]
+    public ActionResult<string> GenerateToken(
+        [FromServices] UserContext userContext,
+        [FromServices] CustomTokenService customTokenService)
+    {
+        var data = customTokenService.GenerateToken("print", userContext.GetUserModel()?.UserId ?? -1);
+        return data;
+    }
+    
     [Authorize]
     [HttpGet("me")]
     public ActionResult<MeDto> GetCurrentUser(
