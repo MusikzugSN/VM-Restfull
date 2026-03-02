@@ -80,8 +80,8 @@ authService.AddJwtBearer(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "Vereinsmanager.Server.Core",
+        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Vereinsmanager.Server.Client",
         IssuerSigningKey = publicRsa
     };
 });
