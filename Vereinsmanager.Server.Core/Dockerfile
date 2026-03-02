@@ -8,8 +8,6 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-
-
 COPY . .
 RUN dotnet restore "Vereinsmanager.Server.Core.csproj"
 RUN dotnet build "Vereinsmanager.Server.Core.csproj" -c $BUILD_CONFIGURATION -o /app/build
@@ -21,4 +19,5 @@ RUN dotnet publish "Vereinsmanager.Server.Core.csproj" -c $BUILD_CONFIGURATION -
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+COPY data ./data
 ENTRYPOINT ["dotnet", "Vereinsmanager.Server.Core.dll"]

@@ -3,6 +3,21 @@
   "ConnectionStrings": {
     "MySqlConnection": "Server=localhost; Port=3306; Database=notes; Uid=admin; Pwd=admin"
   },
+  "OAuthProviders": [
+     {
+      "ProviderKey": "keycloak",
+      "DisplayName": "Mein Musikzug",
+      "IssuerUrl": "http://localhost:8080/realms/master",
+      "ClientId": "vm-web"
+    }
+  ],
+  "Serilog": {
+    "MinimumLevel": "Debug",
+    "WriteTo": [
+      { "Name": "Console" },
+      { "Name": "File", "Args": { "path": "data/logs/log.txt", "rollingInterval": "Day" } }
+    ]
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
