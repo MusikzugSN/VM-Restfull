@@ -20,7 +20,7 @@ public class PermissionService
     public bool HasPermission(PermissionType permissionType)
     {
         var user = _userContext.GetUserModel();
-        if (_userContext.UserModel == null && _userContext.UserId == "-1")
+        if (_userContext.GetUserModel() == null && _userContext.UserId == "-1")
             return true; // Install user has all permissions
         
         if (user == null)

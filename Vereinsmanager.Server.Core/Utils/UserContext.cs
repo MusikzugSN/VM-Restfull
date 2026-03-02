@@ -9,7 +9,7 @@ public class UserContext
     private readonly Lazy<ServerDatabaseContext> _dbContextLazy;
     private readonly IConfiguration _configuration;
 
-    public User? UserModel { get; private set; }
+    private User? UserModel { get; set; }
 
     public UserContext(IHttpContextAccessor httpContextAccessor, Lazy<ServerDatabaseContext> dbContextLazy, IConfiguration configuration)
     {
