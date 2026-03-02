@@ -43,7 +43,7 @@ public class ServerDatabaseContext : DbContext
     private void ApplyMetaData()
     {
         var entries = ChangeTracker.Entries<MetaData>();
-        var userName = _userContext.UserModel?.Username ?? "unknown";
+        var userName = _userContext.GetUserModel()?.Username ?? "unknown";
         
         foreach (var entry in entries)
         {

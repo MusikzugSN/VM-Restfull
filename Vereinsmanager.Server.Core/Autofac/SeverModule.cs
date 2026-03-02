@@ -24,6 +24,7 @@ public class SeverModule : Module
         
         builder.RegisterType<JwtTokenService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<UserContext>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<CustomTokenService>().AsSelf().SingleInstance();
         
         builder.RegisterType<UserService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
