@@ -9,15 +9,15 @@ public class EventDto : MetaDataDto
     public string Name { get; init; }
     public DateTime Date { get; init; }
 
-    public EventDto(Event ev)
+    public EventDto(Event eventModel)
     {
-        EventId = ev.EventId;
-        Name = ev.Name;
-        Date = ev.Date;
+        EventId = eventModel.EventId;
+        Name = eventModel.Name;
+        Date = eventModel.Date;
 
-        CreatedAt = ev.CreatedAt;
-        CreatedBy = ev.CreatedBy;
-        UpdatedAt = ev.UpdatedAt;
-        UpdatedBy = ev.UpdatedBy;
+        CreatedAt = eventModel.CreatedAt;
+        CreatedBy = eventModel.CreatedBy;
+        UpdatedAt = eventModel.UpdatedAt;
+        UpdatedBy = eventModel.UpdatedBy;
     }
 }

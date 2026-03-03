@@ -8,19 +8,17 @@ public class Score : MetaData
 {
     [Key]
     public int ScoreId { get; set; }
-    
+
     [Required]
-    [MaxLength(255)]
+    [MaxLength(24)]
     public required string Title { get; set; }
-    
+
     [Required]
-    [MaxLength(255)]
+    [MaxLength(64)]
     public required string Composer { get; set; }
-    
-    [Required]
+
     [MaxLength(255)]
-    public required string Link { get; set; }
-    
-    [Required]
-    public int Duration { get; set; }
+    public string? Link { get; set; }
+
+    public int? Duration { get; set; }
 }

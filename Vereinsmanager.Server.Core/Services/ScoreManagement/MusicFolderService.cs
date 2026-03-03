@@ -7,8 +7,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateMusicFolder(int GroupId, string Name);
-public record UpdateMusicFolder(int? GroupId, string? Name);
+public record CreateMusicFolder(int GroupId, string Name, List<AddScoreToMusicFolder>? Scores);
+public record UpdateMusicFolder(int? GroupId, string? Name, List<AddScoreToMusicFolder>? Scores);
 
 public record AddScoreToMusicFolder(int ScoreId, int Number);
 public record UpdateScoreMusicFolder(int? Number);
@@ -24,14 +24,78 @@ public class MusicFolderService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
+    private ReturnValue<MusicFolder> UpdateScoresToMusicFolder(MusicFolder folder, List<AddScoreToMusicFolder> incomingScores)
+    {
+        if (incomingScores.Any(item => item.Number <= 0))
+            return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), "Number must be > 0");
+
+        var incomingScoreIds = incomingScores.Select(item => item.ScoreId).ToList();
+        if (incomingScoreIds.Distinct().Count() != incomingScoreIds.Count)
+            return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder), "duplicate ScoreId in request");
+
+        var incomingNumbers = incomingScores.Select(item => item.Number).ToList();
+        if (incomingNumbers.Distinct().Count() != incomingNumbers.Count)
+            return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder), "duplicate Number in request");
+
+        var loadedScores = _dbContext.Scores
+            .Where(score => incomingScoreIds.Contains(score.ScoreId))
+            .ToList();
+
+        if (loadedScores.Count != incomingScoreIds.Count)
+        {
+            var foundIds = loadedScores.Select(score => score.ScoreId).ToHashSet();
+            var missingId = incomingScoreIds.First(id => !foundIds.Contains(id));
+            return ErrorUtils.ValueNotFound(nameof(Score), missingId.ToString());
+        }
+
+        var loadedScoreById = loadedScores.ToDictionary(score => score.ScoreId);
+
+        var existingLinks = _dbContext.ScoreMusicFolders
+            .Where(link => link.MusicFolderId == folder.MusicFolderId)
+            .ToList();
+
+        var existingLinkByScoreId = existingLinks.ToDictionary(link => link.ScoreId);
+        var incomingScoreIdSet = incomingScoreIds.ToHashSet();
+
+        var linksToDelete = existingLinks
+            .Where(link => !incomingScoreIdSet.Contains(link.ScoreId))
+            .ToList();
+
+        if (linksToDelete.Count > 0)
+            _dbContext.ScoreMusicFolders.RemoveRange(linksToDelete);
+
+        foreach (var incomingItem in incomingScores)
+        {
+            var loadedScore = loadedScoreById[incomingItem.ScoreId];
+
+            if (existingLinkByScoreId.TryGetValue(incomingItem.ScoreId, out var existingLink))
+            {
+                existingLink.Number = incomingItem.Number;
+                existingLink.ScoreId = loadedScore.ScoreId;
+                existingLink.Score = loadedScore;
+            }
+            else
+            {
+                _dbContext.ScoreMusicFolders.Add(new ScoreMusicFolder
+                {
+                    MusicFolderId = folder.MusicFolderId,
+                    MusicFolder = folder,
+                    ScoreId = loadedScore.ScoreId,
+                    Score = loadedScore,
+                    Number = incomingItem.Number
+                });
+            }
+        }
+
+        return folder;
+    }
+
     public ReturnValue<MusicFolder[]> ListMusicFolders()
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
 
-        return _dbContext.MusicFolders
-            .OrderBy(folder => folder.Name)
-            .ToArray();
+        return _dbContext.MusicFolders.ToArray();
     }
 
     public ReturnValue<MusicFolder> GetMusicFolderById(int musicFolderId)
@@ -71,6 +135,16 @@ public class MusicFolderService
 
         _dbContext.MusicFolders.Add(folderToCreate);
         _dbContext.SaveChanges();
+
+        if (createMusicFolder.Scores is { Count: > 0 })
+        {
+            var updateScoresToMusicFolderResult = UpdateScoresToMusicFolder(folderToCreate, createMusicFolder.Scores);
+            if (!updateScoresToMusicFolderResult.IsSuccessful())
+                return updateScoresToMusicFolderResult;
+
+            _dbContext.SaveChanges();
+        }
+
         return folderToCreate;
     }
 
@@ -100,6 +174,13 @@ public class MusicFolderService
 
         folder.Name = newName;
         folder.GroupId = newGroupId;
+
+        if (updateMusicFolder.Scores != null)
+        {
+            var updateScoresToMusicFolderResult = UpdateScoresToMusicFolder(folder, updateMusicFolder.Scores);
+            if (!updateScoresToMusicFolderResult.IsSuccessful())
+                return updateScoresToMusicFolderResult;
+        }
 
         _dbContext.SaveChanges();
         return folder;

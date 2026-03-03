@@ -8,13 +8,19 @@ namespace Vereinsmanager.Controllers.ScoreManagement;
 [Route("api/v1/voice")]
 public class VoiceController : ControllerBase
 {
+    private readonly VoiceService _voiceService;
+
+    public VoiceController(VoiceService voiceService)
+    {
+        _voiceService = voiceService;
+    }
+
     [HttpGet]
     public ActionResult<VoiceDto[]> GetVoices(
-        [FromQuery] bool includeInstrument,
-        [FromQuery] bool includeAlternateVoices,
-        [FromServices] VoiceService voiceService)
+        [FromQuery] bool includeInstrument = true,
+        [FromQuery] bool includeAlternateVoices = true)
     {
-        var voices = voiceService.ListVoices(includeInstrument, includeAlternateVoices);
+        var voices = _voiceService.ListVoices(includeInstrument, includeAlternateVoices);
 
         if (voices.IsSuccessful())
         {
@@ -26,121 +32,47 @@ public class VoiceController : ControllerBase
         return (ObjectResult)voices;
     }
 
-    [HttpPost]
-    public ActionResult<VoiceDto> CreateVoice(
-        [FromBody] CreateVoice createVoice,
-        [FromServices] VoiceService voiceService)
+    [HttpGet("{voiceId:int}")]
+    public ActionResult<VoiceDto> GetVoice(int voiceId)
     {
-        var newVoice = voiceService.CreateVoice(createVoice);
+        var voice = _voiceService.GetVoiceById(voiceId, true, true);
 
-        if (newVoice.IsSuccessful())
-        {
-            return new VoiceDto(newVoice.GetValue()!);
-        }
+        if (voice.IsSuccessful())
+            return new VoiceDto(voice.GetValue()!);
 
-        return (ObjectResult)newVoice;
-    }
-
-    [HttpPatch]
-    [Route("{voiceId:int}")]
-    public ActionResult<VoiceDto> UpdateVoice(
-        [FromRoute] int voiceId,
-        [FromBody] UpdateVoice updateVoice,
-        [FromServices] VoiceService voiceService)
-    {
-        var updated = voiceService.UpdateVoice(voiceId, updateVoice);
-
-        if (updated.IsSuccessful())
-        {
-            return new VoiceDto(updated.GetValue()!);
-        }
-
-        return (ObjectResult)updated;
-    }
-
-    [HttpDelete]
-    [Route("{voiceId:int}")]
-    public ActionResult<bool> DeleteVoice(
-        [FromRoute] int voiceId,
-        [FromServices] VoiceService voiceService)
-    {
-        var deleted = voiceService.DeleteVoice(voiceId);
-
-        if (deleted.IsSuccessful())
-        {
-            return deleted.GetValue();
-        }
-
-        return (ObjectResult)deleted;
-    }
-
-    [HttpGet]
-    [Route("{voiceId:int}/alternateVoices")]
-    public ActionResult<AlternateVoiceDto[]> ListAlternateVoices(
-        [FromRoute] int voiceId,
-        [FromServices] VoiceService voiceService)
-    {
-        var alts = voiceService.ListAlternateVoices(voiceId);
-
-        if (alts.IsSuccessful())
-        {
-            return alts.GetValue()!
-                .Select(av => new AlternateVoiceDto(av))
-                .ToArray();
-        }
-
-        return (ObjectResult)alts;
+        return (ObjectResult)voice;
     }
 
     [HttpPost]
-    [Route("{voiceId:int}/alternateVoices")]
-    public ActionResult<AlternateVoiceDto> AddAlternateVoice(
-        [FromRoute] int voiceId,
-        [FromBody] CreateAlternateVoice createAlternateVoice,
-        [FromServices] VoiceService voiceService)
+    public ActionResult<VoiceDto> CreateVoice([FromBody] CreateVoice createVoice)
     {
-        var added = voiceService.AddAlternateVoice(voiceId, createAlternateVoice);
+        var result = _voiceService.CreateVoice(createVoice);
 
-        if (added.IsSuccessful())
-        {
-            return new AlternateVoiceDto(added.GetValue()!);
-        }
+        if (result.IsSuccessful())
+            return new VoiceDto(result.GetValue()!);
 
-        return (ObjectResult)added;
+        return (ObjectResult)result;
     }
 
-    [HttpPatch]
-    [Route("{voiceId:int}/alternateVoices/{alternateVoiceId:int}")]
-    public ActionResult<AlternateVoiceDto> UpdateAlternateVoice(
-        [FromRoute] int voiceId,
-        [FromRoute] int alternateVoiceId,
-        [FromBody] UpdateAlternateVoice updateAlternateVoice,
-        [FromServices] VoiceService voiceService)
+    [HttpPatch("{voiceId:int}")]
+    public ActionResult<VoiceDto> UpdateVoice(int voiceId, [FromBody] UpdateVoice updateVoice)
     {
-        var updated = voiceService.UpdateAlternateVoice(voiceId, alternateVoiceId, updateAlternateVoice);
+        var result = _voiceService.UpdateVoice(voiceId, updateVoice);
 
-        if (updated.IsSuccessful())
-        {
-            return new AlternateVoiceDto(updated.GetValue()!);
-        }
+        if (result.IsSuccessful())
+            return new VoiceDto(result.GetValue()!);
 
-        return (ObjectResult)updated;
+        return (ObjectResult)result;
     }
 
-    [HttpDelete]
-    [Route("{voiceId:int}/alternateVoices/{alternateVoiceId:int}")]
-    public ActionResult<bool> DeleteAlternateVoice(
-        [FromRoute] int voiceId,
-        [FromRoute] int alternateVoiceId,
-        [FromServices] VoiceService voiceService)
+    [HttpDelete("{voiceId:int}")]
+    public ActionResult<bool> DeleteVoice(int voiceId)
     {
-        var deleted = voiceService.DeleteAlternateVoice(voiceId, alternateVoiceId);
+        var result = _voiceService.DeleteVoice(voiceId);
 
-        if (deleted.IsSuccessful())
-        {
-            return deleted.GetValue();
-        }
+        if (result.IsSuccessful())
+            return result.GetValue();
 
-        return (ObjectResult)deleted;
+        return (ObjectResult)result;
     }
 }

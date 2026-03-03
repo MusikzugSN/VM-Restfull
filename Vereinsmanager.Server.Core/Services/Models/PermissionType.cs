@@ -134,15 +134,15 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
     DeleteMusicSheet,
     
-    [PermissionDescription(PermissionGroup.InstrumentManagement, PermissionCategory.Start)]
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
     OpenInstrument,
-    [PermissionDescription(PermissionGroup.InstrumentManagement, PermissionCategory.Read)]
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
     ListInstrument,
-    [PermissionDescription(PermissionGroup.InstrumentManagement, PermissionCategory.Create)]
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Create)]
     CreateInstrument,
-    [PermissionDescription(PermissionGroup.InstrumentManagement, PermissionCategory.Update)]
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Update)]
     UpdateInstrument,
-    [PermissionDescription(PermissionGroup.InstrumentManagement, PermissionCategory.Delete)]
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Delete)]
     DeleteInstrument,
 
     

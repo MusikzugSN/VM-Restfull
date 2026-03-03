@@ -7,20 +7,10 @@ using Vereinsmanager.Utils;
 namespace Vereinsmanager.Services.ScoreManagement;
 
 public record CreateMusicSheet(
-    string FilePath,
-    string FileHash,
-    int Filesize,
-    int PageCount,
-    DateTime FileModifiedDate,
     int ScoreId,
     int VoiceId);
 
 public record UpdateMusicSheet(
-    string? FilePath,
-    string? FileHash,
-    int? Filesize,
-    int? PageCount,
-    DateTime? FileModifiedDate,
     int? ScoreId,
     int? VoiceId);
 
@@ -34,13 +24,18 @@ public class MusicSheetService
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
     }
+    
+    private IQueryable<MusicSheet> BuildMusicSheetQuery()
+    {
+        return _dbContext.MusicSheets;
+    }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicSheet))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), "read all");
 
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets;
+        IQueryable<MusicSheet> query = BuildMusicSheetQuery();
 
         if (scoreId != null)
             query = query.Where(sheet => sheet.ScoreId == scoreId.Value);
@@ -58,7 +53,9 @@ public class MusicSheetService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicSheet))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+        var sheet = BuildMusicSheetQuery()
+            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
 
@@ -68,13 +65,7 @@ public class MusicSheetService
     public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheet createMusicSheet)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicSheet))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), createMusicSheet.FilePath);
-
-        if (createMusicSheet.Filesize <= 0)
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), "Filesize must be > 0");
-
-        if (createMusicSheet.PageCount <= 0)
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), "PageCount must be > 0");
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"{createMusicSheet.ScoreId}/{createMusicSheet.VoiceId}");
 
         var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == createMusicSheet.ScoreId);
         if (score == null)
@@ -85,23 +76,23 @@ public class MusicSheetService
             return ErrorUtils.ValueNotFound(nameof(Voice), createMusicSheet.VoiceId.ToString());
 
         var duplicate = _dbContext.MusicSheets.Any(ms =>
-            ms.FileHash == createMusicSheet.FileHash &&
-            ms.FilePath == createMusicSheet.FilePath);
+            ms.ScoreId == createMusicSheet.ScoreId &&
+            ms.VoiceId == createMusicSheet.VoiceId);
 
         if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"{createMusicSheet.FilePath} (Hash={createMusicSheet.FileHash})");
+            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={createMusicSheet.ScoreId}, VoiceId={createMusicSheet.VoiceId}");
 
         var sheet = new MusicSheet
         {
-            FilePath = createMusicSheet.FilePath,
-            FileHash = createMusicSheet.FileHash,
-            Filesize = createMusicSheet.Filesize,
-            PageCount = createMusicSheet.PageCount,
-            FileModifiedDate = createMusicSheet.FileModifiedDate,
             ScoreId = createMusicSheet.ScoreId,
             Score = score,
             VoiceId = createMusicSheet.VoiceId,
-            Voice = voice
+            Voice = voice,
+            FilePath = string.Empty,
+            FileHash = string.Empty,
+            Filesize = 0,
+            PageCount = 0,
+            FileModifiedDate = DateTime.UtcNow
         };
 
         _dbContext.MusicSheets.Add(sheet);
@@ -114,33 +105,23 @@ public class MusicSheetService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicSheet))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+        var sheet = BuildMusicSheetQuery()
+            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
 
-        var newFilePath = updateMusicSheet.FilePath ?? sheet.FilePath;
-        var newFileHash = updateMusicSheet.FileHash ?? sheet.FileHash;
-        var newFilesize = updateMusicSheet.Filesize ?? sheet.Filesize;
-        var newPageCount = updateMusicSheet.PageCount ?? sheet.PageCount;
-        var newFileModifiedDate = updateMusicSheet.FileModifiedDate ?? sheet.FileModifiedDate;
         var newScoreId = updateMusicSheet.ScoreId ?? sheet.ScoreId;
         var newVoiceId = updateMusicSheet.VoiceId ?? sheet.VoiceId;
 
-        if (newFilesize <= 0)
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), "Filesize must be > 0");
-
-        if (newPageCount <= 0)
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), "PageCount must be > 0");
-
         var wouldDuplicate = _dbContext.MusicSheets.Any(ms =>
             ms.MusicSheetId != musicSheetId &&
-            ms.FileHash == newFileHash &&
-            ms.FilePath == newFilePath);
+            ms.ScoreId == newScoreId &&
+            ms.VoiceId == newVoiceId);
 
         if (wouldDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"{newFilePath} (Hash={newFileHash})");
+            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={newScoreId}, VoiceId={newVoiceId}");
 
-        // Nur wenn sich die IDs ändern, referenzierte Entities prüfen & setzen.
         if (newScoreId != sheet.ScoreId)
         {
             var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == newScoreId);
@@ -161,12 +142,6 @@ public class MusicSheetService
             sheet.Voice = voice;
         }
 
-        sheet.FilePath = newFilePath;
-        sheet.FileHash = newFileHash;
-        sheet.Filesize = newFilesize;
-        sheet.PageCount = newPageCount;
-        sheet.FileModifiedDate = newFileModifiedDate;
-
         _dbContext.SaveChanges();
         return sheet;
     }
@@ -176,7 +151,9 @@ public class MusicSheetService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteMusicSheet))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+        var sheet = BuildMusicSheetQuery()
+            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
 

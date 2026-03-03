@@ -10,7 +10,7 @@ public class MusicSheetController : ControllerBase
 {
     [HttpGet]
     public ActionResult<MusicSheetDto[]> GetMusicSheets(
-        [FromQuery] int? scoreId,
+        [FromRoute] int? scoreId,
         [FromQuery] int? voiceId,
         [FromServices] MusicSheetService musicSheetService)
     {
@@ -18,7 +18,7 @@ public class MusicSheetController : ControllerBase
 
         if (sheetsResult.IsSuccessful())
         {
-            return sheetsResult.GetValue()
+            return sheetsResult.GetValue()!
                 .Select(sheet => new MusicSheetDto(sheet))
                 .ToArray();
         }
@@ -27,19 +27,6 @@ public class MusicSheetController : ControllerBase
     }
 
     [HttpGet("{musicSheetId:int}")]
-    public ActionResult<MusicSheetDto> GetMusicSheetById(
-        [FromRoute] int musicSheetId,
-        [FromServices] MusicSheetService musicSheetService)
-    {
-        var sheetResult = musicSheetService.GetMusicSheetById(musicSheetId);
-
-        if (sheetResult.IsSuccessful())
-        {
-            return new MusicSheetDto(sheetResult.GetValue());
-        }
-
-        return (ObjectResult)sheetResult;
-    }
 
     [HttpPost]
     public ActionResult<MusicSheetDto> CreateMusicSheet(
@@ -50,7 +37,7 @@ public class MusicSheetController : ControllerBase
 
         if (createdResult.IsSuccessful())
         {
-            return new MusicSheetDto(createdResult.GetValue());
+            return new MusicSheetDto(createdResult.GetValue()!);
         }
 
         return (ObjectResult)createdResult;
@@ -66,7 +53,7 @@ public class MusicSheetController : ControllerBase
 
         if (updatedResult.IsSuccessful())
         {
-            return new MusicSheetDto(updatedResult.GetValue());
+            return new MusicSheetDto(updatedResult.GetValue()!);
         }
 
         return (ObjectResult)updatedResult;

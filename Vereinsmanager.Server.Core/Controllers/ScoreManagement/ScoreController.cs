@@ -15,7 +15,7 @@ public class ScoreController : ControllerBase
 
         if (scoresResult.IsSuccessful())
         {
-            return scoresResult.GetValue()
+            return scoresResult.GetValue()!
                 .Select(score => new ScoreDto(score))
                 .ToArray();
         }
@@ -32,7 +32,7 @@ public class ScoreController : ControllerBase
 
         if (scoreResult.IsSuccessful())
         {
-            return new ScoreDto(scoreResult.GetValue());
+            return new ScoreDto(scoreResult.GetValue()!);
         }
 
         return (ObjectResult)scoreResult;
@@ -47,7 +47,7 @@ public class ScoreController : ControllerBase
 
         if (createdResult.IsSuccessful())
         {
-            return new ScoreDto(createdResult.GetValue());
+            return new ScoreDto(createdResult.GetValue()!);
         }
 
         return (ObjectResult)createdResult;
@@ -63,7 +63,7 @@ public class ScoreController : ControllerBase
 
         if (updatedResult.IsSuccessful())
         {
-            return new ScoreDto(updatedResult.GetValue());
+            return new ScoreDto(updatedResult.GetValue()!);
         }
 
         return (ObjectResult)updatedResult;

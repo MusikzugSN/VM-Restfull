@@ -20,24 +20,26 @@ public class InstrumentService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
-    public Instrument? LoadInstrumentById(int instrumentId, bool includeVoices = false)
+    private IQueryable<Instrument> GetInstruments(bool includeVoices)
     {
         IQueryable<Instrument> q = _dbContext.Instruments;
-        if (includeVoices) q = q.Include(i => i.Voices);
-        return q.FirstOrDefault(i => i.InstrumentId == instrumentId);
+        if (includeVoices)
+            q = q.Include(i => i.Voices);
+        return q;
     }
-    
+
+    public Instrument? LoadInstrumentById(int instrumentId, bool includeVoices = false)
+    {
+        return GetInstruments(includeVoices)
+            .FirstOrDefault(i => i.InstrumentId == instrumentId);
+    }
+
     public ReturnValue<Instrument[]> ListInstruments(bool includeVoices = false)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
             return ErrorUtils.NotPermitted(nameof(Instrument), "read all");
 
-        IQueryable<Instrument> q = _dbContext.Instruments;
-        if (includeVoices) q = q.Include(i => i.Voices);
-
-        return q
-            .OrderBy(i => i.Name)
-            .ToArray();
+        return GetInstruments(includeVoices).ToArray();
     }
 
     public ReturnValue<Instrument> GetInstrumentById(int instrumentId, bool includeVoices = true)
@@ -45,8 +47,7 @@ public class InstrumentService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
-        IQueryable<Instrument> q = _dbContext.Instruments;
-        if (includeVoices) q = q.Include(i => i.Voices);
+        IQueryable<Instrument> q = GetInstruments(includeVoices);
 
         var instrument = q.FirstOrDefault(i => i.InstrumentId == instrumentId);
         if (instrument == null)
@@ -84,8 +85,14 @@ public class InstrumentService
         if (instrument == null)
             return ErrorUtils.ValueNotFound(nameof(Instrument), instrumentId.ToString());
 
-        var newName = dto.Name ?? instrument.Name;
-        var newType = dto.Type ?? instrument.Type;
+        var newName = instrument.Name;
+        var newType = instrument.Type;
+
+        if (dto.Name is not null)
+            newName = dto.Name;
+
+        if (dto.Type is not null)
+            newType = dto.Type;
 
         var wouldDuplicate = _dbContext.Instruments.Any(i =>
             i.InstrumentId != instrumentId &&
@@ -107,13 +114,13 @@ public class InstrumentService
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
         var instrument = _dbContext.Instruments
-            .Include(i => i.Voices)
             .FirstOrDefault(i => i.InstrumentId == instrumentId);
 
         if (instrument == null)
             return ErrorUtils.ValueNotFound(nameof(Instrument), instrumentId.ToString());
 
-        if (instrument.Voices.Count > 0)
+        var hasVoices = _dbContext.Voices.Any(v => v.InstrumentId == instrumentId);
+        if (hasVoices)
             return ErrorUtils.NotPermitted(nameof(Instrument), "delete (has Voices)");
 
         _dbContext.Instruments.Remove(instrument);

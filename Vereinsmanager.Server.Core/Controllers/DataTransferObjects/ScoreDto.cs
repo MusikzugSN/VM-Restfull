@@ -7,8 +7,8 @@ public class ScoreDto : MetaDataDto
     public int ScoreId { get; init; }
     public string Title { get; init; }
     public string Composer { get; init; }
-    public string Link { get; init; }
-    public int Duration { get; init; }
+    public string? Link { get; init; }
+    public int? Duration { get; init; }
 
     public ScoreDto(Score score)
     {

@@ -9,7 +9,7 @@ public class Voice : MetaData
     public int VoiceId { get; set; }
 
     [Required]
-    [MaxLength(100)]
+    [MaxLength(24)]
     public required string Name { get; set; }
 
     [Required]

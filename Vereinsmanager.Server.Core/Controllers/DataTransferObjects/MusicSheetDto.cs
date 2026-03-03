@@ -14,20 +14,18 @@ public class MusicSheetDto : MetaDataDto
     public int ScoreId { get; init; }
     public int VoiceId { get; init; }
 
-    public MusicSheetDto(MusicSheet sheet)
+    public MusicSheetDto(MusicSheet musicSheet)
     {
-        MusicSheetId = sheet.MusicSheetId;
-        FilePath = sheet.FilePath;
-        FileHash = sheet.FileHash;
-        Filesize = sheet.Filesize;
-        PageCount = sheet.PageCount;
-        FileModifiedDate = sheet.FileModifiedDate;
-        ScoreId = sheet.ScoreId;
-        VoiceId = sheet.VoiceId;
+        MusicSheetId = musicSheet.MusicSheetId;
+        FileHash = musicSheet.FileHash;
+        Filesize = musicSheet.Filesize;
+        PageCount = musicSheet.PageCount;
+        ScoreId = musicSheet.ScoreId;
+        VoiceId = musicSheet.VoiceId;
 
-        CreatedAt = sheet.CreatedAt;
-        CreatedBy = sheet.CreatedBy;
-        UpdatedAt = sheet.UpdatedAt;
-        UpdatedBy = sheet.UpdatedBy;
+        CreatedAt = musicSheet.CreatedAt;
+        CreatedBy = musicSheet.CreatedBy;
+        UpdatedAt = musicSheet.UpdatedAt;
+        UpdatedBy = musicSheet.UpdatedBy;
     }
 }

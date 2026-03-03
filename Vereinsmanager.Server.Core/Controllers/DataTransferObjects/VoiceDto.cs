@@ -1,3 +1,4 @@
+#nullable enable
 using Vereinsmanager.Database.ScoreManagment;
 
 namespace Vereinsmanager.Controllers.DataTransferObjects;
@@ -6,11 +7,18 @@ public class VoiceDto : MetaDataDto
 {
     public int VoiceId { get; init; }
     public string Name { get; init; }
+    public int InstrumentId { get; init; }
+    public AlternateVoiceDto[] AlternateVoices { get; init; }
 
     public VoiceDto(Voice voice)
     {
         VoiceId = voice.VoiceId;
         Name = voice.Name;
+        InstrumentId = voice.InstrumentId;
+
+        AlternateVoices = voice.AlternateVoices
+            .Select(x => new AlternateVoiceDto(x))
+            .ToArray();
 
         CreatedAt = voice.CreatedAt;
         CreatedBy = voice.CreatedBy;

@@ -17,14 +17,12 @@ public enum PermissionGroup
     LoginSettings = 4,
     [Description("Stimmenverwaltung (übergreifend)")]
     VoiceManagement = 5,
-    [Description("Notenverwaltung (übergreifend)")]
+    [Description("Notenverwaltung")]
     ScoreManagement = 6,
     [Description("Eventverwaltung (übergreifend)")]
     EventManagement = 7,
-    [Description("Mappenverwaltung (übergreifend)")]
+    [Description("Mappenverwaltung")]
     MusicSheetManagement = 8,
-    [Description("Instrumentenverwaltung (übergreifend)")]
-    InstrumentManagement = 10,
     
 }
 

@@ -35,7 +35,7 @@ public class InstrumentController : ControllerBase
 
         if (instrumentResult.IsSuccessful())
         {
-            return new InstrumentDto(instrumentResult.GetValue());
+            return new InstrumentDto(instrumentResult.GetValue()!);
         }
 
         return (ObjectResult)instrumentResult;
@@ -50,7 +50,7 @@ public class InstrumentController : ControllerBase
 
         if (createdResult.IsSuccessful())
         {
-            return new InstrumentDto(createdResult.GetValue());
+            return new InstrumentDto(createdResult.GetValue()!);
         }
 
         return (ObjectResult)createdResult;
@@ -66,7 +66,7 @@ public class InstrumentController : ControllerBase
 
         if (updatedResult.IsSuccessful())
         {
-            return new InstrumentDto(updatedResult.GetValue());
+            return new InstrumentDto(updatedResult.GetValue()!);
         }
 
         return (ObjectResult)updatedResult;

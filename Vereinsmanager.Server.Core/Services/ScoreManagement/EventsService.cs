@@ -2,191 +2,154 @@ using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Utils;
+using Vereinsmanager.Services.Models;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record AddEventScore(int ScoreId);
-public record UpdateEventScore(int ScoreId);
-public record UpdateEventScoreItem(int? EventScoreId, UpdateEventScore Data);
-public record CreateEvent(string Name, DateTime Date, List<AddEventScore>? Scores);
-public record UpdateEvent(string? Name, DateTime? Date, List<UpdateEventScoreItem>? Scores);
+public record CreateEvent(string Name, DateTime Date, List<UpdateEventScore>? Scores);
+public record UpdateEventScore(int ScoreId, bool? Deleted);
+public record UpdateEvent(string? Name, DateTime? Date, List<UpdateEventScore>? Scores);
 
 public class EventService
 {
     private readonly ServerDatabaseContext _dbContext;
+    private readonly Lazy<PermissionService> _permissionServiceLazy;
 
-    public EventService(ServerDatabaseContext dbContext)
+    public EventService(ServerDatabaseContext dbContext, Lazy<PermissionService> permissionServiceLazy)
     {
         _dbContext = dbContext;
+        _permissionServiceLazy = permissionServiceLazy;
     }
 
-    public ReturnValue<Event[]> ListEvents(bool includeEventScores, bool includeScores)
+    private IQueryable<Event> BuildEventQuery(bool includeScores = false)
     {
-        IQueryable<Event> query = _dbContext.Events;
-
-        if (includeScores && !includeEventScores)
+        var query = _dbContext.Events;
+        
+        if (includeScores)
         {
-            includeEventScores = true;
+            query.Include(es => es.EventScore);
         }
 
-        if (includeEventScores)
-        {
-            query = query.Include(e => e.EventScore);
-
-            if (includeScores)
-            {
-                query = query.Include(e => e.EventScore)
-                             .ThenInclude(es => es.Score);
-            }
-        }
-
-        return query.ToArray();
+        return query;
     }
 
-    public ReturnValue<Event> GetEventById(int eventId, bool includeEventScores, bool includeScores)
+    private Event? LoadEventEntityById(int eventId)
     {
-        IQueryable<Event> query = _dbContext.Events;
+        return BuildEventQuery().FirstOrDefault(e => e.EventId == eventId);
+    }
 
-        if (includeScores && !includeEventScores)
+    private void UpdateScoresToEvent(Event eventEntity, List<UpdateEventScore> incoming)
+    {
+        var normalized = incoming
+            .GroupBy(x => x.ScoreId)
+            .Select(g => g.Last())
+            .ToList();
+
+        //Delete Values
+        var idsToDeleted = normalized
+            .Where(x => x.Deleted ?? false)
+            .Select(x => x.ScoreId)
+            .ToHashSet();
+        
+        var entrysToDelete = _dbContext.EventScores
+            .Where(es => es.EventId == eventEntity.EventId)
+            .Where(es => idsToDeleted.Contains(es.ScoreId))
+            .ToList();
+
+        _dbContext.RemoveRange(entrysToDelete);
+        
+        //Add Values
+        var idsToCreate = normalized
+            .Where(x => (x.Deleted ?? false) == false)
+            .Select(x => x.ScoreId)
+            .ToHashSet();
+
+        var existingScores = _dbContext.Scores
+            .Where(x => idsToCreate.Contains(x.ScoreId))
+            .ToHashSet();
+
+        var createReferences = existingScores
+            .Select(CreateViaScoreId)
+            .ToList();
+
+        _dbContext.AddRange(createReferences);
+        _dbContext.SaveChanges();
+
+        return;
+        EventScore CreateViaScoreId(Score score)
         {
-            includeEventScores = true;
-        }
-
-        if (includeEventScores)
-        {
-            query = query.Include(e => e.EventScore);
-
-            if (includeScores)
+            return new EventScore
             {
-                query = query.Include(e => e.EventScore)
-                             .ThenInclude(es => es.Score);
-            }
+                Event = eventEntity,
+                Score = score
+            };
         }
+    }
 
-        var loadedEvent = query.FirstOrDefault(e => e.EventId == eventId);
+    public ReturnValue<Event[]> ListEvents(bool includeScores)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
+            return ErrorUtils.NotPermitted(nameof(Event), "read all");
+
+        return BuildEventQuery(includeScores).ToArray();
+    }
+
+    public ReturnValue<Event> GetEventById(int eventId, bool includeScores)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
+            return ErrorUtils.NotPermitted(nameof(Event), "read all");
+        
+        var loadedEvent = BuildEventQuery(includeScores).FirstOrDefault(e => e.EventId == eventId);
         if (loadedEvent == null)
-        {
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
-        }
 
         return loadedEvent;
     }
 
     public ReturnValue<Event> CreateEvent(CreateEvent createEvent)
     {
-        var duplicateExists = _dbContext.Events.Any(e => e.Name == createEvent.Name && e.Date == createEvent.Date);
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateEvent))
+            return ErrorUtils.NotPermitted(nameof(Event), createEvent.Name);
+
+        var duplicateExists = BuildEventQuery().Any(e => e.Name == createEvent.Name && e.Date == createEvent.Date);
         if (duplicateExists)
-        {
             return ErrorUtils.AlreadyExists(nameof(Event), $"{createEvent.Name} {createEvent.Date:O}");
-        }
 
-        List<Score>? scoresToAttach = null;
-
-        if (createEvent.Scores != null && createEvent.Scores.Count > 0)
-        {
-            scoresToAttach = new List<Score>(createEvent.Scores.Count);
-
-            foreach (var scoreRef in createEvent.Scores)
-            {
-                var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == scoreRef.ScoreId);
-                if (score == null)
-                {
-                    return ErrorUtils.ValueNotFound(nameof(Score), scoreRef.ScoreId.ToString());
-                }
-
-                scoresToAttach.Add(score);
-            }
-        }
-
+       
         var newEvent = new Event
         {
             Name = createEvent.Name,
             Date = createEvent.Date
         };
 
-        if (scoresToAttach != null)
+        if (createEvent.Scores?.Any() ?? false)
         {
-            foreach (var score in scoresToAttach)
-            {
-                newEvent.EventScore.Add(new EventScore
-                {
-                    Event = newEvent,
-                    Score = score,
-                    ScoreId = score.ScoreId
-                });
-            }
+            UpdateScoresToEvent(newEvent, createEvent.Scores);
         }
 
         _dbContext.Events.Add(newEvent);
         _dbContext.SaveChanges();
-
         return newEvent;
     }
 
     public ReturnValue<Event> UpdateEvent(int eventId, UpdateEvent updateEvent)
     {
-        var loadedEvent = _dbContext.Events
-            .Include(e => e.EventScore)
-            .FirstOrDefault(e => e.EventId == eventId);
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent))
+            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
 
+        var loadedEvent = LoadEventEntityById(eventId);
         if (loadedEvent == null)
-        {
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
-        }
 
         if (updateEvent.Name != null)
-        {
             loadedEvent.Name = updateEvent.Name;
-        }
 
         if (updateEvent.Date != null)
-        {
             loadedEvent.Date = updateEvent.Date.Value;
-        }
 
-        if (updateEvent.Scores != null)
+        if (updateEvent.Scores?.Any() ?? false)
         {
-            var existingById = loadedEvent.EventScore.ToDictionary(es => es.EventScoreId);
-
-            var incomingExistingIds = updateEvent.Scores
-                .Where(x => x.EventScoreId.HasValue)
-                .Select(x => x.EventScoreId.Value)
-                .ToHashSet();
-
-            var toDelete = loadedEvent.EventScore
-                .Where(es => !incomingExistingIds.Contains(es.EventScoreId))
-                .ToList();
-
-            _dbContext.Set<EventScore>().RemoveRange(toDelete);
-
-            foreach (var item in updateEvent.Scores)
-            {
-                var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == item.Data.ScoreId);
-                if (score == null)
-                {
-                    return ErrorUtils.ValueNotFound(nameof(Score), item.Data.ScoreId.ToString());
-                }
-
-                if (item.EventScoreId.HasValue)
-                {
-                    if (!existingById.TryGetValue(item.EventScoreId.Value, out var existing))
-                    {
-                        return ErrorUtils.ValueNotFound(nameof(EventScore), item.EventScoreId.Value.ToString());
-                    }
-
-                    existing.Score = score;
-                    existing.ScoreId = score.ScoreId;
-                }
-                else
-                {
-                    loadedEvent.EventScore.Add(new EventScore
-                    {
-                        Event = loadedEvent,
-                        Score = score,
-                        ScoreId = score.ScoreId
-                    });
-                }
-            }
+            UpdateScoresToEvent(loadedEvent, updateEvent.Scores);
         }
 
         _dbContext.SaveChanges();
@@ -195,11 +158,12 @@ public class EventService
 
     public ReturnValue<bool> DeleteEvent(int eventId)
     {
-        var loadedEvent = _dbContext.Events.FirstOrDefault(e => e.EventId == eventId);
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteEvent))
+            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
+
+        var loadedEvent = LoadEventEntityById(eventId);
         if (loadedEvent == null)
-        {
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
-        }
 
         _dbContext.Events.Remove(loadedEvent);
         _dbContext.SaveChanges();

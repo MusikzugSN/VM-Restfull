@@ -6,20 +6,20 @@ namespace Vereinsmanager.Controllers.DataTransferObjects;
 public class AlternateVoiceDto : MetaDataDto
 {
     public int AlternateVoiceId { get; init; }
+    public int VoiceId { get; init; }
     public int Alternative { get; init; }
     public int Priority { get; init; }
-    public int VoiceId { get; init; }
 
-    public AlternateVoiceDto(AlternateVoice av)
+    public AlternateVoiceDto(AlternateVoice alternateVoice)
     {
-        AlternateVoiceId = av.AlternateVoiceId;
-        Alternative = av.Alternative;
-        Priority = av.Priority;
-        VoiceId = av.VoiceId;
+        AlternateVoiceId = alternateVoice.AlternateVoiceId;
+        VoiceId = alternateVoice.VoiceId;
+        Alternative = alternateVoice.Alternative;
+        Priority = alternateVoice.Priority;
 
-        CreatedAt = av.CreatedAt;
-        CreatedBy = av.CreatedBy;
-        UpdatedAt = av.UpdatedAt;
-        UpdatedBy = av.UpdatedBy;
+        CreatedAt = alternateVoice.CreatedAt;
+        CreatedBy = alternateVoice.CreatedBy;
+        UpdatedAt = alternateVoice.UpdatedAt;
+        UpdatedBy = alternateVoice.UpdatedBy;
     }
 }

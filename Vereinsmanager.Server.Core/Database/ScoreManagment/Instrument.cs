@@ -17,6 +17,5 @@ public class Instrument : MetaData
     [MaxLength(255)]
     public required string Type { get; set; }
     
-    [Required]
-    public List<Voice> Voices { get; set; } = new();
+    public List<Voice>? Voices { get; set; }
 }

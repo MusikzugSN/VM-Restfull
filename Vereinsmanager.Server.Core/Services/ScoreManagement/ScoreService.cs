@@ -5,7 +5,7 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateScore(string Title, string Composer, string Link, int Duration);
+public record CreateScore(string Title, string Composer, string? Link, int? Duration);
 public record UpdateScore(string? Title, string? Composer, string? Link, int? Duration);
 
 public class ScoreService
@@ -24,14 +24,21 @@ public class ScoreService
         return _dbContext.Scores.FirstOrDefault(score => score.ScoreId == scoreId);
     }
 
+    private static bool IsValidHttpsLink(string? link)
+    {
+        if (string.IsNullOrWhiteSpace(link))
+            return false;
+
+        return Uri.TryCreate(link, UriKind.Absolute, out var uri) &&
+               string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
+    }
+
     public ReturnValue<Score[]> ListScores()
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), "read all");
 
-        return _dbContext.Scores
-            .OrderBy(score => score.Title)
-            .ToArray();
+        return _dbContext.Scores.ToArray();
     }
 
     public ReturnValue<Score> GetScoreById(int scoreId)
@@ -53,6 +60,9 @@ public class ScoreService
 
         if (createScore.Duration <= 0)
             return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+
+        if (!IsValidHttpsLink(createScore.Link))
+            return ErrorUtils.NotPermitted(nameof(Score), "Link must be https://");
 
         var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
@@ -80,25 +90,34 @@ public class ScoreService
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), scoreId.ToString());
 
-        var newTitle = updateScore.Title ?? score.Title;
-        var newComposer = updateScore.Composer ?? score.Composer;
-        var newLink = updateScore.Link ?? score.Link;
-        var newDuration = updateScore.Duration ?? score.Duration;
+        if (updateScore.Title is not null)
+            score.Title = updateScore.Title;
 
-        if (newDuration <= 0)
-            return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+        if (updateScore.Composer is not null)
+            score.Composer = updateScore.Composer;
+
+        if (updateScore.Link is not null)
+        {
+            if (!IsValidHttpsLink(updateScore.Link))
+                return ErrorUtils.NotPermitted(nameof(Score), "Link must be https://");
+
+            score.Link = updateScore.Link;
+        }
+
+        if (updateScore.Duration is not null)
+        {
+            if (updateScore.Duration.Value <= 0)
+                return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+
+            score.Duration = updateScore.Duration.Value;
+        }
 
         var wouldDuplicate = _dbContext.Scores.Any(existing =>
             existing.ScoreId != scoreId &&
-            existing.Title == newTitle);
+            existing.Title == score.Title);
 
         if (wouldDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(Score), newTitle);
-
-        score.Title = newTitle;
-        score.Composer = newComposer;
-        score.Link = newLink;
-        score.Duration = newDuration;
+            return ErrorUtils.AlreadyExists(nameof(Score), score.Title);
 
         _dbContext.SaveChanges();
         return score;

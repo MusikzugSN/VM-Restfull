@@ -10,20 +10,19 @@ public class EventsController : ControllerBase
 {
     [HttpGet]
     public ActionResult<EventDto[]> GetEvents(
-        [FromQuery] bool includeEventScores,
         [FromQuery] bool includeScores,
         [FromServices] EventService eventService)
     {
-        if (includeScores && !includeEventScores)
+        if (includeScores)
         {
             return BadRequest("includeScores kann nur zusammen mit includeEventScores genutzt werden.");
         }
 
-        var eventsResult = eventService.ListEvents(includeEventScores, includeScores);
+        var eventsResult = eventService.ListEvents(includeScores);
 
         if (eventsResult.IsSuccessful())
         {
-            var events = eventsResult.GetValue();
+            var events = eventsResult.GetValue()!;
             return events.Select(e => new EventDto(e)).ToArray();
         }
 
@@ -43,11 +42,11 @@ public class EventsController : ControllerBase
             return BadRequest("includeScores kann nur zusammen mit includeEventScores genutzt werden.");
         }
 
-        var eventResult = eventService.GetEventById(eventId, includeEventScores, includeScores);
+        var eventResult = eventService.GetEventById(eventId, includeScores);
 
         if (eventResult.IsSuccessful())
         {
-            var loadedEvent = eventResult.GetValue();
+            var loadedEvent = eventResult.GetValue()!;
             return new EventDto(loadedEvent);
         }
 
@@ -63,7 +62,7 @@ public class EventsController : ControllerBase
 
         if (createdResult.IsSuccessful())
         {
-            return new EventDto(createdResult.GetValue());
+            return new EventDto(createdResult.GetValue()!);
         }
 
         return (ObjectResult)createdResult;
@@ -80,7 +79,7 @@ public class EventsController : ControllerBase
 
         if (updatedResult.IsSuccessful())
         {
-            return new EventDto(updatedResult.GetValue());
+            return new EventDto(updatedResult.GetValue()!);
         }
 
         return (ObjectResult)updatedResult;

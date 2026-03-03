@@ -8,14 +8,16 @@ public class EventScoreDto : MetaDataDto
     public int EventId { get; init; }
     public int ScoreId { get; init; }
 
-    public EventScoreDto(EventScore es)
-    {
-        EventId = es.EventId;
-        ScoreId = es.ScoreId;
+    public bool Deleted { get; init; }
 
-        CreatedAt = es.CreatedAt;
-        CreatedBy = es.CreatedBy;
-        UpdatedAt = es.UpdatedAt;
-        UpdatedBy = es.UpdatedBy;
+    public EventScoreDto(EventScore eventScore)
+    {
+        EventId = eventScore.EventId;
+        ScoreId = eventScore.ScoreId;
+
+        CreatedAt = eventScore.CreatedAt;
+        CreatedBy = eventScore.CreatedBy;
+        UpdatedAt = eventScore.UpdatedAt;
+        UpdatedBy = eventScore.UpdatedBy;
     }
 }

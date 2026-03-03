@@ -15,6 +15,6 @@ public class MusicFolder : MetaData
     public int GroupId { get; set; }
     
     [Required]
-    [MaxLength(255)]
+    [MaxLength(24)]
     public required string Name { get; set; }
 }

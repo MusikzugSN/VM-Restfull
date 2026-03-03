@@ -9,15 +9,15 @@ public class MusicFolderDto : MetaDataDto
     public int GroupId { get; init; }
     public string Name { get; init; }
 
-    public MusicFolderDto(MusicFolder folder)
+    public MusicFolderDto(MusicFolder musicFolder)
     {
-        MusicFolderId = folder.MusicFolderId;
-        GroupId = folder.GroupId;
-        Name = folder.Name;
+        MusicFolderId = musicFolder.MusicFolderId;
+        GroupId = musicFolder.GroupId;
+        Name = musicFolder.Name;
 
-        CreatedAt = folder.CreatedAt;
-        CreatedBy = folder.CreatedBy;
-        UpdatedAt = folder.UpdatedAt;
-        UpdatedBy = folder.UpdatedBy;
+        CreatedAt = musicFolder.CreatedAt;
+        CreatedBy = musicFolder.CreatedBy;
+        UpdatedAt = musicFolder.UpdatedAt;
+        UpdatedBy = musicFolder.UpdatedBy;
     }
 }

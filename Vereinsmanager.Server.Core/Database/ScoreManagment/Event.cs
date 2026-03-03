@@ -10,7 +10,7 @@ public class Event : MetaData
     public int EventId { get; set; }
 
     [Required]
-    [MaxLength(255)]
+    [MaxLength(24)]
     public required string Name { get; set; }
 
     [Required]
