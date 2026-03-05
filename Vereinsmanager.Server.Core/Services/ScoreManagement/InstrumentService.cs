@@ -47,9 +47,9 @@ public class InstrumentService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
-        IQueryable<Instrument> q = GetInstruments(includeVoices);
+        var instrument = GetInstruments(includeVoices)
+            .FirstOrDefault(i => i.InstrumentId == instrumentId);
 
-        var instrument = q.FirstOrDefault(i => i.InstrumentId == instrumentId);
         if (instrument == null)
             return ErrorUtils.ValueNotFound(nameof(Instrument), instrumentId.ToString());
 

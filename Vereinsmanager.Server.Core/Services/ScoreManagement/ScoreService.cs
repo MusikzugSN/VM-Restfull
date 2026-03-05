@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
@@ -33,20 +34,30 @@ public class ScoreService
                string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
     }
 
-    public ReturnValue<Score[]> ListScores()
+    public ReturnValue<Score[]> ListScores(bool includeMusicSheets = false)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), "read all");
-
-        return _dbContext.Scores.ToArray();
+        
+        IQueryable<Score> scoresQuery = _dbContext.Scores;
+        
+        if  (includeMusicSheets)
+            scoresQuery = scoresQuery.Include(s => s.MusicSheets);
+        
+        return scoresQuery.ToArray();
     }
 
-    public ReturnValue<Score> GetScoreById(int scoreId)
+    public ReturnValue<Score> GetScoreById(int scoreId, bool includeSheets = false)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
+        
+        IQueryable<Score> query = _dbContext.Scores;
 
-        var score = LoadScoreById(scoreId);
+        if (includeSheets)
+            query = query.Include(s => s.MusicSheets);
+
+        var score = query.FirstOrDefault(s => s.ScoreId == scoreId);
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), scoreId.ToString());
 
@@ -59,10 +70,10 @@ public class ScoreService
             return ErrorUtils.NotPermitted(nameof(Score), createScore.Title);
 
         if (createScore.Duration <= 0)
-            return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+            return ErrorUtils.ValueOutOfRange(nameof(Score), identifier: "Duration must be > 0");
 
         if (!IsValidHttpsLink(createScore.Link))
-            return ErrorUtils.NotPermitted(nameof(Score), "Link must be https://");
+            return ErrorUtils.ValueNotFound(nameof(Score), identifier: "Link must start with https://");
 
         var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
@@ -107,7 +118,7 @@ public class ScoreService
         if (updateScore.Duration is not null)
         {
             if (updateScore.Duration.Value <= 0)
-                return ErrorUtils.NotPermitted(nameof(Score), "Duration must be > 0");
+                return ErrorUtils.ValueOutOfRange(nameof(Score), "Duration must be > 0");
 
             score.Duration = updateScore.Duration.Value;
         }

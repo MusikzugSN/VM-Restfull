@@ -17,10 +17,9 @@ public class VoiceController : ControllerBase
 
     [HttpGet]
     public ActionResult<VoiceDto[]> GetVoices(
-        [FromQuery] bool includeInstrument = true,
-        [FromQuery] bool includeAlternateVoices = true)
+        [FromQuery] bool includeAlternateVoices = false)
     {
-        var voices = _voiceService.ListVoices(includeInstrument, includeAlternateVoices);
+        var voices = _voiceService.ListVoices( includeAlternateVoices);
 
         if (voices.IsSuccessful())
         {
@@ -35,7 +34,7 @@ public class VoiceController : ControllerBase
     [HttpGet("{voiceId:int}")]
     public ActionResult<VoiceDto> GetVoice(int voiceId)
     {
-        var voice = _voiceService.GetVoiceById(voiceId, true, true);
+        var voice = _voiceService.GetVoiceById(voiceId, true);
 
         if (voice.IsSuccessful())
             return new VoiceDto(voice.GetValue()!);

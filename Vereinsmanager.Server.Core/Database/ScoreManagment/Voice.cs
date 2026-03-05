@@ -16,11 +16,11 @@ public class Voice : MetaData
     public required Instrument Instrument { get; set; }
     public int InstrumentId { get; set; }
 
-    public List<MusicSheet> MusicSheets { get; set; } = new();
+    public List<MusicSheet>? MusicSheets { get; set; }
 
     [InverseProperty(nameof(AlternateVoice.Voice))]
-    public List<AlternateVoice> AlternateVoices { get; set; } = new();
+    public List<AlternateVoice>? AlternateVoices { get; set; }
 
     [InverseProperty(nameof(AlternateVoice.AlternativeVoiceNav))]
-    public List<AlternateVoice> UsedAsAlternativeIn { get; set; } = new();
+    public List<AlternateVoice>? UsedAsAlternativeIn { get; set; }
 }

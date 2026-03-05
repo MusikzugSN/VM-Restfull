@@ -13,10 +13,6 @@ public class EventsController : ControllerBase
         [FromQuery] bool includeScores,
         [FromServices] EventService eventService)
     {
-        if (includeScores)
-        {
-            return BadRequest("includeScores kann nur zusammen mit includeEventScores genutzt werden.");
-        }
 
         var eventsResult = eventService.ListEvents(includeScores);
 
@@ -33,15 +29,9 @@ public class EventsController : ControllerBase
     [Route("{eventId:int}")]
     public ActionResult<EventDto> GetEventById(
         [FromRoute] int eventId,
-        [FromQuery] bool includeEventScores,
         [FromQuery] bool includeScores,
         [FromServices] EventService eventService)
     {
-        if (includeScores && !includeEventScores)
-        {
-            return BadRequest("includeScores kann nur zusammen mit includeEventScores genutzt werden.");
-        }
-
         var eventResult = eventService.GetEventById(eventId, includeScores);
 
         if (eventResult.IsSuccessful())

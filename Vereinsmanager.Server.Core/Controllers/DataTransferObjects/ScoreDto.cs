@@ -10,6 +10,8 @@ public class ScoreDto : MetaDataDto
     public string? Link { get; init; }
     public int? Duration { get; init; }
 
+    public int[]? Sheets { get; init; }
+
     public ScoreDto(Score score)
     {
         ScoreId = score.ScoreId;
@@ -17,6 +19,10 @@ public class ScoreDto : MetaDataDto
         Composer = score.Composer;
         Link = score.Link;
         Duration = score.Duration;
+
+        Sheets = score.MusicSheets?
+            .Select(sheet => sheet.MusicSheetId)
+            .ToArray();
 
         CreatedAt = score.CreatedAt;
         CreatedBy = score.CreatedBy;

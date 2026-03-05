@@ -24,18 +24,13 @@ public class MusicSheetService
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
     }
-    
-    private IQueryable<MusicSheet> BuildMusicSheetQuery()
-    {
-        return _dbContext.MusicSheets;
-    }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicSheet))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), "read all");
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"scoreId={scoreId}, voiceId={voiceId}");
 
-        IQueryable<MusicSheet> query = BuildMusicSheetQuery();
+        IQueryable<MusicSheet> query = _dbContext.MusicSheets;
 
         if (scoreId != null)
             query = query.Where(sheet => sheet.ScoreId == scoreId.Value);
@@ -48,12 +43,33 @@ public class MusicSheetService
             .ToArray();
     }
 
+    public ReturnValue<MusicSheet[]> ListMusicSheets(int folderId, int[] voiceIds)
+    {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
+            return ErrorUtils.NotPermitted(nameof(MusicSheet),
+                $"folderId={folderId}, voiceIds=[{string.Join(",", voiceIds)}]");
+
+        var scoreIdsInFolder = _dbContext.ScoreMusicFolders
+            .Where(x => x.MusicFolderId == folderId)
+            .Select(x => x.ScoreId);
+
+        IQueryable<MusicSheet> query = _dbContext.MusicSheets
+            .Where(sheet => scoreIdsInFolder.Contains(sheet.ScoreId));
+
+        if (voiceIds.Length > 0)
+            query = query.Where(sheet => voiceIds.Contains(sheet.VoiceId));
+
+        return query
+            .OrderBy(sheet => sheet.MusicSheetId)
+            .ToArray();
+    }
+
     public ReturnValue<MusicSheet> GetMusicSheetById(int musicSheetId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicSheet))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = BuildMusicSheetQuery()
+        var sheet = _dbContext.MusicSheets
             .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
 
         if (sheet == null)
@@ -64,7 +80,7 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheet createMusicSheet)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicSheet))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), $"{createMusicSheet.ScoreId}/{createMusicSheet.VoiceId}");
 
         var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == createMusicSheet.ScoreId);
@@ -102,10 +118,10 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int musicSheetId, UpdateMusicSheet updateMusicSheet)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicSheet))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = BuildMusicSheetQuery()
+        var sheet = _dbContext.MusicSheets
             .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
 
         if (sheet == null)
@@ -148,10 +164,10 @@ public class MusicSheetService
 
     public ReturnValue<bool> DeleteMusicSheet(int musicSheetId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteMusicSheet))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
 
-        var sheet = BuildMusicSheetQuery()
+        var sheet = _dbContext.MusicSheets
             .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
 
         if (sheet == null)

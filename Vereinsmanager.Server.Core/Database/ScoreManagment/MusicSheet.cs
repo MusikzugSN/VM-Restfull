@@ -3,7 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
-[Index(nameof(FileHash), nameof(FilePath), IsUnique = true)]
+[Index(nameof(ScoreId), nameof(VoiceId), IsUnique = true)]
+[Index(nameof(FilePath), IsUnique = true)]
 public class MusicSheet : MetaData
 {
     [Key]

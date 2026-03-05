@@ -61,13 +61,6 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
     DeleteVoice,
     
-    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Start)]
-    CreateAlternateVoice,
-    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Read)]
-    UpdateAlternateVoice,
-    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
-    DeleteAlternateVoice,
-    
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
     OpenScores,
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
@@ -90,49 +83,16 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Delete)]
     DeleteEvent,
     
-    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Start)]
-    OpenEventScore,
-    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Read)]
-    ListEventScore,
-    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Create)]
-    CreateEventScore,
-    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Update)]
-    UpdateEventScore,
-    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Delete)]
-    DeleteEventScore,
-    
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Start)]
     OpenMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Read)]
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Read)]
     ListMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Create)]
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Create)]
     CreateMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Update)]
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Update)]
     UpdateMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Delete)]
     DeleteMusicFolder,
-    
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]
-    OpenScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Read)]
-    ListScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Create)]
-    CreateScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Update)]
-    UpdateScoreMusicFolder,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
-    DeleteScoreMusicFolder,
-   
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Start)]
-    OpenMusicSheet,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Read)]
-    ListMusicSheet,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Create)]
-    CreateMusicSheet,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Update)]
-    UpdateMusicSheet,
-    [PermissionDescription(PermissionGroup.MusicSheetManagement, PermissionCategory.Delete)]
-    DeleteMusicSheet,
     
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
     OpenInstrument,

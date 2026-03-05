@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
-[Index(nameof(VoiceId), nameof(Alternative), IsUnique = true)]
+[Index(nameof(VoiceId), nameof(AlternativeId), IsUnique = true)]
 [Index(nameof(VoiceId), nameof(Priority), IsUnique = true)]
 public class AlternateVoice : MetaData
 {
@@ -22,9 +22,9 @@ public class AlternateVoice : MetaData
     public required Voice Voice { get; set; }
 
     [Required]
-    public int Alternative { get; set; }
+    public int AlternativeId { get; set; }
 
-    [ForeignKey(nameof(Alternative))]
+    [ForeignKey(nameof(AlternativeId))]
     [InverseProperty(nameof(Voice.UsedAsAlternativeIn))]
     public required Voice AlternativeVoiceNav { get; set; }
 }

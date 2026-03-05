@@ -9,9 +9,11 @@ namespace Vereinsmanager.Controllers.ScoreManagement;
 public class ScoreController : ControllerBase
 {
     [HttpGet]
-    public ActionResult<ScoreDto[]> GetScores([FromServices] ScoreService scoreService)
+    public ActionResult<ScoreDto[]> GetScores(
+        [FromQuery] bool includeSheets,
+        [FromServices] ScoreService scoreService)
     {
-        var scoresResult = scoreService.ListScores();
+        var scoresResult = scoreService.ListScores(includeSheets);
 
         if (scoresResult.IsSuccessful())
         {
@@ -26,9 +28,10 @@ public class ScoreController : ControllerBase
     [HttpGet("{scoreId:int}")]
     public ActionResult<ScoreDto> GetScoreById(
         [FromRoute] int scoreId,
+        [FromQuery] bool includeSheets,
         [FromServices] ScoreService scoreService)
     {
-        var scoreResult = scoreService.GetScoreById(scoreId);
+        var scoreResult = scoreService.GetScoreById(scoreId, includeSheets);
 
         if (scoreResult.IsSuccessful())
         {

@@ -8,10 +8,10 @@ namespace Vereinsmanager.Controllers.ScoreManagement;
 [Route("api/v1/musicSheet")]
 public class MusicSheetController : ControllerBase
 {
-    [HttpGet]
-    public ActionResult<MusicSheetDto[]> GetMusicSheets(
-        [FromRoute] int? scoreId,
-        [FromQuery] int? voiceId,
+    [HttpGet("score/{scoreId:int}/voice/{voiceId:int}")]
+    public ActionResult<MusicSheetDto[]> GetMusicSheet(
+        [FromRoute] int scoreId,
+        [FromRoute] int voiceId,
         [FromServices] MusicSheetService musicSheetService)
     {
         var sheetsResult = musicSheetService.ListMusicSheets(scoreId, voiceId);
@@ -25,8 +25,23 @@ public class MusicSheetController : ControllerBase
 
         return (ObjectResult)sheetsResult;
     }
+    [HttpGet("folder/{folderId:int}")]
+    public ActionResult<MusicSheetDto[]> GetMusicSheets(
+        [FromRoute] int folderId,
+        [FromQuery] int[] voiceIds,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        var sheetsResult = musicSheetService.ListMusicSheets(folderId, voiceIds);
 
-    [HttpGet("{musicSheetId:int}")]
+        if (sheetsResult.IsSuccessful())
+        {
+            return sheetsResult.GetValue()!
+                .Select(sheet => new MusicSheetDto(sheet))
+                .ToArray();
+        }
+
+        return (ObjectResult)sheetsResult;
+    }
 
     [HttpPost]
     public ActionResult<MusicSheetDto> CreateMusicSheet(

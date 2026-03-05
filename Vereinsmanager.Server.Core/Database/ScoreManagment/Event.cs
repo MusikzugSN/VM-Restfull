@@ -18,4 +18,8 @@ public class Event : MetaData
 
     [Required]
     public List<EventScore> EventScore { get; set; } = new();
+    
+    public int GroupId { get; set; }
+    
+    
 }

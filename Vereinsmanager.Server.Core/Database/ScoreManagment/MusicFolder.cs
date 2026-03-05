@@ -17,4 +17,6 @@ public class MusicFolder : MetaData
     [Required]
     [MaxLength(24)]
     public required string Name { get; set; }
+    
+    public ICollection<ScoreMusicFolder> ScoreMusicFolders { get; set; } = new List<ScoreMusicFolder>();
 }

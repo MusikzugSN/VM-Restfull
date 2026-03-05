@@ -1,4 +1,3 @@
-#nullable enable
 using Vereinsmanager.Database.ScoreManagment;
 
 namespace Vereinsmanager.Controllers.DataTransferObjects;
@@ -9,11 +8,17 @@ public class MusicFolderDto : MetaDataDto
     public int GroupId { get; init; }
     public string Name { get; init; }
 
+    public int[]? ScoreIds { get; init; }
+
     public MusicFolderDto(MusicFolder musicFolder)
     {
         MusicFolderId = musicFolder.MusicFolderId;
         GroupId = musicFolder.GroupId;
         Name = musicFolder.Name;
+
+        ScoreIds = musicFolder.ScoreMusicFolders?
+            .Select(x => x.ScoreId)
+            .ToArray();
 
         CreatedAt = musicFolder.CreatedAt;
         CreatedBy = musicFolder.CreatedBy;

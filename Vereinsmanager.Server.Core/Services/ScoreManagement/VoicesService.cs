@@ -6,9 +6,9 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateVoice(string Name, int InstrumentId, List<CreateAlternateVoice>? AlternateVoices);
-public record UpdateVoice(string? Name, int? InstrumentId, List<CreateAlternateVoice>? AlternateVoices);
-public record CreateAlternateVoice(int Alternative, int Priority);
+public record CreateVoice(string Name, int InstrumentId, List<UpdateAlternateVoice>? AlternateVoices);
+public record UpdateVoice(string? Name, int? InstrumentId, List<UpdateAlternateVoice>? AlternateVoices);
+public record UpdateAlternateVoice(int Alternative, int Priority, bool? Deleted);
 
 public class VoiceService
 {
@@ -21,7 +21,7 @@ public class VoiceService
         _permissionService = permissionService;
     }
 
-    private IQueryable<Voice> BuildVoiceQuery(bool includeInstrument = false, bool includeAlternateVoices = false)
+    private IQueryable<Voice> BuildVoiceQuery(bool includeAlternateVoices = false, bool includeInstrument = false)
     {
         IQueryable<Voice> voiceQuery = _databaseContext.Voices;
 
@@ -34,97 +34,113 @@ public class VoiceService
         return voiceQuery;
     }
 
-    private ReturnValue<Voice> SynchronizeAlternateVoices(Voice voice, List<CreateAlternateVoice> incomingAlternateVoices)
+    private ReturnValue<Voice> SynchronizeAlternateVoices(Voice voice, List<UpdateAlternateVoice> incomingAlternateVoices)
     {
-        List<int> alternativeVoiceIds = incomingAlternateVoices
-            .Select(alternateVoice => alternateVoice.Alternative)
+        var normalized = incomingAlternateVoices
+            .GroupBy(x => x.Alternative)
+            .Select(g => g.Last())
+            .ToList();
+
+        var active = normalized
+            .Where(x => (x.Deleted ?? false) == false)
+            .ToList();
+
+        var alternativeVoiceIds = active
+            .Select(x => x.Alternative)
             .ToList();
 
         if (alternativeVoiceIds.Distinct().Count() != alternativeVoiceIds.Count)
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice), "duplicate Alternative");
 
-        List<int> priorities = incomingAlternateVoices
-            .Select(alternateVoice => alternateVoice.Priority)
+        var priorities = active
+            .Select(x => x.Priority)
             .ToList();
 
         if (priorities.Distinct().Count() != priorities.Count)
             return ErrorUtils.AlreadyExists(nameof(AlternateVoice), "duplicate Priority");
 
-        if (incomingAlternateVoices.Any(alternateVoice =>
-                alternateVoice.Alternative <= 0 ||
-                alternateVoice.Alternative == voice.VoiceId))
+        if (active.Any(x => x.Alternative <= 0 || x.Alternative == voice.VoiceId))
             return ErrorUtils.NotPermitted(nameof(AlternateVoice), "invalid Alternative");
 
-        List<Voice> existingAlternativeVoices = _databaseContext.Voices
-            .Where(existingVoice => alternativeVoiceIds.Contains(existingVoice.VoiceId))
+        var idsToDeleted = normalized
+            .Where(x => x.Deleted ?? false)
+            .Select(x => x.Alternative)
+            .ToHashSet();
+
+        var entriesToDelete = _databaseContext.AlternateVoices
+            .Where(x => x.VoiceId == voice.VoiceId)
+            .Where(x => idsToDeleted.Contains(x.AlternativeId))
+            .ToList();
+
+        if (entriesToDelete.Count > 0)
+            _databaseContext.AlternateVoices.RemoveRange(entriesToDelete);
+
+        var existingAlternativeVoices = _databaseContext.Voices
+            .Where(x => alternativeVoiceIds.Contains(x.VoiceId))
             .ToList();
 
         if (existingAlternativeVoices.Count != alternativeVoiceIds.Count)
         {
-            HashSet<int> foundVoiceIds = existingAlternativeVoices
-                .Select(existingVoice => existingVoice.VoiceId)
+            var foundVoiceIds = existingAlternativeVoices
+                .Select(x => x.VoiceId)
                 .ToHashSet();
 
-            int missingVoiceId = alternativeVoiceIds
-                .First(requestedVoiceId => !foundVoiceIds.Contains(requestedVoiceId));
+            var missingVoiceId = alternativeVoiceIds
+                .First(id => !foundVoiceIds.Contains(id));
 
             return ErrorUtils.ValueNotFound(nameof(Voice), missingVoiceId.ToString());
         }
 
-        Dictionary<int, Voice> alternativeVoiceById = existingAlternativeVoices
-            .ToDictionary(existingVoice => existingVoice.VoiceId);
+        var alternativeVoiceById = existingAlternativeVoices
+            .ToDictionary(x => x.VoiceId);
 
-        List<AlternateVoice> existingAlternateVoiceLinks = _databaseContext.AlternateVoices
-            .Where(alternateVoice => alternateVoice.VoiceId == voice.VoiceId)
+        var existingLinks = _databaseContext.AlternateVoices
+            .Where(x => x.VoiceId == voice.VoiceId)
             .ToList();
 
-        Dictionary<int, AlternateVoice> existingLinkByAlternative = existingAlternateVoiceLinks
-            .ToDictionary(alternateVoice => alternateVoice.Alternative);
+        var existingLinkByAlternative = existingLinks
+            .ToDictionary(x => x.AlternativeId);
 
-        HashSet<int> requestedAlternativeIds = alternativeVoiceIds.ToHashSet();
-
-        List<AlternateVoice> linksToRemove = existingAlternateVoiceLinks
-            .Where(alternateVoice => !requestedAlternativeIds.Contains(alternateVoice.Alternative))
-            .ToList();
-
-        if (linksToRemove.Count > 0)
-            _databaseContext.AlternateVoices.RemoveRange(linksToRemove);
-
-        foreach (CreateAlternateVoice requestedAlternateVoice in incomingAlternateVoices)
+        foreach (var requested in active)
         {
-            if (existingLinkByAlternative.TryGetValue(requestedAlternateVoice.Alternative, out AlternateVoice? existingLink))
+            if (existingLinkByAlternative.TryGetValue(requested.Alternative, out var existingLink))
             {
-                existingLink.Priority = requestedAlternateVoice.Priority;
+                existingLink.Priority = requested.Priority;
                 continue;
             }
 
-            _databaseContext.AlternateVoices.Add(new AlternateVoice
-            {
-                VoiceId = voice.VoiceId,
-                Voice = voice,
-                Alternative = requestedAlternateVoice.Alternative,
-                AlternativeVoiceNav = alternativeVoiceById[requestedAlternateVoice.Alternative],
-                Priority = requestedAlternateVoice.Priority
-            });
+            _databaseContext.AlternateVoices.Add(CreateViaAlternativeId(requested));
         }
 
         return voice;
+
+        AlternateVoice CreateViaAlternativeId(UpdateAlternateVoice requested)
+        {
+            return new AlternateVoice
+            {
+                VoiceId = voice.VoiceId,
+                Voice = voice,
+                AlternativeId = requested.Alternative,
+                AlternativeVoiceNav = alternativeVoiceById[requested.Alternative],
+                Priority = requested.Priority
+            };
+        }
     }
 
-    public ReturnValue<Voice[]> ListVoices(bool includeInstrument = true, bool includeAlternateVoices = true)
+    public ReturnValue<Voice[]> ListVoices(bool includeAlternateVoices = false)
     {
         if (!_permissionService.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), "read all");
 
-        return BuildVoiceQuery(includeInstrument, includeAlternateVoices).ToArray();
+        return BuildVoiceQuery(includeAlternateVoices).ToArray();
     }
 
-    public ReturnValue<Voice> GetVoiceById(int voiceId, bool includeInstrument = false, bool includeAlternateVoices = false)
+    public ReturnValue<Voice> GetVoiceById(int voiceId, bool includeAlternateVoices = false)
     {
         if (!_permissionService.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), voiceId.ToString());
 
-        Voice? voice = BuildVoiceQuery(includeInstrument, includeAlternateVoices)
+        Voice? voice = BuildVoiceQuery(includeAlternateVoices)
             .FirstOrDefault(existingVoice => existingVoice.VoiceId == voiceId);
 
         if (voice == null)
@@ -160,7 +176,6 @@ public class VoiceService
         };
 
         _databaseContext.Voices.Add(newVoice);
-        _databaseContext.SaveChanges();
 
         if (createVoice.AlternateVoices != null && createVoice.AlternateVoices.Count > 0)
         {
@@ -169,10 +184,9 @@ public class VoiceService
 
             if (!synchronizationResult.IsSuccessful())
                 return synchronizationResult;
-
-            _databaseContext.SaveChanges();
         }
 
+        _databaseContext.SaveChanges();
         return newVoice;
     }
 
@@ -231,7 +245,7 @@ public class VoiceService
         if (hasMusicSheets)
             return ErrorUtils.NotPermitted(nameof(Voice), "delete (has MusicSheets)");
 
-        if (voice.AlternateVoices.Count > 0)
+        if (voice.AlternateVoices?.Count > 0)
             _databaseContext.AlternateVoices.RemoveRange(voice.AlternateVoices);
 
         _databaseContext.Voices.Remove(voice);

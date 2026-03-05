@@ -21,4 +21,6 @@ public class Score : MetaData
     public string? Link { get; set; }
 
     public int? Duration { get; set; }
+    
+    public ICollection<MusicSheet>? MusicSheets { get; set; }
 }

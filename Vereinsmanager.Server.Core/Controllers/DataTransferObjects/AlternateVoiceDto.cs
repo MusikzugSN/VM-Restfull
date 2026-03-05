@@ -7,14 +7,14 @@ public class AlternateVoiceDto : MetaDataDto
 {
     public int AlternateVoiceId { get; init; }
     public int VoiceId { get; init; }
-    public int Alternative { get; init; }
+    public int AlternativeId { get; init; }
     public int Priority { get; init; }
 
     public AlternateVoiceDto(AlternateVoice alternateVoice)
     {
         AlternateVoiceId = alternateVoice.AlternateVoiceId;
         VoiceId = alternateVoice.VoiceId;
-        Alternative = alternateVoice.Alternative;
+        AlternativeId = alternateVoice.AlternativeId;
         Priority = alternateVoice.Priority;
 
         CreatedAt = alternateVoice.CreatedAt;

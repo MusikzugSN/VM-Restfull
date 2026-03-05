@@ -22,7 +22,7 @@ public enum PermissionGroup
     [Description("Eventverwaltung (übergreifend)")]
     EventManagement = 7,
     [Description("Mappenverwaltung")]
-    MusicSheetManagement = 8,
+    MusicFolderManagement = 8,
     
 }
 

@@ -8,7 +8,8 @@ public class VoiceDto : MetaDataDto
     public int VoiceId { get; init; }
     public string Name { get; init; }
     public int InstrumentId { get; init; }
-    public AlternateVoiceDto[] AlternateVoices { get; init; }
+
+    public int[] AlternateVoiceIds { get; init; }
 
     public VoiceDto(Voice voice)
     {
@@ -16,8 +17,8 @@ public class VoiceDto : MetaDataDto
         Name = voice.Name;
         InstrumentId = voice.InstrumentId;
 
-        AlternateVoices = voice.AlternateVoices
-            .Select(x => new AlternateVoiceDto(x))
+        AlternateVoiceIds = voice.AlternateVoices
+            .Select(x => x.AlternativeId)
             .ToArray();
 
         CreatedAt = voice.CreatedAt;
