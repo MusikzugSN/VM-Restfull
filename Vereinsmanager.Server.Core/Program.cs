@@ -14,6 +14,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHealthChecks();
+builder.Services.AddMemoryCache();
 
 var licenseKey = File.ReadAllText("syncfusion-license.txt");
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
