@@ -15,6 +15,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHealthChecks();
 
+var licenseKey = File.ReadAllText("syncfusion-license.txt");
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];
 builder.Services.AddCors(options => {
     options.AddPolicy("DynamicCors", policy => {

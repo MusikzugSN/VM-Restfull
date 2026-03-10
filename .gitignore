@@ -4,6 +4,9 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 ## Edited by this Project
 
+# Syncfusion
+syncfusion-license.txt
+
 # Development
 data/
 !data/generateKeys.sh
