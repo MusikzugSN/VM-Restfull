@@ -31,4 +31,13 @@ public static class ErrorUtils
             Title = item + "(" + identifier + ") is not permitted"
         };
     }
+
+    public static ProblemDetails ValueOutOfRange(string item, string identifier)
+    {
+        return new ProblemDetails
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+            Title = item + "(" + identifier + ") is out of range"
+        };
+    }
 }

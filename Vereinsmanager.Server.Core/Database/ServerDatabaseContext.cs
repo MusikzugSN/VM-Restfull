@@ -25,7 +25,7 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Score> Scores { get; set; }
     public DbSet<Instrument>  Instruments { get; set; }
     public DbSet<MusicFolder> MusicFolders { get; set; }
-    public DbSet<MusicSheed> MusicSheeds { get; set; }
+    public DbSet<MusicSheet> MusicSheets { get; set; }
     public DbSet<ScoreMusicFolder> ScoreMusicFolders { get; set; }
     public DbSet<Voice> Voices { get; set; }
     public override int SaveChanges()

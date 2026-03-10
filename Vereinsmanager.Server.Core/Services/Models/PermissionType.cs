@@ -49,6 +49,63 @@ public enum PermissionType
     UpdateLoginSettings,
     [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Delete)]
     DeleteLoginSettings,
+    
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Start)]
+    OpenVoice,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Read)]
+    ListVoice,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Create)]
+    CreateVoice,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Update)]
+    UpdateVoice,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
+    DeleteVoice,
+    
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
+    OpenScores,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
+    ListScore,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Create)]
+    CreateScore,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Update)]
+    UpdateScore,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Delete)]
+    DeleteScore,
+    
+    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Start)]
+    OpenEvent,
+    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Read)]
+    ListEvent,
+    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Create)]
+    CreateEvent,
+    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Update)]
+    UpdateEvent,
+    [PermissionDescription(PermissionGroup.EventManagement, PermissionCategory.Delete)]
+    DeleteEvent,
+    
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Start)]
+    OpenMusicFolder,
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Read)]
+    ListMusicFolder,
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Create)]
+    CreateMusicFolder,
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Update)]
+    UpdateMusicFolder,
+    [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Delete)]
+    DeleteMusicFolder,
+    
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
+    OpenInstrument,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
+    ListInstrument,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Create)]
+    CreateInstrument,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Update)]
+    UpdateInstrument,
+    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Delete)]
+    DeleteInstrument,
+
+    
 }
 
 public static class PermissionTypeHelper
