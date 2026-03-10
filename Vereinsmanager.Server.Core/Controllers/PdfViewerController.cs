@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using Syncfusion.EJ2.PdfViewer;
 using System.Net;
 using System.Drawing;
+using Newtonsoft.Json.Serialization;
 using Syncfusion.Pdf.Parsing;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
@@ -16,6 +17,12 @@ namespace Vereinsmanager.Controllers;
 [ApiController]
 public class PdfViewerController : ControllerBase
 {
+    private static readonly JsonSerializerSettings PascalCaseSettings =
+        new JsonSerializerSettings
+        {
+            ContractResolver = new DefaultContractResolver()
+        };
+    
     private IWebHostEnvironment _hostingEnvironment;
     //Initialize the memory cache object
     public IMemoryCache _cache;
@@ -70,7 +77,7 @@ public class PdfViewerController : ControllerBase
             }
         }
         jsonResult = pdfviewer.Load(stream, jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -121,7 +128,7 @@ public class PdfViewerController : ControllerBase
         }
         var result = pdfviewer.Load(stream, password);
 
-        return Content(JsonConvert.SerializeObject(result));
+        return new JsonResult(JsonConvert.SerializeObject(result), PascalCaseSettings);
     }
     
     [AcceptVerbs("Post")]
@@ -133,7 +140,7 @@ public class PdfViewerController : ControllerBase
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         var jsonResult = pdfviewer.GetBookmarks(jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -145,7 +152,7 @@ public class PdfViewerController : ControllerBase
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         object jsonResult = pdfviewer.GetPage(jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -157,7 +164,7 @@ public class PdfViewerController : ControllerBase
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         object jsonResult = pdfviewer.GetDocumentText(jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -169,7 +176,7 @@ public class PdfViewerController : ControllerBase
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         object result = pdfviewer.GetThumbnailImages(jsonObject);
-        return Content(JsonConvert.SerializeObject(result));
+        return new JsonResult(JsonConvert.SerializeObject(result), PascalCaseSettings);
     }
     [AcceptVerbs("Post")]
     [HttpPost("RenderAnnotationComments")]
@@ -180,7 +187,7 @@ public class PdfViewerController : ControllerBase
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         object jsonResult = pdfviewer.GetAnnotationComments(jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
     [AcceptVerbs("Post")]
     [HttpPost("ExportAnnotations")]
@@ -190,7 +197,7 @@ public class PdfViewerController : ControllerBase
     {
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         string jsonResult = pdfviewer.ExportAnnotation(jsonObject);
-        return Content(jsonResult);
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
     [AcceptVerbs("Post")]
     [HttpPost("ImportAnnotations")]
@@ -246,7 +253,7 @@ public class PdfViewerController : ControllerBase
                 }
             }
         }
-        return Content(jsonResult);
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -257,7 +264,7 @@ public class PdfViewerController : ControllerBase
     {
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         string jsonResult = pdfviewer.ExportFormFields(jsonObject);
-        return Content(jsonResult);
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
@@ -268,7 +275,7 @@ public class PdfViewerController : ControllerBase
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         jsonObject["data"] = GetDocumentPath(jsonObject["data"]);
         object jsonResult = pdfviewer.ImportFormFields(jsonObject);
-        return Content(JsonConvert.SerializeObject(jsonResult));
+        return new JsonResult(JsonConvert.SerializeObject(jsonResult), PascalCaseSettings);
     }
 
     [AcceptVerbs("Post")]
