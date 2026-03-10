@@ -27,7 +27,6 @@ public class PdfViewerController : ControllerBase
     }
 
     [HttpPost("Load")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/Load")]
     //Post action for Loading the PDF documents
     public IActionResult Load([FromBody] Dictionary<string, string> jsonObject)
@@ -76,7 +75,6 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("ValidatePassword")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/ValidatePassword")]
     public IActionResult ValidatePassword([FromBody] Dictionary<string, string> jsonObject)
     {
@@ -128,10 +126,9 @@ public class PdfViewerController : ControllerBase
     
     [AcceptVerbs("Post")]
     [HttpPost("Bookmarks")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/Bookmarks")]
-    //Post action for processing the bookmarks from the PDF documents
-    public IActionResult Bookmarks([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for processing the bookmarks from the PDF documents
+    public IActionResult Bookmarks([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -141,10 +138,9 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("RenderPdfPages")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/RenderPdfPages")]
-    //Post action for processing the PDF documents  
-    public IActionResult RenderPdfPages([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for processing the PDF documents  
+    public IActionResult RenderPdfPages([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -154,10 +150,9 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("RenderPdfTexts")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/RenderPdfTexts")]
-    //Post action for processing the PDF texts  
-    public IActionResult RenderPdfTexts([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for processing the PDF texts
+    public IActionResult RenderPdfTexts([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -167,10 +162,9 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("RenderThumbnailImages")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/RenderThumbnailImages")]
-    //Post action for rendering the ThumbnailImages
-    public IActionResult RenderThumbnailImages([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for rendering the ThumbnailImages
+    public IActionResult RenderThumbnailImages([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -179,10 +173,9 @@ public class PdfViewerController : ControllerBase
     }
     [AcceptVerbs("Post")]
     [HttpPost("RenderAnnotationComments")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/RenderAnnotationComments")]
-    //Post action for rendering the annotations
-    public IActionResult RenderAnnotationComments([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for rendering the annotations
+    public IActionResult RenderAnnotationComments([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -191,10 +184,9 @@ public class PdfViewerController : ControllerBase
     }
     [AcceptVerbs("Post")]
     [HttpPost("ExportAnnotations")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/ExportAnnotations")]
-    //Post action to export annotations
-    public IActionResult ExportAnnotations([FromBody] Dictionary<string, string> jsonObject)
+    //Post action to export annotations
+    public IActionResult ExportAnnotations([FromBody] Dictionary<string, string> jsonObject)
     {
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
         string jsonResult = pdfviewer.ExportAnnotation(jsonObject);
@@ -202,7 +194,6 @@ public class PdfViewerController : ControllerBase
     }
     [AcceptVerbs("Post")]
     [HttpPost("ImportAnnotations")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/ImportAnnotations")]
     //Post action to import annotations
     public IActionResult ImportAnnotations([FromBody] Dictionary<string, string> jsonObject)
@@ -260,7 +251,6 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("ExportFormFields")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/ExportFormFields")]
     public IActionResult ExportFormFields([FromBody] Dictionary<string, string> jsonObject)
 
@@ -272,7 +262,6 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("ImportFormFields")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/ImportFormFields")]
     public IActionResult ImportFormFields([FromBody] Dictionary<string, string> jsonObject)
     {
@@ -284,10 +273,9 @@ public class PdfViewerController : ControllerBase
 
     [AcceptVerbs("Post")]
     [HttpPost("Unload")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/Unload")]
-    //Post action for unloading and disposing the PDF document resources  
-    public IActionResult Unload([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for unloading and disposing the PDF document resources  
+    public IActionResult Unload([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -297,10 +285,9 @@ public class PdfViewerController : ControllerBase
 
 
     [HttpPost("Download")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/Download")]
-    //Post action for downloading the PDF documents
-    public IActionResult Download([FromBody] Dictionary<string, string> jsonObject)
+    //Post action for downloading the PDF documents
+    public IActionResult Download([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -309,10 +296,9 @@ public class PdfViewerController : ControllerBase
     }
 
     [HttpPost("PrintImages")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
-    [Route("[controller]/PrintImages")]
-    //Post action for printing the PDF documents
-    public IActionResult PrintImages([FromBody] Dictionary<string, string> jsonObject)
+    [Route("[controller]/PrintImages")] 
+    //Post action for printing the PDF documents
+    public IActionResult PrintImages([FromBody] Dictionary<string, string> jsonObject)
     {
         //Initialize the PDF Viewer object with memory cache object
         PdfRenderer pdfviewer = new PdfRenderer(_cache);
@@ -321,7 +307,6 @@ public class PdfViewerController : ControllerBase
     }
 
     [HttpPost("Redaction")]
-    [Microsoft.AspNetCore.Cors.EnableCors("MyPolicy")]
     [Route("[controller]/Redaction")]
     public IActionResult Redaction([FromBody] Dictionary<string, string> jsonObject)
     {
