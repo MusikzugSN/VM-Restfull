@@ -24,6 +24,7 @@ namespace Vereinsmanager.Migrations
                     Name = table.Column<string>(type: "varchar(24)", maxLength: 24, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Date = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    GroupId = table.Column<int>(type: "int", nullable: false),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -380,7 +381,7 @@ namespace Vereinsmanager.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     Priority = table.Column<int>(type: "int", nullable: false),
                     VoiceId = table.Column<int>(type: "int", nullable: false),
-                    Alternative = table.Column<int>(type: "int", nullable: false),
+                    AlternativeId = table.Column<int>(type: "int", nullable: false),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -394,8 +395,8 @@ namespace Vereinsmanager.Migrations
                 {
                     table.PrimaryKey("PK_AlternateVoices", x => x.AlternateVoiceId);
                     table.ForeignKey(
-                        name: "FK_AlternateVoices_Voices_Alternative",
-                        column: x => x.Alternative,
+                        name: "FK_AlternateVoices_Voices_AlternativeId",
+                        column: x => x.AlternativeId,
                         principalTable: "Voices",
                         principalColumn: "VoiceId",
                         onDelete: ReferentialAction.Cascade);
@@ -451,14 +452,14 @@ namespace Vereinsmanager.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AlternateVoices_Alternative",
+                name: "IX_AlternateVoices_AlternativeId",
                 table: "AlternateVoices",
-                column: "Alternative");
+                column: "AlternativeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_AlternateVoices_VoiceId_Alternative",
+                name: "IX_AlternateVoices_VoiceId_AlternativeId",
                 table: "AlternateVoices",
-                columns: new[] { "VoiceId", "Alternative" },
+                columns: new[] { "VoiceId", "AlternativeId" },
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -503,15 +504,16 @@ namespace Vereinsmanager.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MusicSheets_FileHash_FilePath",
+                name: "IX_MusicSheets_FilePath",
                 table: "MusicSheets",
-                columns: new[] { "FileHash", "FilePath" },
+                column: "FilePath",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_MusicSheets_ScoreId",
+                name: "IX_MusicSheets_ScoreId_VoiceId",
                 table: "MusicSheets",
-                column: "ScoreId");
+                columns: new[] { "ScoreId", "VoiceId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_MusicSheets_VoiceId",
