@@ -2,7 +2,8 @@ using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
 using Syncfusion.Drawing;
-using Vereinsmanager.DataTransferObjects;
+using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Controllers.PdfManagement;
 
 namespace Vereinsmanager.Services.PdfManagement;
 

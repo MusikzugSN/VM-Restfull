@@ -9,6 +9,7 @@ using Vereinsmanager.Database;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
+using  Vereinsmanager.Services.PdfManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 

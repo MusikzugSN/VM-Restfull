@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.DataTransferObjects;
-using Vereinsmanager.Services.ScoreManagement;
+using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Services.PdfManagement;
+
 
 namespace Vereinsmanager.Controllers.PdfManagement;
 
