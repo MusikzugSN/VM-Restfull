@@ -2,11 +2,10 @@ using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Services.PdfManagement;
 
+namespace Vereinsmanager.Controllers;
 
-namespace Vereinsmanager.Controllers.PdfManagement;
-
+[Route("[controller]")]
 [ApiController]
-[Route("api/pdf")]
 public class PdfController : ControllerBase
 {
     private readonly PdfService _pdfService;
@@ -14,25 +13,29 @@ public class PdfController : ControllerBase
     public PdfController(PdfService pdfService)
     {
         _pdfService = pdfService;
+        Console.WriteLine("PdfController initialized");
     }
 
-    [HttpPost("upload")]
-    public async Task<ActionResult<UploadPdfDto>> Upload(IFormFile file)
+    [HttpPost("Upload")]
+    [Route("[controller]/Upload")]
+    public async Task<IActionResult> Upload(IFormFile file)
     {
-        return await _pdfService.UploadPdf(file);
+        UploadPdfDto result = await _pdfService.UploadPdf(file);
+        return new JsonResult(result);
     }
 
-    [HttpPost("layout")]
+    [HttpPost("CreateLayout")]
+    [Route("[controller]/CreateLayout")]
     public IActionResult CreateLayout([FromBody] PdfLayoutDto layout)
     {
         string path = _pdfService.CreatePdf(layout);
-
         byte[] bytes = System.IO.File.ReadAllBytes(path);
 
         return File(bytes, "application/pdf", "result.pdf");
     }
 
-    [HttpGet("{fileId}")]
+    [HttpGet("Get/{fileId}")]
+    [Route("[controller]/Get/{fileId}")]
     public IActionResult Get(string fileId)
     {
         string path = _pdfService.GetPdfPath(fileId);
@@ -41,7 +44,6 @@ public class PdfController : ControllerBase
             return NotFound();
 
         byte[] bytes = System.IO.File.ReadAllBytes(path);
-
         return File(bytes, "application/pdf");
     }
 }

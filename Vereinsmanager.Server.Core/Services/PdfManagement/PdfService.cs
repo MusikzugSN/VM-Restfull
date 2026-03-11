@@ -1,27 +1,31 @@
+using Syncfusion.Drawing;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
-using Syncfusion.Drawing;
 using Vereinsmanager.Controllers.DataTransferObjects;
-using Vereinsmanager.Controllers.PdfManagement;
 
 namespace Vereinsmanager.Services.PdfManagement;
 
 public class PdfService
 {
-    private readonly IWebHostEnvironment _environment;
+    private readonly IWebHostEnvironment _hostingEnvironment;
 
-    public PdfService(IWebHostEnvironment environment)
+    public PdfService(IWebHostEnvironment hostingEnvironment)
     {
-        _environment = environment;
+        _hostingEnvironment = hostingEnvironment;
     }
 
     public async Task<UploadPdfDto> UploadPdf(IFormFile file)
     {
-        if (file.Length == 0)
+        if (file == null || file.Length == 0)
             throw new Exception("File empty");
 
-        string folder = Path.Combine(_environment.ContentRootPath, "Storage", "OriginalFiles");
+        string folder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Storage",
+            "OriginalFiles"
+        );
+
         Directory.CreateDirectory(folder);
 
         string fileId = Guid.NewGuid().ToString("N");
@@ -37,6 +41,9 @@ public class PdfService
     {
         string sourcePath = GetPdfPath(layout.SourceFileId);
 
+        if (!System.IO.File.Exists(sourcePath))
+            throw new FileNotFoundException("Source PDF not found.");
+
         using PdfLoadedDocument source = new(sourcePath);
         using PdfDocument target = new();
 
@@ -48,59 +55,72 @@ public class PdfService
             page.Section.PageSettings.Size = pageSize;
         }
 
-        foreach (var placement in layout.Placements)
+        foreach (PdfPagePlacementDto placement in layout.Placements)
         {
             PdfLoadedPage sourcePage = (PdfLoadedPage)source.Pages[placement.SourcePageIndex];
             PdfTemplate template = sourcePage.CreateTemplate();
 
             PdfPage targetPage = target.Pages[placement.TargetPageIndex];
+            SizeF targetPageSize = targetPage.GetClientSize();
 
-            SizeF size = targetPage.GetClientSize();
-
-            RectangleF rect = BuildRectangle(placement, size.Width, size.Height);
+            RectangleF rect = BuildRectangle(
+                placement,
+                targetPageSize.Width,
+                targetPageSize.Height
+            );
 
             DrawTemplate(targetPage, template, rect, placement.KeepAspectRatio);
         }
 
-        string folder = Path.Combine(_environment.ContentRootPath, "Storage", "GeneratedFiles");
+        string folder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Storage",
+            "GeneratedFiles"
+        );
+
         Directory.CreateDirectory(folder);
 
-        string output = Path.Combine(folder, $"{Guid.NewGuid():N}.pdf");
+        string outputPath = Path.Combine(folder, $"{Guid.NewGuid():N}.pdf");
 
-        using FileStream fs = new(output, FileMode.Create);
-        target.Save(fs);
+        using FileStream stream = new(outputPath, FileMode.Create);
+        target.Save(stream);
 
-        return output;
+        return outputPath;
     }
 
     public string GetPdfPath(string fileId)
     {
         return Path.Combine(
-            _environment.ContentRootPath,
+            _hostingEnvironment.ContentRootPath,
             "Storage",
             "OriginalFiles",
             $"{fileId}.pdf"
         );
     }
 
-    private RectangleF BuildRectangle(PdfPagePlacementDto p, float pageWidth, float pageHeight)
+    private RectangleF BuildRectangle(PdfPagePlacementDto placement, float pageWidth, float pageHeight)
     {
-        if (p.IsNormalized)
+        if (placement.IsNormalized)
         {
             return new RectangleF(
-                p.X * pageWidth,
-                p.Y * pageHeight,
-                p.Width * pageWidth,
-                p.Height * pageHeight
+                placement.X * pageWidth,
+                placement.Y * pageHeight,
+                placement.Width * pageWidth,
+                placement.Height * pageHeight
             );
         }
 
-        return new RectangleF(p.X, p.Y, p.Width, p.Height);
+        return new RectangleF(
+            placement.X,
+            placement.Y,
+            placement.Width,
+            placement.Height
+        );
     }
 
     private SizeF GetPageSize(string format)
     {
-        return format.ToUpper() switch
+        return (format ?? "A4").ToUpperInvariant() switch
         {
             "A3" => PdfPageSize.A3,
             "A4" => PdfPageSize.A4,
@@ -113,33 +133,38 @@ public class PdfService
         PdfPage page,
         PdfTemplate template,
         RectangleF rect,
-        bool keepAspectRatio)
+        bool keepAspectRatio
+    )
     {
-        PdfGraphics g = page.Graphics;
+        PdfGraphics graphics = page.Graphics;
 
-        float sw = template.Width;
-        float sh = template.Height;
+        float sourceWidth = template.Width;
+        float sourceHeight = template.Height;
 
         if (!keepAspectRatio)
         {
-            g.DrawPdfTemplate(template,
+            graphics.DrawPdfTemplate(
+                template,
                 new PointF(rect.X, rect.Y),
-                new SizeF(rect.Width, rect.Height));
+                new SizeF(rect.Width, rect.Height)
+            );
             return;
         }
 
-        float scaleX = rect.Width / sw;
-        float scaleY = rect.Height / sh;
+        float scaleX = rect.Width / sourceWidth;
+        float scaleY = rect.Height / sourceHeight;
         float scale = Math.Min(scaleX, scaleY);
 
-        float width = sw * scale;
-        float height = sh * scale;
+        float drawWidth = sourceWidth * scale;
+        float drawHeight = sourceHeight * scale;
 
-        float x = rect.X + (rect.Width - width) / 2;
-        float y = rect.Y + (rect.Height - height) / 2;
+        float drawX = rect.X + (rect.Width - drawWidth) / 2f;
+        float drawY = rect.Y + (rect.Height - drawHeight) / 2f;
 
-        g.DrawPdfTemplate(template,
-            new PointF(x, y),
-            new SizeF(width, height));
+        graphics.DrawPdfTemplate(
+            template,
+            new PointF(drawX, drawY),
+            new SizeF(drawWidth, drawHeight)
+        );
     }
 }
