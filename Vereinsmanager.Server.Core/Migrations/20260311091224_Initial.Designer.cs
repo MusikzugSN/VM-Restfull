@@ -12,7 +12,7 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260311081106_Initial")]
+    [Migration("20260311091224_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

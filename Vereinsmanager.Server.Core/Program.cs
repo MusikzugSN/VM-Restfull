@@ -4,6 +4,7 @@ using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
@@ -14,6 +15,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHealthChecks();
+builder.Services.AddMemoryCache();
+
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    // Use the default property (Pascal) casing
+    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+});
+
+var licenseKey = File.ReadAllText("syncfusion-license.txt");
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
 
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];
 builder.Services.AddCors(options => {
@@ -109,8 +120,6 @@ foreach (var provider in providerConfigs)
     });
 }
 
-
-builder.Services.AddControllers();
 var app = builder.Build();
 app.MapHealthChecks("/health");
 app.UseCors("DynamicCors");
