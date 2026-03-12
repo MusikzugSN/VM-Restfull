@@ -8,6 +8,7 @@ public class VoiceDto : MetaDataDto
     public int VoiceId { get; init; }
     public string Name { get; init; }
     public int InstrumentId { get; init; }
+    public string? InstrumentName { get; init; }
 
     public int[] AlternateVoiceIds { get; init; }
 
@@ -17,6 +18,8 @@ public class VoiceDto : MetaDataDto
         Name = voice.Name;
         InstrumentId = voice.InstrumentId;
 
+        InstrumentName = voice.Instrument?.Name;
+        
         AlternateVoiceIds = voice.AlternateVoices?
             .Select(x => x.AlternativeId)
             .ToArray() ?? [];
