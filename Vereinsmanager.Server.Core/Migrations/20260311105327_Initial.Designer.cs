@@ -12,7 +12,7 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260311075638_Initial")]
+    [Migration("20260311105327_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -583,8 +583,8 @@ namespace Vereinsmanager.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("Duration")
-                        .HasColumnType("int");
+                    b.Property<double?>("Duration")
+                        .HasColumnType("double");
 
                     b.Property<string>("Link")
                         .HasMaxLength(255)

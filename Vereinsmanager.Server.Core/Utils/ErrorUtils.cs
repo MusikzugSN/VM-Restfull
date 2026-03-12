@@ -40,4 +40,13 @@ public static class ErrorUtils
             Title = item + "(" + identifier + ") is out of range"
         };
     }
+    
+    public static ProblemDetails ValueValidationFailed(string item, string identifier)
+    {
+        return new ProblemDetails
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+            Title = item + "(" + identifier + ") validation failed"
+        };
+    }
 }

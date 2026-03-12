@@ -580,8 +580,8 @@ namespace Vereinsmanager.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
-                    b.Property<int?>("Duration")
-                        .HasColumnType("int");
+                    b.Property<double?>("Duration")
+                        .HasColumnType("double");
 
                     b.Property<string>("Link")
                         .HasMaxLength(255)
