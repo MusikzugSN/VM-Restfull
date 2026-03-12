@@ -6,8 +6,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateScore(string Title, string Composer, string? Link, int? Duration);
-public record UpdateScore(string? Title, string? Composer, string? Link, int? Duration);
+public record CreateScore(string Title, string Composer, string? Link, double? Duration);
+public record UpdateScore(string? Title, string? Composer, string? Link, double? Duration);
 
 public class ScoreService
 {
@@ -72,8 +72,8 @@ public class ScoreService
         if (createScore.Duration <= 0)
             return ErrorUtils.ValueOutOfRange(nameof(Score), identifier: "Duration must be > 0");
 
-        if (!IsValidHttpsLink(createScore.Link))
-            return ErrorUtils.ValueNotFound(nameof(Score), identifier: "Link must start with https://");
+        if (createScore.Link != null && !IsValidHttpsLink(createScore.Link))
+            return ErrorUtils.ValueValidationFailed(nameof(Score), identifier: "Link must start with https://");
 
         var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
@@ -110,7 +110,7 @@ public class ScoreService
         if (updateScore.Link is not null)
         {
             if (!IsValidHttpsLink(updateScore.Link))
-                return ErrorUtils.NotPermitted(nameof(Score), "Link must be https://");
+                return ErrorUtils.ValueValidationFailed(nameof(Score), "Link must be https://");
 
             score.Link = updateScore.Link;
         }
