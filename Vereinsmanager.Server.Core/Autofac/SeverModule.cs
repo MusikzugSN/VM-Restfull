@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.PdfManagement;
 using Vereinsmanager.Services.ScoreManagement;
 using Vereinsmanager.Utils;
 
@@ -38,6 +39,9 @@ public class SeverModule : Module
         builder.RegisterType<VoiceService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<EventService>().AsSelf().InstancePerLifetimeScope();
+        
+        // PDF
+        builder.RegisterType<PdfService>().AsSelf().InstancePerLifetimeScope();
         
     }
 
