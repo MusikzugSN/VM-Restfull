@@ -133,6 +133,7 @@ public class VoiceService
             return ErrorUtils.NotPermitted(nameof(Voice), "read all");
 
         return BuildVoiceQuery(includeAlternateVoices, includeInstrument).ToArray();
+        
     }
 
     public ReturnValue<Voice> GetVoiceById(int voiceId, bool includeAlternateVoices = false, bool includeInstrument = false)

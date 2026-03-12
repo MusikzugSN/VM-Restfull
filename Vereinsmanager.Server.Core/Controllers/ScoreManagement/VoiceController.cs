@@ -18,7 +18,7 @@ public class VoiceController : ControllerBase
     [HttpGet]
     public ActionResult<VoiceDto[]> GetVoices(
         [FromQuery] bool includeAlternateVoices = false,
-        [FromQuery] bool includeInstrumentName = false)
+        [FromQuery] bool includeInstrumentName = true)
     {
         var voices = _voiceService.ListVoices(includeAlternateVoices, includeInstrumentName);
 
