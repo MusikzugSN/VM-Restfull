@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Syncfusion.Drawing;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
@@ -15,31 +16,85 @@ public class PdfService
         _hostingEnvironment = hostingEnvironment;
     }
 
-    public async Task<UploadPdfDto> UploadPdf(IFormFile file)
+    public PdfUploadResponseDto CreateUpload(PdfUploadRequestDto request)
     {
-        if (file == null || file.Length == 0)
-            throw new Exception("File empty");
+        if (request == null)
+            throw new Exception("Request is null");
 
-        string folder = Path.Combine(
-            _hostingEnvironment.ContentRootPath,
-            "Storage",
-            "OriginalFiles"
-        );
+        if (request.Files == null || request.Files.Count == 0)
+            throw new Exception("No files provided");
 
-        Directory.CreateDirectory(folder);
+        List<PdfUploadResponseFileDto> responseFiles = new();
 
-        string fileId = Guid.NewGuid().ToString("N");
-        string path = Path.Combine(folder, $"{fileId}.pdf");
+        foreach (PdfUploadFileDto file in request.Files)
+        {
+            string guid = Guid.NewGuid().ToString("N");
 
-        await using FileStream stream = new(path, FileMode.Create);
-        await file.CopyToAsync(stream);
+            StoredPdfMetadata metadata = new StoredPdfMetadata(
+                guid,
+                request.ScoreId,
+                file.VoiceId,
+                file.FileName,
+                null,
+                false
+            );
 
-        return new UploadPdfDto(fileId, file.FileName, file.Length);
+            SaveMetadata(metadata);
+
+            responseFiles.Add(new PdfUploadResponseFileDto(file.FileName, guid));
+        }
+
+        return new PdfUploadResponseDto(responseFiles);
+    }
+
+    public async Task<PdfUploadResponseDto> UploadRegisteredFiles(IFormCollection form)
+    {
+        List<PdfUploadResponseFileDto> uploadedFiles = new();
+
+        foreach (IFormFile file in form.Files)
+        {
+            if (file == null || file.Length == 0)
+                continue;
+
+            string guid = file.Name;
+
+            StoredPdfMetadata metadata = LoadMetadata(guid)
+                ?? throw new FileNotFoundException($"No metadata found for guid '{guid}'.");
+
+            string originalsFolder = Path.Combine(
+                _hostingEnvironment.ContentRootPath,
+                "Storage",
+                "OriginalFiles"
+            );
+
+            Directory.CreateDirectory(originalsFolder);
+
+            string extension = Path.GetExtension(metadata.FileName);
+            if (string.IsNullOrWhiteSpace(extension))
+                extension = ".pdf";
+
+            string path = Path.Combine(originalsFolder, $"{guid}{extension}");
+
+            await using FileStream stream = new(path, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            StoredPdfMetadata updatedMetadata = metadata with
+            {
+                StoredPath = path,
+                IsUploaded = true
+            };
+
+            SaveMetadata(updatedMetadata);
+
+            uploadedFiles.Add(new PdfUploadResponseFileDto(metadata.FileName, guid));
+        }
+
+        return new PdfUploadResponseDto(uploadedFiles);
     }
 
     public string CreatePdf(PdfLayoutDto layout)
     {
-        string sourcePath = GetPdfPath(layout.SourceFileId);
+        string sourcePath = GetPdfPath(layout.SourceGuid);
 
         if (!System.IO.File.Exists(sourcePath))
             throw new FileNotFoundException("Source PDF not found.");
@@ -88,14 +143,15 @@ public class PdfService
         return outputPath;
     }
 
-    public string GetPdfPath(string fileId)
+    public string GetPdfPath(string guid)
     {
-        return Path.Combine(
-            _hostingEnvironment.ContentRootPath,
-            "Storage",
-            "OriginalFiles",
-            $"{fileId}.pdf"
-        );
+        StoredPdfMetadata metadata = LoadMetadata(guid)
+            ?? throw new FileNotFoundException($"No metadata found for guid '{guid}'.");
+
+        if (string.IsNullOrWhiteSpace(metadata.StoredPath))
+            throw new FileNotFoundException($"No uploaded file found for guid '{guid}'.");
+
+        return metadata.StoredPath;
     }
 
     private RectangleF BuildRectangle(PdfPagePlacementDto placement, float pageWidth, float pageHeight)
@@ -167,4 +223,50 @@ public class PdfService
             new SizeF(drawWidth, drawHeight)
         );
     }
+
+    private void SaveMetadata(StoredPdfMetadata metadata)
+    {
+        string metadataFolder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Storage",
+            "Metadata"
+        );
+
+        Directory.CreateDirectory(metadataFolder);
+
+        string path = Path.Combine(metadataFolder, $"{metadata.Guid}.json");
+
+        string json = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        System.IO.File.WriteAllText(path, json);
+    }
+
+    private StoredPdfMetadata? LoadMetadata(string guid)
+    {
+        string metadataFolder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Storage",
+            "Metadata"
+        );
+
+        string path = Path.Combine(metadataFolder, $"{guid}.json");
+
+        if (!System.IO.File.Exists(path))
+            return null;
+
+        string json = System.IO.File.ReadAllText(path);
+        return JsonSerializer.Deserialize<StoredPdfMetadata>(json);
+    }
+
+    private record StoredPdfMetadata(
+        string Guid,
+        int ScoreId,
+        int VoiceId,
+        string FileName,
+        string? StoredPath,
+        bool IsUploaded
+    );
 }

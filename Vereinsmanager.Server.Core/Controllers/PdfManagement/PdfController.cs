@@ -1,49 +1,54 @@
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.Controllers.DataTransferObjects;
-using Vereinsmanager.Services.PdfManagement;
 
 namespace Vereinsmanager.Controllers;
 
-[Route("[controller]")]
 [ApiController]
+[Route("api/v1/[controller]")]
 public class PdfController : ControllerBase
 {
-    private readonly PdfService _pdfService;
-
-    public PdfController(PdfService pdfService)
+    [HttpPost("upload")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> Upload()
     {
-        _pdfService = pdfService;
-        Console.WriteLine("PdfController initialized");
-    }
+        Console.WriteLine("=== Upload Request ===");
 
-    [HttpPost("Upload")]
-    [Route("[controller]/Upload")]
-    public async Task<IActionResult> Upload(IFormFile file)
-    {
-        UploadPdfDto result = await _pdfService.UploadPdf(file);
-        return new JsonResult(result);
-    }
+        string? scoreId = Request.Form["scoreId"];
+        Console.WriteLine($"ScoreId: {scoreId}");
 
-    [HttpPost("CreateLayout")]
-    [Route("[controller]/CreateLayout")]
-    public IActionResult CreateLayout([FromBody] PdfLayoutDto layout)
-    {
-        string path = _pdfService.CreatePdf(layout);
-        byte[] bytes = System.IO.File.ReadAllBytes(path);
+        List<object> files = new();
 
-        return File(bytes, "application/pdf", "result.pdf");
-    }
+        for (int i = 0; i < Request.Form.Files.Count; i++)
+        {
+            var file = Request.Form.Files[i];
 
-    [HttpGet("Get/{fileId}")]
-    [Route("[controller]/Get/{fileId}")]
-    public IActionResult Get(string fileId)
-    {
-        string path = _pdfService.GetPdfPath(fileId);
+            string fileName = Request.Form[$"files[{i}].fileName"];
+            string voiceId = Request.Form[$"files[{i}].voiceId"];
 
-        if (!System.IO.File.Exists(path))
-            return NotFound();
+            Console.WriteLine($"File {i}");
+            Console.WriteLine($"fileName: {fileName}");
+            Console.WriteLine($"voiceId: {voiceId}");
+            Console.WriteLine($"uploaded file: {file.FileName}");
+            Console.WriteLine($"size: {file.Length}");
 
-        byte[] bytes = System.IO.File.ReadAllBytes(path);
-        return File(bytes, "application/pdf");
+            using var ms = new MemoryStream();
+            await file.CopyToAsync(ms);
+
+            files.Add(new
+            {
+                index = i,
+                fileName = fileName,
+                voiceId = voiceId,
+                uploadedFileName = file.FileName,
+                sizeBytes = file.Length
+            });
+        }
+
+        return Ok(new
+        {
+            message = "Upload received",
+            scoreId = scoreId,
+            fileCount = Request.Form.Files.Count,
+            files = files
+        });
     }
 }

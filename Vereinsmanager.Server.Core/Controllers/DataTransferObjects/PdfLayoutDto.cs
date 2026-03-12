@@ -1,7 +1,7 @@
 namespace Vereinsmanager.Controllers.DataTransferObjects;
 
 public record PdfLayoutDto(
-    string SourceFileId,
+    string SourceGuid,
     string TargetFormat,
     int TargetPageCount,
     List<PdfPagePlacementDto> Placements
