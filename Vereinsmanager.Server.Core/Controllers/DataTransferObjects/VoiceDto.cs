@@ -17,9 +17,9 @@ public class VoiceDto : MetaDataDto
         Name = voice.Name;
         InstrumentId = voice.InstrumentId;
 
-        AlternateVoiceIds = voice.AlternateVoices
+        AlternateVoiceIds = voice.AlternateVoices?
             .Select(x => x.AlternativeId)
-            .ToArray();
+            .ToArray() ?? [];
 
         CreatedAt = voice.CreatedAt;
         CreatedBy = voice.CreatedBy;

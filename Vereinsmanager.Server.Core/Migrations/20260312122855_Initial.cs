@@ -123,7 +123,7 @@ namespace Vereinsmanager.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Link = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Duration = table.Column<int>(type: "int", nullable: true),
+                    Duration = table.Column<double>(type: "double", nullable: true),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
