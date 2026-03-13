@@ -1,272 +1,173 @@
-using System.Text.Json;
-using Syncfusion.Drawing;
-using Syncfusion.Pdf;
-using Syncfusion.Pdf.Graphics;
-using Syncfusion.Pdf.Parsing;
+using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Database;
+using Vereinsmanager.Database.ScoreManagment;
+using Vereinsmanager.Services.Models;
+using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.PdfManagement;
 
-public class PdfService
+public class PdfService : IPdfService
 {
     private readonly IWebHostEnvironment _hostingEnvironment;
+    private readonly ServerDatabaseContext _dbContext;
 
-    public PdfService(IWebHostEnvironment hostingEnvironment)
+    public PdfService(IWebHostEnvironment hostingEnvironment, ServerDatabaseContext dbContext)
     {
         _hostingEnvironment = hostingEnvironment;
+        _dbContext = dbContext;
     }
 
-    public PdfUploadResponseDto CreateUpload(PdfUploadRequestDto request)
+    public ReturnValue<UploadPdfsResponseDto> UploadPdfs(UploadPdfsRequestDto request)
     {
-        if (request == null)
-            throw new Exception("Request is null");
+        var duplicateVoiceIds = request.Files
+            .GroupBy(file => file.VoiceId)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
 
-        if (request.Files == null || request.Files.Count == 0)
-            throw new Exception("No files provided");
-
-        List<PdfUploadResponseFileDto> responseFiles = new();
-
-        foreach (PdfUploadFileDto file in request.Files)
+        if (duplicateVoiceIds.Length > 0)
         {
-            string guid = Guid.NewGuid().ToString("N");
-
-            StoredPdfMetadata metadata = new StoredPdfMetadata(
-                guid,
-                request.ScoreId,
-                file.VoiceId,
-                file.FileName,
-                null,
-                false
-            );
-
-            SaveMetadata(metadata);
-
-            responseFiles.Add(new PdfUploadResponseFileDto(file.FileName, guid));
-        }
-
-        return new PdfUploadResponseDto(responseFiles);
-    }
-
-    public async Task<PdfUploadResponseDto> UploadRegisteredFiles(IFormCollection form)
-    {
-        List<PdfUploadResponseFileDto> uploadedFiles = new();
-
-        foreach (IFormFile file in form.Files)
-        {
-            if (file == null || file.Length == 0)
-                continue;
-
-            string guid = file.Name;
-
-            StoredPdfMetadata metadata = LoadMetadata(guid)
-                ?? throw new FileNotFoundException($"No metadata found for guid '{guid}'.");
-
-            string originalsFolder = Path.Combine(
-                _hostingEnvironment.ContentRootPath,
-                "Storage",
-                "OriginalFiles"
-            );
-
-            Directory.CreateDirectory(originalsFolder);
-
-            string extension = Path.GetExtension(metadata.FileName);
-            if (string.IsNullOrWhiteSpace(extension))
-                extension = ".pdf";
-
-            string path = Path.Combine(originalsFolder, $"{guid}{extension}");
-
-            await using FileStream stream = new(path, FileMode.Create);
-            await file.CopyToAsync(stream);
-
-            StoredPdfMetadata updatedMetadata = metadata with
-            {
-                StoredPath = path,
-                IsUploaded = true
-            };
-
-            SaveMetadata(updatedMetadata);
-
-            uploadedFiles.Add(new PdfUploadResponseFileDto(metadata.FileName, guid));
-        }
-
-        return new PdfUploadResponseDto(uploadedFiles);
-    }
-
-    public string CreatePdf(PdfLayoutDto layout)
-    {
-        string sourcePath = GetPdfPath(layout.SourceGuid);
-
-        if (!System.IO.File.Exists(sourcePath))
-            throw new FileNotFoundException("Source PDF not found.");
-
-        using PdfLoadedDocument source = new(sourcePath);
-        using PdfDocument target = new();
-
-        SizeF pageSize = GetPageSize(layout.TargetFormat);
-
-        for (int i = 0; i < layout.TargetPageCount; i++)
-        {
-            PdfPage page = target.Pages.Add();
-            page.Section.PageSettings.Size = pageSize;
-        }
-
-        foreach (PdfPagePlacementDto placement in layout.Placements)
-        {
-            PdfLoadedPage sourcePage = (PdfLoadedPage)source.Pages[placement.SourcePageIndex];
-            PdfTemplate template = sourcePage.CreateTemplate();
-
-            PdfPage targetPage = target.Pages[placement.TargetPageIndex];
-            SizeF targetPageSize = targetPage.GetClientSize();
-
-            RectangleF rect = BuildRectangle(
-                placement,
-                targetPageSize.Width,
-                targetPageSize.Height
-            );
-
-            DrawTemplate(targetPage, template, rect, placement.KeepAspectRatio);
-        }
-
-        string folder = Path.Combine(
-            _hostingEnvironment.ContentRootPath,
-            "Storage",
-            "GeneratedFiles"
-        );
-
-        Directory.CreateDirectory(folder);
-
-        string outputPath = Path.Combine(folder, $"{Guid.NewGuid():N}.pdf");
-
-        using FileStream stream = new(outputPath, FileMode.Create);
-        target.Save(stream);
-
-        return outputPath;
-    }
-
-    public string GetPdfPath(string guid)
-    {
-        StoredPdfMetadata metadata = LoadMetadata(guid)
-            ?? throw new FileNotFoundException($"No metadata found for guid '{guid}'.");
-
-        if (string.IsNullOrWhiteSpace(metadata.StoredPath))
-            throw new FileNotFoundException($"No uploaded file found for guid '{guid}'.");
-
-        return metadata.StoredPath;
-    }
-
-    private RectangleF BuildRectangle(PdfPagePlacementDto placement, float pageWidth, float pageHeight)
-    {
-        if (placement.IsNormalized)
-        {
-            return new RectangleF(
-                placement.X * pageWidth,
-                placement.Y * pageHeight,
-                placement.Width * pageWidth,
-                placement.Height * pageHeight
+            return ErrorUtils.AlreadyExists(
+                nameof(MusicSheet),
+                $"mehrfache VoiceIds im Upload: {string.Join(", ", duplicateVoiceIds)}"
             );
         }
 
-        return new RectangleF(
-            placement.X,
-            placement.Y,
-            placement.Width,
-            placement.Height
-        );
-    }
+        string baseFolderPath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        Directory.CreateDirectory(baseFolderPath);
 
-    private SizeF GetPageSize(string format)
-    {
-        return (format ?? "A4").ToUpperInvariant() switch
+        string scoreFolderPath = Path.Combine(baseFolderPath, request.ScoreId.ToString());
+        Directory.CreateDirectory(scoreFolderPath);
+
+        Score? score = _dbContext.Scores
+            .FirstOrDefault(s => s.ScoreId == request.ScoreId);
+
+        if (score == null)
         {
-            "A3" => PdfPageSize.A3,
-            "A4" => PdfPageSize.A4,
-            "A5" => PdfPageSize.A5,
-            _ => PdfPageSize.A4
+            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
+        }
+
+        UploadPdfsResponseDto response = new UploadPdfsResponseDto
+        {
+            ScoreId = request.ScoreId
         };
-    }
 
-    private void DrawTemplate(
-        PdfPage page,
-        PdfTemplate template,
-        RectangleF rect,
-        bool keepAspectRatio
-    )
-    {
-        PdfGraphics graphics = page.Graphics;
-
-        float sourceWidth = template.Width;
-        float sourceHeight = template.Height;
-
-        if (!keepAspectRatio)
+        foreach (UploadPdfFileRequestDto fileDto in request.Files)
         {
-            graphics.DrawPdfTemplate(
-                template,
-                new PointF(rect.X, rect.Y),
-                new SizeF(rect.Width, rect.Height)
-            );
-            return;
+            if (fileDto.File == null)
+            {
+                return ErrorUtils.ValueNotFound(nameof(File), fileDto.FileName);
+            }
+
+            Voice? voice = _dbContext.Voices
+                .FirstOrDefault(v => v.VoiceId == fileDto.VoiceId);
+
+            if (voice == null)
+            {
+                return ErrorUtils.ValueNotFound(nameof(Voice), fileDto.VoiceId.ToString());
+            }
+
+            MusicSheet? existingMusicSheet = _dbContext.MusicSheets
+                .FirstOrDefault(ms => ms.ScoreId == request.ScoreId && ms.VoiceId == fileDto.VoiceId);
+
+            if (existingMusicSheet != null)
+            {
+                return ErrorUtils.AlreadyExists(
+                    nameof(MusicSheet),
+                    $"ScoreId {request.ScoreId}, VoiceId {fileDto.VoiceId}"
+                );
+            }
+
+            string fileId = Guid.NewGuid().ToString("N");
+            string extension = Path.GetExtension(fileDto.File.FileName);
+
+            if (string.IsNullOrWhiteSpace(extension))
+            {
+                extension = ".pdf";
+            }
+
+            string storedFileName = fileId + extension;
+            string filePath = Path.Combine(scoreFolderPath, storedFileName);
+
+            try
+            {
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
+                {
+                    fileDto.File.CopyTo(fileStream);
+                }
+
+                MusicSheet musicSheet = new MusicSheet
+                {
+                    ScoreId = request.ScoreId,
+                    Score = score,
+                    VoiceId = fileDto.VoiceId,
+                    Voice = voice,
+                    FilePath = filePath,
+                    FileHash = string.Empty,
+                    Filesize = (int)fileDto.File.Length,
+                    PageCount = 0,
+                    FileModifiedDate = DateTime.UtcNow
+                };
+
+                _dbContext.MusicSheets.Add(musicSheet);
+                _dbContext.SaveChanges();
+
+                response.Files.Add(new UploadPdfFileResponseDto
+                {
+                    FileName = fileDto.FileName,
+                    FileId = fileId,
+                    VoiceId = fileDto.VoiceId,
+                    MusicSheetId = musicSheet.MusicSheetId
+                });
+            }
+            catch (DbUpdateException)
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+
+                return ErrorUtils.AlreadyExists(
+                    nameof(MusicSheet),
+                    $"ScoreId {request.ScoreId}, VoiceId {fileDto.VoiceId}"
+                );
+            }
+            catch
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+
+                throw;
+            }
         }
 
-        float scaleX = rect.Width / sourceWidth;
-        float scaleY = rect.Height / sourceHeight;
-        float scale = Math.Min(scaleX, scaleY);
-
-        float drawWidth = sourceWidth * scale;
-        float drawHeight = sourceHeight * scale;
-
-        float drawX = rect.X + (rect.Width - drawWidth) / 2f;
-        float drawY = rect.Y + (rect.Height - drawHeight) / 2f;
-
-        graphics.DrawPdfTemplate(
-            template,
-            new PointF(drawX, drawY),
-            new SizeF(drawWidth, drawHeight)
-        );
+        return response;
     }
 
-    private void SaveMetadata(StoredPdfMetadata metadata)
+    public string GetPdfPath(int scoreId, string fileId)
     {
-        string metadataFolder = Path.Combine(
+        string scoreFolderPath = Path.Combine(
             _hostingEnvironment.ContentRootPath,
-            "Storage",
-            "Metadata"
+            "Data",
+            "Scores",
+            scoreId.ToString()
         );
 
-        Directory.CreateDirectory(metadataFolder);
-
-        string path = Path.Combine(metadataFolder, $"{metadata.Guid}.json");
-
-        string json = JsonSerializer.Serialize(metadata, new JsonSerializerOptions
+        if (!Directory.Exists(scoreFolderPath))
         {
-            WriteIndented = true
-        });
+            return string.Empty;
+        }
 
-        System.IO.File.WriteAllText(path, json);
+        string[] matchingFiles = Directory.GetFiles(scoreFolderPath, fileId + ".*");
+
+        if (matchingFiles.Length == 0)
+        {
+            return string.Empty;
+        }
+
+        return matchingFiles[0];
     }
-
-    private StoredPdfMetadata? LoadMetadata(string guid)
-    {
-        string metadataFolder = Path.Combine(
-            _hostingEnvironment.ContentRootPath,
-            "Storage",
-            "Metadata"
-        );
-
-        string path = Path.Combine(metadataFolder, $"{guid}.json");
-
-        if (!System.IO.File.Exists(path))
-            return null;
-
-        string json = System.IO.File.ReadAllText(path);
-        return JsonSerializer.Deserialize<StoredPdfMetadata>(json);
-    }
-
-    private record StoredPdfMetadata(
-        string Guid,
-        int ScoreId,
-        int VoiceId,
-        string FileName,
-        string? StoredPath,
-        bool IsUploaded
-    );
 }

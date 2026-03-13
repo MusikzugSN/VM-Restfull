@@ -110,7 +110,7 @@ foreach (var provider in providerConfigs)
     });
 }
 //PdfManagment
-builder.Services.AddScoped<PdfService>();
+builder.Services.AddScoped<IPdfService, PdfService>();
 
 builder.Services.AddControllers();
 var app = builder.Build();

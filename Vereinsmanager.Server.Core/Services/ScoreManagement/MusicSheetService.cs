@@ -173,8 +173,21 @@ public class MusicSheetService
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
 
-        _dbContext.MusicSheets.Remove(sheet);
-        _dbContext.SaveChanges();
-        return true;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(sheet.FilePath) && File.Exists(sheet.FilePath))
+            {
+                File.Delete(sheet.FilePath);
+            }
+
+            _dbContext.MusicSheets.Remove(sheet);
+            _dbContext.SaveChanges();
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            return ErrorUtils.AlreadyExists(nameof(MusicSheet), ex.Message);
+        }
     }
 }
