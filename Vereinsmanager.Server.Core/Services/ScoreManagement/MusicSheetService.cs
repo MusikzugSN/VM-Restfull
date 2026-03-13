@@ -8,7 +8,8 @@ namespace Vereinsmanager.Services.ScoreManagement;
 
 public record CreateMusicSheet(
     int ScoreId,
-    int VoiceId);
+    int VoiceId,
+    string? FilePath);
 
 public record UpdateMusicSheet(
     int? ScoreId,
@@ -98,13 +99,33 @@ public class MusicSheetService
         if (duplicate)
             return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={createMusicSheet.ScoreId}, VoiceId={createMusicSheet.VoiceId}");
 
+        var incomingPath = createMusicSheet.FilePath?.Trim();
+        if (string.IsNullOrWhiteSpace(incomingPath))
+        {
+            incomingPath = $"{createMusicSheet.ScoreId}-{createMusicSheet.VoiceId}-{Guid.NewGuid():N}";
+        }
+
+        // IX_MusicSheets_FilePath ist global unique: bei Kollision neuen eindeutigen Pfad erzeugen.
+        if (_dbContext.MusicSheets.Any(ms => ms.FilePath == incomingPath))
+        {
+            var extension = System.IO.Path.GetExtension(incomingPath);
+            var baseName = System.IO.Path.GetFileNameWithoutExtension(incomingPath);
+            if (string.IsNullOrWhiteSpace(baseName))
+                baseName = "music-sheet";
+
+            incomingPath = $"{baseName}-{Guid.NewGuid():N}{extension}";
+
+            if (incomingPath.Length > 255)
+                incomingPath = incomingPath[..255];
+        }
+
         var sheet = new MusicSheet
         {
             ScoreId = createMusicSheet.ScoreId,
             Score = score,
             VoiceId = createMusicSheet.VoiceId,
             Voice = voice,
-            FilePath = string.Empty,
+            FilePath = incomingPath,
             FileHash = string.Empty,
             Filesize = 0,
             PageCount = 0,
