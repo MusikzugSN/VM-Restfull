@@ -22,7 +22,7 @@ public class VoiceDto : MetaDataDto
         
         AlternateVoiceIds = voice.AlternateVoices?
             .Select(x => x.AlternativeId)
-            .ToArray() ?? [];
+            ?.ToArray() ?? [];
 
         CreatedAt = voice.CreatedAt;
         CreatedBy = voice.CreatedBy;
