@@ -24,13 +24,13 @@ public class VoiceService
     private IQueryable<Voice> BuildVoiceQuery(bool includeAlternateVoices = false, bool includeInstrument = false)
     {
         IQueryable<Voice> voiceQuery = _databaseContext.Voices;
-
-        if (includeInstrument)
-            voiceQuery = voiceQuery.Include(voice => voice.Instrument);
-
+        
         if (includeAlternateVoices)
             voiceQuery = voiceQuery.Include(voice => voice.AlternateVoices);
 
+        if (includeInstrument)
+            voiceQuery = voiceQuery.Include(voice => voice.Instrument);
+        
         return voiceQuery;
     }
 
@@ -127,20 +127,20 @@ public class VoiceService
         }
     }
 
-    public ReturnValue<Voice[]> ListVoices(bool includeAlternateVoices = false)
+    public ReturnValue<Voice[]> ListVoices(bool includeAlternateVoices = false, bool includeInstrument = false)
     {
         if (!_permissionService.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), "read all");
 
-        return BuildVoiceQuery(includeAlternateVoices).ToArray();
+        return BuildVoiceQuery(includeAlternateVoices, includeInstrument).ToArray();
     }
 
-    public ReturnValue<Voice> GetVoiceById(int voiceId, bool includeAlternateVoices = false)
+    public ReturnValue<Voice> GetVoiceById(int voiceId, bool includeAlternateVoices = false, bool includeInstrument = false)
     {
         if (!_permissionService.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Voice), voiceId.ToString());
 
-        Voice? voice = BuildVoiceQuery(includeAlternateVoices)
+        Voice? voice = BuildVoiceQuery(includeAlternateVoices, includeInstrument)
             .FirstOrDefault(existingVoice => existingVoice.VoiceId == voiceId);
 
         if (voice == null)
