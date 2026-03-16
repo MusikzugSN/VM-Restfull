@@ -10,7 +10,7 @@ public class Score : MetaData
     public int ScoreId { get; set; }
 
     [Required]
-    [MaxLength(24)]
+    [MaxLength(128)]
     public required string Title { get; set; }
 
     [Required]

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Vereinsmanager.Database;
 
@@ -11,9 +12,11 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    partial class ServerDatabaseContextModelSnapshot : ModelSnapshot
+    [Migration("20260314151926_Number is not a number it an string")]
+    partial class Numberisnotanumberitanstring
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -589,8 +592,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("varchar(128)");
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
