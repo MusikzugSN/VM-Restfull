@@ -14,6 +14,7 @@ using  Vereinsmanager.Services.PdfManagement;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks();
 
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];

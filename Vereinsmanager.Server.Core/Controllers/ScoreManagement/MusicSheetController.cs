@@ -25,6 +25,7 @@ public class MusicSheetController : ControllerBase
 
         return (ObjectResult)sheetsResult;
     }
+
     [HttpGet("folder/{folderId:int}")]
     public ActionResult<MusicSheetDto[]> GetMusicSheets(
         [FromRoute] int folderId,
@@ -44,11 +45,32 @@ public class MusicSheetController : ControllerBase
     }
 
     [HttpPost]
+    [Consumes("multipart/form-data")]
     public ActionResult<MusicSheetDto> CreateMusicSheet(
-        [FromBody] CreateMusicSheet createMusicSheet,
+        [FromForm] CreateMusicSheetRequestDto request,
         [FromServices] MusicSheetService musicSheetService)
     {
-        var createdResult = musicSheetService.CreateMusicSheet(createMusicSheet);
+        if (request.ScoreId <= 0)
+        {
+            return BadRequest("scoreId ist ungültig.");
+        }
+
+        if (request.VoiceId <= 0)
+        {
+            return BadRequest("voiceId ist ungültig.");
+        }
+
+        if (request.File == null || request.File.Length == 0)
+        {
+            return BadRequest("Es wurde keine gültige PDF-Datei übergeben.");
+        }
+
+        if (!request.File.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest($"Die Datei '{request.File.FileName}' ist keine PDF.");
+        }
+
+        var createdResult = musicSheetService.CreateMusicSheet(request);
 
         if (createdResult.IsSuccessful())
         {
@@ -87,5 +109,32 @@ public class MusicSheetController : ControllerBase
         }
 
         return (ObjectResult)deletedResult;
+    }
+    
+    [HttpPut("{musicSheetId:int}/pdf")]
+    [Consumes("multipart/form-data")]
+    public ActionResult<MusicSheetDto> UpdateMusicSheetPdf(
+        [FromRoute] int musicSheetId,
+        [FromForm] IFormFile file,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("Es wurde keine gültige Datei übergeben.");
+        }
+
+        if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest($"Die Datei '{file.FileName}' ist keine PDF.");
+        }
+
+        var result = musicSheetService.UpdateMusicSheetPdf(musicSheetId, file);
+
+        if (result.IsSuccessful())
+        {
+            return new MusicSheetDto(result.GetValue()!);
+        }
+
+        return (ObjectResult)result;
     }
 }

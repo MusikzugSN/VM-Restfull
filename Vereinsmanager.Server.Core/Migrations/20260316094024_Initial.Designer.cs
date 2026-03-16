@@ -12,7 +12,7 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260305105614_Initial")]
+    [Migration("20260316094024_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -261,6 +261,68 @@ namespace Vereinsmanager.Migrations
                         .IsUnique();
 
                     b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.PrintManagement.PrintJob", b =>
+                {
+                    b.Property<int>("PrintJobId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintJobId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime?>("ExecutedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Printer")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.HasKey("PrintJobId");
+
+                    b.ToTable("PrintJobs");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.PrintManagement.PrintJobFile", b =>
+                {
+                    b.Property<int>("PrintJobFileId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintJobFileId"));
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
+
+                    b.Property<int>("PrintJobId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.HasKey("PrintJobFileId");
+
+                    b.HasIndex("PrintJobId");
+
+                    b.ToTable("PrintJobFiles");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
@@ -534,6 +596,9 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime(6)");
@@ -741,6 +806,17 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Vereinsmanager.Database.PrintManagement.PrintJobFile", b =>
+                {
+                    b.HasOne("Vereinsmanager.Database.PrintManagement.PrintJob", "PrintJob")
+                        .WithMany("Files")
+                        .HasForeignKey("PrintJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PrintJob");
+                });
+
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.AlternateVoice", b =>
                 {
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Voice", "AlternativeVoiceNav")
@@ -847,6 +923,11 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.Base.User", b =>
                 {
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.PrintManagement.PrintJob", b =>
+                {
+                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Event", b =>

@@ -89,6 +89,26 @@ namespace Vereinsmanager.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "PrintJobs",
+                columns: table => new
+                {
+                    PrintJobId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Printer = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    ExecutedAtUtc = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrintJobs", x => x.PrintJobId);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -226,6 +246,31 @@ namespace Vereinsmanager.Migrations
                         column: x => x.InstrumentId,
                         principalTable: "Instruments",
                         principalColumn: "InstrumentId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "PrintJobFiles",
+                columns: table => new
+                {
+                    PrintJobFileId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    PrintJobId = table.Column<int>(type: "int", nullable: false),
+                    Url = table.Column<string>(type: "varchar(2000)", maxLength: 2000, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    FileName = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SortOrder = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrintJobFiles", x => x.PrintJobFileId);
+                    table.ForeignKey(
+                        name: "FK_PrintJobFiles_PrintJobs_PrintJobId",
+                        column: x => x.PrintJobId,
+                        principalTable: "PrintJobs",
+                        principalColumn: "PrintJobId",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -422,6 +467,7 @@ namespace Vereinsmanager.Migrations
                     Filesize = table.Column<int>(type: "int", nullable: false),
                     PageCount = table.Column<int>(type: "int", nullable: false),
                     FileModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     ScoreId = table.Column<int>(type: "int", nullable: false),
                     VoiceId = table.Column<int>(type: "int", nullable: false),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
@@ -527,6 +573,11 @@ namespace Vereinsmanager.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PrintJobFiles_PrintJobId",
+                table: "PrintJobFiles",
+                column: "PrintJobId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Roles_Name",
                 table: "Roles",
                 column: "Name",
@@ -599,6 +650,9 @@ namespace Vereinsmanager.Migrations
                 name: "Permissions");
 
             migrationBuilder.DropTable(
+                name: "PrintJobFiles");
+
+            migrationBuilder.DropTable(
                 name: "ScoreMusicFolders");
 
             migrationBuilder.DropTable(
@@ -609,6 +663,9 @@ namespace Vereinsmanager.Migrations
 
             migrationBuilder.DropTable(
                 name: "Voices");
+
+            migrationBuilder.DropTable(
+                name: "PrintJobs");
 
             migrationBuilder.DropTable(
                 name: "MusicFolders");
