@@ -51,31 +51,21 @@ public class MusicSheetController : ControllerBase
         [FromServices] MusicSheetService musicSheetService)
     {
         if (request.ScoreId <= 0)
-        {
             return BadRequest("scoreId ist ungültig.");
-        }
 
         if (request.VoiceId <= 0)
-        {
             return BadRequest("voiceId ist ungültig.");
-        }
 
         if (request.File == null || request.File.Length == 0)
-        {
-            return BadRequest("Es wurde keine gültige PDF-Datei übergeben.");
-        }
+            return BadRequest("Es wurde keine gültige Datei übergeben.");
 
-        if (!request.File.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest($"Die Datei '{request.File.FileName}' ist keine PDF.");
-        }
+        if (!IsSupportedUploadFile(request.File.FileName))
+            return BadRequest($"Die Datei '{request.File.FileName}' ist nicht erlaubt.");
 
         var createdResult = musicSheetService.CreateMusicSheet(request);
 
         if (createdResult.IsSuccessful())
-        {
             return new MusicSheetDto(createdResult.GetValue()!);
-        }
 
         return (ObjectResult)createdResult;
     }
@@ -89,9 +79,7 @@ public class MusicSheetController : ControllerBase
         var updatedResult = musicSheetService.UpdateMusicSheet(musicSheetId, updateMusicSheet);
 
         if (updatedResult.IsSuccessful())
-        {
             return new MusicSheetDto(updatedResult.GetValue()!);
-        }
 
         return (ObjectResult)updatedResult;
     }
@@ -104,13 +92,11 @@ public class MusicSheetController : ControllerBase
         var deletedResult = musicSheetService.DeleteMusicSheet(musicSheetId);
 
         if (deletedResult.IsSuccessful())
-        {
             return deletedResult.GetValue();
-        }
 
         return (ObjectResult)deletedResult;
     }
-    
+
     [HttpPut("{musicSheetId:int}/pdf")]
     [Consumes("multipart/form-data")]
     public ActionResult<MusicSheetDto> UpdateMusicSheetPdf(
@@ -119,22 +105,47 @@ public class MusicSheetController : ControllerBase
         [FromServices] MusicSheetService musicSheetService)
     {
         if (file == null || file.Length == 0)
-        {
             return BadRequest("Es wurde keine gültige Datei übergeben.");
-        }
 
-        if (!file.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-        {
-            return BadRequest($"Die Datei '{file.FileName}' ist keine PDF.");
-        }
+        if (!IsSupportedUploadFile(file.FileName))
+            return BadRequest($"Die Datei '{file.FileName}' ist nicht erlaubt.");
 
         var result = musicSheetService.UpdateMusicSheetPdf(musicSheetId, file);
 
         if (result.IsSuccessful())
-        {
             return new MusicSheetDto(result.GetValue()!);
-        }
 
         return (ObjectResult)result;
+    }
+
+    private static bool IsSupportedUploadFile(string fileName)
+    {
+        string ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        return ext == ".pdf"
+            || ext == ".jpg"
+            || ext == ".jpeg"
+            || ext == ".png"
+            || ext == ".bmp"
+            || ext == ".gif";
+    }
+    [HttpGet("{musicSheetId:int}/download")]
+    public IActionResult DownloadMusicSheet(
+        [FromRoute] int musicSheetId,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        var result = musicSheetService.ListMusicSheets()
+            .GetValue()!
+            .FirstOrDefault(x => x.MusicSheetId == musicSheetId);
+
+        if (result == null)
+            return NotFound();
+
+        if (!System.IO.File.Exists(result.FilePath))
+            return NotFound("Datei nicht gefunden.");
+
+        var bytes = System.IO.File.ReadAllBytes(result.FilePath);
+
+        return File(bytes, "application/pdf", $"musicSheet_{musicSheetId}.pdf");
     }
 }

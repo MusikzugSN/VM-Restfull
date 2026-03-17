@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
+using Syncfusion.Pdf;
+using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database;
@@ -32,297 +34,228 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"scoreId={scoreId}, voiceId={voiceId}");
-
         IQueryable<MusicSheet> query = _dbContext.MusicSheets;
 
         if (scoreId != null)
-            query = query.Where(sheet => sheet.ScoreId == scoreId.Value);
+            query = query.Where(x => x.ScoreId == scoreId);
 
         if (voiceId != null)
-            query = query.Where(sheet => sheet.VoiceId == voiceId.Value);
+            query = query.Where(x => x.VoiceId == voiceId);
 
-        return query
-            .OrderBy(sheet => sheet.MusicSheetId)
-            .ToArray();
+        return query.ToArray();
     }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int folderId, int[] voiceIds)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet),
-                $"folderId={folderId}, voiceIds=[{string.Join(",", voiceIds)}]");
-
-        var scoreIdsInFolder = _dbContext.ScoreMusicFolders
+        var scoreIds = _dbContext.ScoreMusicFolders
             .Where(x => x.MusicFolderId == folderId)
             .Select(x => x.ScoreId);
 
         IQueryable<MusicSheet> query = _dbContext.MusicSheets
-            .Where(sheet => scoreIdsInFolder.Contains(sheet.ScoreId));
+            .Where(x => scoreIds.Contains(x.ScoreId));
 
         if (voiceIds.Length > 0)
-            query = query.Where(sheet => voiceIds.Contains(sheet.VoiceId));
+            query = query.Where(x => voiceIds.Contains(x.VoiceId));
 
-        return query
-            .OrderBy(sheet => sheet.MusicSheetId)
-            .ToArray();
-    }
-
-    public ReturnValue<MusicSheet> GetMusicSheetById(int musicSheetId)
-    {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
-
-        if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
-
-        return sheet;
+        return query.ToArray();
     }
 
     public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheetRequestDto request)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"{request.ScoreId}/{request.VoiceId}");
-
-        var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == request.ScoreId);
+        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
 
-        var voice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == request.VoiceId);
+        var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == request.VoiceId);
         if (voice == null)
             return ErrorUtils.ValueNotFound(nameof(Voice), request.VoiceId.ToString());
 
-        var duplicate = _dbContext.MusicSheets.Any(ms =>
-            ms.ScoreId == request.ScoreId &&
-            ms.VoiceId == request.VoiceId);
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        Directory.CreateDirectory(basePath);
 
-        if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={request.ScoreId}, VoiceId={request.VoiceId}");
-
-        string baseFolderPath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
-        Directory.CreateDirectory(baseFolderPath);
-
-        string scoreFolderPath = Path.Combine(baseFolderPath, request.ScoreId.ToString());
-        Directory.CreateDirectory(scoreFolderPath);
-
-        string extension = Path.GetExtension(request.File!.FileName);
-
-        if (string.IsNullOrWhiteSpace(extension))
-        {
-            extension = ".pdf";
-        }
+        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
+        Directory.CreateDirectory(scoreFolder);
 
         string fileId = Guid.NewGuid().ToString("N");
-        string storedFileName = fileId + extension;
-        string filePath = Path.Combine(scoreFolderPath, storedFileName);
+        string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
 
-        try
+        SavePdfOrConvertImageToPdf(request.File!, filePath);
+
+        var metadata = ReadPdfMetadata(filePath);
+
+        MusicSheet sheet = new MusicSheet
         {
-            using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                request.File.CopyTo(fileStream);
-            }
+            ScoreId = request.ScoreId,
+            VoiceId = request.VoiceId,
+            Score = score,
+            Voice = voice,
+            FilePath = filePath,
+            FileHash = metadata.FileHash,
+            Filesize = (int)new FileInfo(filePath).Length,
+            PageCount = metadata.PageCount,
+            FileModifiedDate = DateTime.UtcNow,
+            Status = MusicSheetStatus.Ungeprueft
+        };
 
-            (string fileHash, int pageCount) = ReadPdfMetadata(filePath);
-
-            var sheet = new MusicSheet
-            {
-                ScoreId = request.ScoreId,
-                Score = score,
-                VoiceId = request.VoiceId,
-                Voice = voice,
-                FilePath = filePath,
-                FileHash = fileHash,
-                Filesize = (int)request.File.Length,
-                PageCount = pageCount,
-                FileModifiedDate = DateTime.UtcNow,
-                Status = MusicSheetStatus.Ungeprueft
-            };
-
-            _dbContext.MusicSheets.Add(sheet);
-            _dbContext.SaveChanges();
-
-            return sheet;
-        }
-        catch (DbUpdateException)
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={request.ScoreId}, VoiceId={request.VoiceId}");
-        }
-        catch
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-
-            throw;
-        }
-    }
-
-    public ReturnValue<MusicSheet> UpdateMusicSheet(int musicSheetId, UpdateMusicSheet updateMusicSheet)
-    {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
-
-        if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
-
-        var newScoreId = updateMusicSheet.ScoreId ?? sheet.ScoreId;
-        var newVoiceId = updateMusicSheet.VoiceId ?? sheet.VoiceId;
-
-        var wouldDuplicate = _dbContext.MusicSheets.Any(ms =>
-            ms.MusicSheetId != musicSheetId &&
-            ms.ScoreId == newScoreId &&
-            ms.VoiceId == newVoiceId);
-
-        if (wouldDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={newScoreId}, VoiceId={newVoiceId}");
-
-        if (newScoreId != sheet.ScoreId)
-        {
-            var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == newScoreId);
-            if (score == null)
-                return ErrorUtils.ValueNotFound(nameof(Score), newScoreId.ToString());
-
-            sheet.ScoreId = newScoreId;
-            sheet.Score = score;
-        }
-
-        if (newVoiceId != sheet.VoiceId)
-        {
-            var voice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == newVoiceId);
-            if (voice == null)
-                return ErrorUtils.ValueNotFound(nameof(Voice), newVoiceId.ToString());
-
-            sheet.VoiceId = newVoiceId;
-            sheet.Voice = voice;
-        }
-
-        if (updateMusicSheet.Status != null)
-        {
-            sheet.Status = updateMusicSheet.Status.Value;
-        }
-
+        _dbContext.MusicSheets.Add(sheet);
         _dbContext.SaveChanges();
+
         return sheet;
     }
 
-    public ReturnValue<bool> DeleteMusicSheet(int musicSheetId)
+    public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(sheet.FilePath) && File.Exists(sheet.FilePath))
-            {
-                File.Delete(sheet.FilePath);
-            }
+        if (update.ScoreId != null)
+            sheet.ScoreId = update.ScoreId.Value;
 
-            _dbContext.MusicSheets.Remove(sheet);
-            _dbContext.SaveChanges();
+        if (update.VoiceId != null)
+            sheet.VoiceId = update.VoiceId.Value;
 
-            return true;
-        }
-        catch (Exception ex)
-        {
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), ex.Message);
-        }
+        if (update.Status != null)
+            sheet.Status = update.Status.Value;
+
+        _dbContext.SaveChanges();
+
+        return sheet;
     }
 
-    private static (string FileHash, int PageCount) ReadPdfMetadata(string filePath)
+    public ReturnValue<MusicSheet> UpdateMusicSheetPdf(int id, IFormFile file)
     {
-        using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-
-        using SHA256 sha256 = SHA256.Create();
-        string fileHash = Convert.ToHexString(sha256.ComputeHash(stream));
-
-        stream.Position = 0;
-
-        using PdfLoadedDocument document = new PdfLoadedDocument(stream);
-        int pageCount = document.Pages.Count;
-
-        return (fileHash, pageCount);
-    }
-
-    public ReturnValue<MusicSheet> UpdateMusicSheetPdf(int musicSheetId, IFormFile file)
-    {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
-        string scoreFolderPath = Path.Combine(
+        string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
             "Data",
             "Scores",
             sheet.ScoreId.ToString());
 
-        Directory.CreateDirectory(scoreFolderPath);
-
-        string extension = Path.GetExtension(file.FileName);
-
-        if (string.IsNullOrWhiteSpace(extension))
-            extension = ".pdf";
+        Directory.CreateDirectory(scoreFolder);
 
         string fileId = Guid.NewGuid().ToString("N");
-        string storedFileName = fileId + extension;
-        string filePath = Path.Combine(scoreFolderPath, storedFileName);
+        string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
 
-        try
+        SavePdfOrConvertImageToPdf(file, filePath);
+
+        var metadata = ReadPdfMetadata(filePath);
+
+        sheet.FilePath = filePath;
+        sheet.FileHash = metadata.FileHash;
+        sheet.Filesize = (int)new FileInfo(filePath).Length;
+        sheet.PageCount = metadata.PageCount;
+        sheet.FileModifiedDate = DateTime.UtcNow;
+
+        _dbContext.SaveChanges();
+
+        return sheet;
+    }
+
+    public ReturnValue<bool> DeleteMusicSheet(int id)
+    {
+        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        if (File.Exists(sheet.FilePath))
+            File.Delete(sheet.FilePath);
+
+        _dbContext.MusicSheets.Remove(sheet);
+        _dbContext.SaveChanges();
+
+        return true;
+    }
+
+    private static (string FileHash, int PageCount) ReadPdfMetadata(string filePath)
+    {
+        using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
         {
-            if (!string.IsNullOrWhiteSpace(sheet.FilePath) && File.Exists(sheet.FilePath))
+            using (SHA256 sha = SHA256.Create())
             {
-                File.Delete(sheet.FilePath);
+                string hash = Convert.ToHexString(sha.ComputeHash(stream));
+
+                stream.Position = 0;
+
+                using (PdfLoadedDocument document = new PdfLoadedDocument(stream))
+                {
+                    return (hash, document.Pages.Count);
+                }
             }
-
-            using (FileStream fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write))
-            {
-                file.CopyTo(fileStream);
-            }
-
-            (string fileHash, int pageCount) = ReadPdfMetadata(filePath);
-
-            sheet.FilePath = filePath;
-            sheet.FileHash = fileHash;
-            sheet.Filesize = (int)file.Length;
-            sheet.PageCount = pageCount;
-            sheet.FileModifiedDate = DateTime.UtcNow;
-
-            _dbContext.SaveChanges();
-
-            return sheet;
         }
-        catch
-        {
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
+    }
 
-            throw;
+    private static bool IsPdfFile(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() == ".pdf";
+    }
+
+    private static bool IsSupportedImageFile(string fileName)
+    {
+        string ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        return ext == ".jpg"
+            || ext == ".jpeg"
+            || ext == ".png"
+            || ext == ".bmp"
+            || ext == ".gif";
+    }
+
+    private static void SavePdfOrConvertImageToPdf(IFormFile sourceFile, string targetPdfPath)
+    {
+        if (IsPdfFile(sourceFile.FileName))
+        {
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                sourceFile.CopyTo(output);
+            }
+            return;
+        }
+
+        if (!IsSupportedImageFile(sourceFile.FileName))
+            throw new InvalidOperationException("Dateityp nicht erlaubt.");
+
+        using (Stream input = sourceFile.OpenReadStream())
+        using (PdfDocument document = new PdfDocument())
+        {
+            PdfBitmap image = new PdfBitmap(input);
+
+            PdfPage page = document.Pages.Add();
+            page.Section.PageSettings.Size = PdfPageSize.A4;
+
+            if (image.Width > image.Height)
+                page.Section.PageSettings.Orientation = PdfPageOrientation.Landscape;
+            else
+                page.Section.PageSettings.Orientation = PdfPageOrientation.Portrait;
+
+            float pageWidth = page.GetClientSize().Width;
+            float pageHeight = page.GetClientSize().Height;
+
+            float imageWidth = image.Width;
+            float imageHeight = image.Height;
+
+            float scaleX = pageWidth / imageWidth;
+            float scaleY = pageHeight / imageHeight;
+            float scale = Math.Min(scaleX, scaleY);
+
+            float drawWidth = imageWidth * scale;
+            float drawHeight = imageHeight * scale;
+
+            float x = (pageWidth - drawWidth) / 2f;
+            float y = (pageHeight - drawHeight) / 2f;
+
+            page.Graphics.DrawImage(image, x, y, drawWidth, drawHeight);
+
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                document.Save(output);
+            }
         }
     }
 }

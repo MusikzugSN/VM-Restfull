@@ -23,4 +23,6 @@ public class Score : MetaData
     public int? Duration { get; set; }
     
     public ICollection<MusicSheet>? MusicSheets { get; set; }
+
+    public ICollection<ScoreMusicFolder>? ScoreMusicFolders { get; set; } = new List<ScoreMusicFolder>();
 }
