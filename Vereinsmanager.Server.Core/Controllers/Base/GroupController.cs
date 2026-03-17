@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects.Base;
 using Vereinsmanager.Services;
 
-namespace Vereinsmanager.Controllers;
+namespace Vereinsmanager.Controllers.Base;
 
 [Authorize]
 [ApiController]

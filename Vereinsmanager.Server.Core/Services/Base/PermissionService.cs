@@ -17,7 +17,7 @@ public class PermissionService
         _dbContext = dbContext;
     }
 
-    public bool HasPermission(PermissionType permissionType)
+    public bool HasPermission(PermissionType permissionType, int? groupId = null)
     {
         var user = _userContext.GetUserModel();
         if (_userContext.GetUserModel() == null && _userContext.UserId == "-1")
@@ -29,7 +29,7 @@ public class PermissionService
         if (user.IsAdmin)
             return true;
         
-        return HasPermissionInternal(user, permissionType);
+        return HasPermissionInternal(user, permissionType, groupId);
     }
 
     private bool HasPermissionInternal(User user, PermissionType permissionType, int? groupId = null, int permissionValue = 1)

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Vereinsmanager.Controllers.DataTransferObjects.Base;
+using Microsoft.EntityFrameworkCore;
+using Vereinsmanager.Database;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 
@@ -84,19 +85,42 @@ public class AuthCotroller : ControllerBase
     [HttpGet("me")]
     public ActionResult<MeDto> GetCurrentUser(
         [FromServices] UserContext userContext,
-        [FromServices] IConfiguration configuration)
+        [FromServices] IConfiguration configuration,
+        [FromServices] Lazy<ServerDatabaseContext> dbContextLazy)
     {
-        var user = userContext.GetUserModel();
-        if (user == null)
+        var userModel = userContext.GetUserModel();
+        if (userModel == null)
             return Unauthorized();
         
         var providers = configuration
             .GetSection("OAuthProviders")
             .Get<OAuthConfig[]>() ?? [];
-        var provider = providers.FirstOrDefault(p => p.ProviderKey == user.Provider);
+        var provider = providers.FirstOrDefault(p => p.ProviderKey == userModel.Provider);
         
-        return new MeDto(user.UserId, user.Username, provider?.DisplayName ?? user.Provider, user.OAuthSubject);
+        var permissions = new List<PermissionTeaserWithGroup>();
+        if (userModel.IsAdmin)
+            return new MeDto(userModel.UserId, userModel.Username, provider?.DisplayName ?? userModel.Provider,
+                userModel.OAuthSubject, userModel.IsAdmin, permissions.ToArray());
+        
+        var userFromDb = dbContextLazy.Value.Users
+            .Where(u => u.UserId == userModel.UserId)
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .ThenInclude(r => r.Permissions)
+            .FirstOrDefault();
+            
+        foreach (var userUserRole in userFromDb?.UserRoles ?? [])
+        {
+            var groupId = userUserRole.GroupId;
+            foreach (var rolePermission in userUserRole.Role.Permissions)
+            {
+                permissions.Add(new PermissionTeaserWithGroup(groupId, rolePermission.PermissionType, rolePermission.PermissionValue));
+            }
+        }
+        return new MeDto(userModel.UserId, userModel.Username, provider?.DisplayName ?? userModel.Provider, userModel.OAuthSubject, userModel.IsAdmin, permissions.ToArray());
     }
     
-    public record MeDto(int UserId, string Username, string? Provider, string? OAuthSubject);
+    public record MeDto(int UserId, string Username, string? Provider, string? OAuthSubject, bool IsAdmin, PermissionTeaserWithGroup[] Permissions);
+
+    public record PermissionTeaserWithGroup(int GroupId, int PermissionType, int PermissionValue);
 }

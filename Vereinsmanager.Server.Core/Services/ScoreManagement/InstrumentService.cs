@@ -36,7 +36,7 @@ public class InstrumentService
 
     public ReturnValue<Instrument[]> ListInstruments(bool includeVoices = false)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Instrument), "read all");
 
         return GetInstruments(includeVoices).ToArray();
@@ -44,7 +44,7 @@ public class InstrumentService
 
     public ReturnValue<Instrument> GetInstrumentById(int instrumentId, bool includeVoices = true)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListInstrument))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListVoice))
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
         var instrument = GetInstruments(includeVoices)
@@ -58,7 +58,7 @@ public class InstrumentService
 
     public ReturnValue<Instrument> CreateInstrument(CreateInstrument dto)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateInstrument))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateVoice))
             return ErrorUtils.NotPermitted(nameof(Instrument), dto.Name);
 
         var duplicate = _dbContext.Instruments.Any(i => i.Name == dto.Name);
@@ -78,7 +78,7 @@ public class InstrumentService
 
     public ReturnValue<Instrument> UpdateInstrument(int instrumentId, UpdateInstrument dto)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateInstrument))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateVoice))
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
         var instrument = _dbContext.Instruments.FirstOrDefault(i => i.InstrumentId == instrumentId);
@@ -110,7 +110,7 @@ public class InstrumentService
 
     public ReturnValue<bool> DeleteInstrument(int instrumentId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteInstrument))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteVoice))
             return ErrorUtils.NotPermitted(nameof(Instrument), instrumentId.ToString());
 
         var instrument = _dbContext.Instruments
