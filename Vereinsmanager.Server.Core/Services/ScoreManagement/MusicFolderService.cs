@@ -7,8 +7,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateMusicFolder(int GroupId, string Name, List<UpdateScoreMusicFolder>? Scores);
-public record UpdateMusicFolder(int? GroupId, string? Name, List<UpdateScoreMusicFolder>? Scores);
+public record CreateMusicFolder(int GroupId, string Name, bool? ShowInMyArea, List<UpdateScoreMusicFolder>? Scores);
+public record UpdateMusicFolder(int? GroupId, string? Name, bool? ShowInMyArea, List<UpdateScoreMusicFolder>? Scores);
 
 public record UpdateScoreMusicFolder(string Number, int ScoreId, bool? Deleted);
 
@@ -35,6 +35,14 @@ public class MusicFolderService
             return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
 
         return _dbContext.MusicFolders.ToArray();
+    }
+    
+    public ReturnValue<MusicFolder[]> ListMusicFoldersForMyArea()
+    {
+        var folders = _dbContext.MusicFolders.Where(x => x.ShowInMyArea).ToArray();
+        var permissionFilteredFolders = folders.Where(x => _permissionServiceLazy.Value.HasPermission(PermissionType.OpenMyNotes, x.GroupId)).ToArray();
+        
+        return permissionFilteredFolders;
     }
 
     public ReturnValue<MusicFolder> GetMusicFolderById(int musicFolderId)
@@ -69,7 +77,8 @@ public class MusicFolderService
         {
             GroupId = createMusicFolder.GroupId,
             Group = group,
-            Name = createMusicFolder.Name
+            Name = createMusicFolder.Name,
+            ShowInMyArea = createMusicFolder.ShowInMyArea ?? false
         };
 
         _dbContext.MusicFolders.Add(folderToCreate);
@@ -98,6 +107,7 @@ public class MusicFolderService
 
         var newName = updateMusicFolder.Name ?? folder.Name;
         var newGroupId = updateMusicFolder.GroupId ?? folder.GroupId;
+        var showInMyArea = updateMusicFolder.ShowInMyArea ?? folder.ShowInMyArea;
 
         var groupExists = _dbContext.Groups.Any(groupItem => groupItem.GroupId == newGroupId);
         if (!groupExists)
@@ -113,6 +123,7 @@ public class MusicFolderService
 
         folder.Name = newName;
         folder.GroupId = newGroupId;
+        folder.ShowInMyArea = showInMyArea;
 
         if (updateMusicFolder.Scores != null)
         {

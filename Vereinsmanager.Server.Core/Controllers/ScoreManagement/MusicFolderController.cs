@@ -22,6 +22,22 @@ public class MusicFolderController : ControllerBase
 
         return (ObjectResult)foldersResult;
     }
+    
+    [Route("forMyArea")]
+    [HttpGet]
+    public ActionResult<MusicFolderDto[]> GetMyMusicFolders([FromServices] MusicFolderService musicFolderService)
+    {
+        var foldersResult = musicFolderService.ListMusicFoldersForMyArea();
+
+        if (foldersResult.IsSuccessful())
+        {
+            return foldersResult.GetValue()!
+                .Select(folder => new MusicFolderDto(folder))
+                .ToArray();
+        }
+
+        return (ObjectResult)foldersResult;
+    }
 
     [HttpGet("{musicFolderId:int}")]
     public ActionResult<MusicFolderDto> GetMusicFolderById(
