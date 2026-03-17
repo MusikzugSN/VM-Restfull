@@ -94,16 +94,15 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.MusicFolderManagement, PermissionCategory.Delete)]
     DeleteMusicFolder,
     
-    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
-    OpenInstrument,
-    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
-    ListInstrument,
-    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Create)]
-    CreateInstrument,
-    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Update)]
-    UpdateInstrument,
-    [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Delete)]
-    DeleteInstrument,
+    [PermissionDescription(PermissionGroup.ValidateNotes, PermissionCategory.Start)]
+    OpenValidateNotes,
+    [PermissionDescription(PermissionGroup.ValidateNotes, PermissionCategory.Update)]
+    UpdateValidateNotes,
+    
+    [PermissionDescription(PermissionGroup.MyAreaNotes, PermissionCategory.Start)]
+    OpenMyNotes,
+    [PermissionDescription(PermissionGroup.MyAreaNotes, PermissionCategory.Create)]
+    CreateMyNotes
 
     
 }

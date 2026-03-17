@@ -6,9 +6,9 @@ using Vereinsmanager.Services.Models;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateEvent(string Name, DateTime Date, List<UpdateEventScore>? Scores);
+public record CreateEvent(string Name, DateTime Date, bool? ShowInMyArea, List<UpdateEventScore>? Scores);
 public record UpdateEventScore(int ScoreId, bool? Deleted);
-public record UpdateEvent(string? Name, DateTime? Date, List<UpdateEventScore>? Scores);
+public record UpdateEvent(string? Name, DateTime? Date, bool? ShowInMyArea, List<UpdateEventScore>? Scores);
 
 public class EventService
 {
@@ -93,6 +93,14 @@ public class EventService
 
         return BuildEventQuery(includeScores).ToArray();
     }
+    
+    public ReturnValue<Event[]> ListEventsForMyAreas()
+    {
+        var folders = _dbContext.Events.Where(x => x.ShowInMyArea).ToArray();
+        var permissionFilteredFolders = folders.Where(x => _permissionServiceLazy.Value.HasPermission(PermissionType.OpenMyNotes, x.GroupId)).ToArray();
+        
+        return permissionFilteredFolders;
+    }
 
     public ReturnValue<Event> GetEventById(int eventId, bool includeScores)
     {
@@ -119,7 +127,8 @@ public class EventService
         var newEvent = new Event
         {
             Name = createEvent.Name,
-            Date = createEvent.Date
+            Date = createEvent.Date,
+            ShowInMyArea = createEvent.ShowInMyArea ?? false,
         };
 
         if (createEvent.Scores?.Any() ?? false)
@@ -146,6 +155,9 @@ public class EventService
 
         if (updateEvent.Date != null)
             loadedEvent.Date = updateEvent.Date.Value;
+        
+        if (updateEvent.ShowInMyArea != null)
+            loadedEvent.ShowInMyArea = updateEvent.ShowInMyArea ?? false;
 
         if (updateEvent.Scores?.Any() ?? false)
         {

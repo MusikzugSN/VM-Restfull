@@ -19,6 +19,9 @@ public class Event : MetaData
     [Required]
     public List<EventScore> EventScore { get; set; } = new();
     
+    [Required]
+    public bool ShowInMyArea { get; set; }
+    
     public int GroupId { get; set; }
     
     

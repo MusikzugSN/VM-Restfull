@@ -9,6 +9,7 @@ public class MusicFolderDto : MetaDataDto
     public string Name { get; init; }
 
     public int[]? ScoreIds { get; init; }
+    public bool ShowInMyArea { get; init; }
 
     public MusicFolderDto(MusicFolder musicFolder)
     {
@@ -19,6 +20,8 @@ public class MusicFolderDto : MetaDataDto
         ScoreIds = musicFolder.ScoreMusicFolders?
             .Select(x => x.ScoreId)
             .ToArray();
+        
+        ShowInMyArea  = musicFolder.ShowInMyArea;
 
         CreatedAt = musicFolder.CreatedAt;
         CreatedBy = musicFolder.CreatedBy;
