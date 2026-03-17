@@ -56,6 +56,22 @@ public class ScoreController : ControllerBase
         return (ObjectResult)createdResult;
     }
 
+    [HttpPost]
+    [Route("multiple")]
+    public ActionResult<ScoreDto[]> CreateMultipleScores(
+        [FromBody] List<CreateMultipleScore> createScores,
+        [FromServices] ScoreService scoreService)
+    {
+        var createdResult = scoreService.CreateMultipleScores(createScores);
+
+        if (createdResult.IsSuccessful())
+        {
+            return createdResult.GetValue()!.Select(score => new ScoreDto(score)).ToArray();
+        }
+
+        return (ObjectResult)createdResult;
+    }
+
     [HttpPatch("{scoreId:int}")]
     public ActionResult<ScoreDto> UpdateScore(
         [FromRoute] int scoreId,

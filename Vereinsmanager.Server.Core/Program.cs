@@ -4,17 +4,27 @@ using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
-using  Vereinsmanager.Services.PdfManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHealthChecks();
+builder.Services.AddMemoryCache();
+
+builder.Services.AddControllers().AddNewtonsoftJson(options =>
+{
+    // Use the default property (Pascal) casing
+    options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+});
+
+var licenseKey = File.ReadAllText("syncfusion-license.txt");
+Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
 
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];
 builder.Services.AddCors(options => {
@@ -81,8 +91,8 @@ authService.AddJwtBearer(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "Vereinsmanager.Server.Core",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Vereinsmanager.Server.Client",
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = publicRsa
     };
 });
@@ -93,6 +103,9 @@ var providerConfigs = builder.Configuration
 
 foreach (var provider in providerConfigs)
 {
+    //init loading keys to make them available
+    JwksLoader.LoadKeysAsync(provider.IssuerUrl);
+    
     authService.AddJwtBearer(provider.ProviderKey, options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
@@ -110,9 +123,8 @@ foreach (var provider in providerConfigs)
     });
 }
 //PdfManagment
-builder.Services.AddScoped<IPdfService, PdfService>();
+builder.Services.AddScoped<PdfService>();
 
-builder.Services.AddControllers();
 var app = builder.Build();
 app.MapHealthChecks("/health");
 app.UseCors("DynamicCors");

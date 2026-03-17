@@ -24,6 +24,22 @@ public class EventsController : ControllerBase
 
         return (ObjectResult)eventsResult;
     }
+    
+    [Route("forMyArea")]
+    [HttpGet]
+    public ActionResult<EventDto[]> GetMyEvents([FromServices] EventService eventService)
+    {
+        var eventResult = eventService.ListEventsForMyAreas();
+
+        if (eventResult.IsSuccessful())
+        {
+            return eventResult.GetValue()!
+                .Select(folder => new EventDto(folder))
+                .ToArray();
+        }
+
+        return (ObjectResult)eventResult;
+    }
 
     [HttpGet]
     [Route("{eventId:int}")]

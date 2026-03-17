@@ -6,8 +6,13 @@ namespace Vereinsmanager.Utils;
 
 public static class JwksLoader
 {
+    public static Dictionary<string, IEnumerable<SecurityKey>> CachedKeys = new();
+    
     public static async Task<IEnumerable<SecurityKey>> LoadKeysAsync(string issuer)
     {
+        if (CachedKeys.TryGetValue(issuer, out var keys))
+            return keys;
+        
         var retriever = new HttpDocumentRetriever { RequireHttps = issuer.StartsWith("https://") };
         
         var configManager = new ConfigurationManager<OpenIdConnectConfiguration>(
@@ -16,7 +21,10 @@ public static class JwksLoader
             retriever);
 
         var config = await configManager.GetConfigurationAsync(default);
-
-        return config.SigningKeys;
+        
+        var loadedKeys = config.SigningKeys;
+        CachedKeys[issuer] = loadedKeys;
+        
+        return loadedKeys;
     }
 }

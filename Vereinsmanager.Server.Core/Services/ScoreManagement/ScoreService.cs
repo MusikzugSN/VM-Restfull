@@ -1,23 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateScore(string Title, string Composer, string? Link, int? Duration);
-public record UpdateScore(string? Title, string? Composer, string? Link, int? Duration);
+public record CreateScore(string Title, string Composer, string? Link, double? Duration);
+public record CreateMultipleScore(string Title, string Composer, string? Link, double? Duration, string? FolderName, string? Number);
+public record UpdateScore(string? Title, string? Composer, string? Link, double? Duration);
 
 public class ScoreService
 {
     private readonly ServerDatabaseContext _dbContext;
     private readonly Lazy<PermissionService> _permissionServiceLazy;
+    
+    private readonly Lazy<MusicFolderService> _folderServiceLazy;
+    private readonly Lazy<GroupService> _groupServiceLazy;
 
-    public ScoreService(ServerDatabaseContext dbContext, Lazy<PermissionService> permissionServiceLazy)
+    public ScoreService(ServerDatabaseContext dbContext, 
+        Lazy<PermissionService> permissionServiceLazy, 
+        Lazy<MusicFolderService> folderServiceLazy,
+        Lazy<GroupService> groupService)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
+        
+        _folderServiceLazy = folderServiceLazy;
+        _groupServiceLazy = groupService;
     }
 
     private Score? LoadScoreById(int scoreId)
@@ -72,8 +83,8 @@ public class ScoreService
         if (createScore.Duration <= 0)
             return ErrorUtils.ValueOutOfRange(nameof(Score), identifier: "Duration must be > 0");
 
-        if (!IsValidHttpsLink(createScore.Link))
-            return ErrorUtils.ValueNotFound(nameof(Score), identifier: "Link must start with https://");
+        if (createScore.Link != null && !IsValidHttpsLink(createScore.Link))
+            return ErrorUtils.ValueValidationFailed(nameof(Score), identifier: "Link must start with https://");
 
         var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
@@ -90,6 +101,85 @@ public class ScoreService
         _dbContext.Scores.Add(newScore);
         _dbContext.SaveChanges();
         return newScore;
+    }
+    
+    public ReturnValue<Score[]> CreateMultipleScores(List<CreateMultipleScore> createScores)
+    {
+        var folderNames = createScores.Select(c => c.FolderName)
+            .Where(fn => !string.IsNullOrWhiteSpace(fn))
+            .ToHashSet();
+
+        var folders = _folderServiceLazy.Value.GetMusicFoldersByName(folderNames);
+        
+        //todo far: berechtigung für die Gruppen prüfen - nicht generel
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScore))
+        {
+            return ErrorUtils.NotPermitted(nameof(Score), "read all");
+        }
+        
+        // Gruppen laden (für neue Folder)
+        var groupsResult = _groupServiceLazy.Value.ListGroups();
+        if (!groupsResult.IsSuccessful())
+            return ErrorUtils.ValueNotFound(nameof(Group), "no groups available");
+
+        var defaultGroup = groupsResult.GetValue()!.First();
+        
+        var scoresToSave = new List<Score>(createScores.Count);
+        var scoreMusicFolderToSave = new List<ScoreMusicFolder>(createScores.Count(x => x.Number != null));
+        var foldersToCreate = new List<MusicFolder>();
+        
+        foreach (var createMultipleScore in createScores)
+        {
+            if (string.IsNullOrWhiteSpace(createMultipleScore.Title))
+                continue; // skip invalid entries
+            
+            if (scoresToSave.Any(x => x.Title == createMultipleScore.Title))
+            {
+                continue; // skip duplicates
+            }
+            
+            var score = new Score
+            {
+                Title = createMultipleScore.Title,
+                Composer = createMultipleScore.Composer,
+                Link = createMultipleScore.Link,
+                Duration = createMultipleScore.Duration
+            };
+            
+            scoresToSave.Add(score);
+            
+            if (createMultipleScore.FolderName != null && createMultipleScore.Number != null)
+            {
+                var folder = folders.FirstOrDefault(f => f.Name == createMultipleScore.FolderName);
+                if (folder == null)
+                {
+                    folder = new MusicFolder
+                    {
+                        GroupId = defaultGroup.GroupId,
+                        Group = defaultGroup,
+                        Name = createMultipleScore.FolderName
+                    };
+
+                    foldersToCreate.Add(folder);
+                    folders.Add(folder);
+                }
+
+                var scoreMusicFolder = new ScoreMusicFolder
+                {
+                    Score = score,
+                    MusicFolder = folder,
+                    Number = createMultipleScore.Number
+                };
+                
+                scoreMusicFolderToSave.Add(scoreMusicFolder);
+            }
+        }
+        
+        _dbContext.MusicFolders.AddRange(foldersToCreate);
+        _dbContext.Scores.AddRange(scoresToSave);
+        _dbContext.ScoreMusicFolders.AddRange(scoreMusicFolderToSave);
+        _dbContext.SaveChanges();
+        return scoresToSave.ToArray();
     }
 
     public ReturnValue<Score> UpdateScore(int scoreId, UpdateScore updateScore)
@@ -110,7 +200,7 @@ public class ScoreService
         if (updateScore.Link is not null)
         {
             if (!IsValidHttpsLink(updateScore.Link))
-                return ErrorUtils.NotPermitted(nameof(Score), "Link must be https://");
+                return ErrorUtils.ValueValidationFailed(nameof(Score), "Link must be https://");
 
             score.Link = updateScore.Link;
         }

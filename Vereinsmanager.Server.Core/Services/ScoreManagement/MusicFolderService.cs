@@ -7,10 +7,10 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateMusicFolder(int GroupId, string Name, List<UpdateScoreMusicFolder>? Scores);
-public record UpdateMusicFolder(int? GroupId, string? Name, List<UpdateScoreMusicFolder>? Scores);
+public record CreateMusicFolder(int GroupId, string Name, bool? ShowInMyArea, List<UpdateScoreMusicFolder>? Scores);
+public record UpdateMusicFolder(int? GroupId, string? Name, bool? ShowInMyArea, List<UpdateScoreMusicFolder>? Scores);
 
-public record UpdateScoreMusicFolder(int Number, int ScoreId, bool? Deleted);
+public record UpdateScoreMusicFolder(string Number, int ScoreId, bool? Deleted);
 
 public class MusicFolderService
 {
@@ -22,6 +22,12 @@ public class MusicFolderService
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
     }
+
+    public List<MusicFolder> GetMusicFoldersByName(HashSet<string?> names)
+    {
+        names = names.Select(name => name?.Trim()).Select(name => name?.ToLower()).ToHashSet();
+        return _dbContext.MusicFolders.Where(folder => names.Contains(folder.Name.ToLower())).ToList();
+    }
     
     public ReturnValue<MusicFolder[]> ListMusicFolders()
     {
@@ -29,6 +35,14 @@ public class MusicFolderService
             return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
 
         return _dbContext.MusicFolders.ToArray();
+    }
+    
+    public ReturnValue<MusicFolder[]> ListMusicFoldersForMyArea()
+    {
+        var folders = _dbContext.MusicFolders.Where(x => x.ShowInMyArea).ToArray();
+        var permissionFilteredFolders = folders.Where(x => _permissionServiceLazy.Value.HasPermission(PermissionType.OpenMyNotes, x.GroupId)).ToArray();
+        
+        return permissionFilteredFolders;
     }
 
     public ReturnValue<MusicFolder> GetMusicFolderById(int musicFolderId)
@@ -63,7 +77,8 @@ public class MusicFolderService
         {
             GroupId = createMusicFolder.GroupId,
             Group = group,
-            Name = createMusicFolder.Name
+            Name = createMusicFolder.Name,
+            ShowInMyArea = createMusicFolder.ShowInMyArea ?? false
         };
 
         _dbContext.MusicFolders.Add(folderToCreate);
@@ -92,6 +107,7 @@ public class MusicFolderService
 
         var newName = updateMusicFolder.Name ?? folder.Name;
         var newGroupId = updateMusicFolder.GroupId ?? folder.GroupId;
+        var showInMyArea = updateMusicFolder.ShowInMyArea ?? folder.ShowInMyArea;
 
         var groupExists = _dbContext.Groups.Any(groupItem => groupItem.GroupId == newGroupId);
         if (!groupExists)
@@ -107,6 +123,7 @@ public class MusicFolderService
 
         folder.Name = newName;
         folder.GroupId = newGroupId;
+        folder.ShowInMyArea = showInMyArea;
 
         if (updateMusicFolder.Scores != null)
         {
@@ -179,9 +196,6 @@ public class MusicFolderService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicFolder))
             return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), musicFolderId.ToString());
 
-        if (updateScoreMusicFolder.Number <= 0)
-            return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), "Number must be > 0");
-
         var folder = _dbContext.MusicFolders.FirstOrDefault(folderItem => folderItem.MusicFolderId == musicFolderId);
         if (folder == null)
             return ErrorUtils.ValueNotFound(nameof(MusicFolder), musicFolderId.ToString());
@@ -228,9 +242,6 @@ public class MusicFolderService
             return ErrorUtils.ValueNotFound(nameof(ScoreMusicFolder), scoreMusicFolderId.ToString());
 
         var newNumber = updateScoreMusicFolder.Number;
-
-        if (newNumber <= 0)
-            return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), "Number must be > 0");
 
         var numberDuplicate = _dbContext.ScoreMusicFolders.Any(linkItem =>
             linkItem.ScoreMusicFolderId != scoreMusicFolderId &&
@@ -302,9 +313,6 @@ public class MusicFolderService
     var active = normalized
         .Where(x => (x.Deleted ?? false) == false)
         .ToList();
-
-    if (active.Any(x => x.Number <= 0))
-        return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), "Number must be > 0");
 
     var numbers = active.Select(x => x.Number).ToList();
     if (numbers.Distinct().Count() != numbers.Count)
