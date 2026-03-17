@@ -14,6 +14,7 @@ using Vereinsmanager.Utils.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks();
 builder.Services.AddMemoryCache();
 
@@ -122,8 +123,6 @@ foreach (var provider in providerConfigs)
         };
     });
 }
-//PdfManagment
-builder.Services.AddScoped<PdfService>();
 
 var app = builder.Build();
 app.MapHealthChecks("/health");

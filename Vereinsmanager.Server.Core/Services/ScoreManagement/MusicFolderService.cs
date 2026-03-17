@@ -271,72 +271,71 @@ public class MusicFolderService
         return true;
     }
 
-
     private ReturnValue<MusicFolder> UpdateScoresToMusicFolder(MusicFolder folder, List<UpdateScoreMusicFolder> incoming)
-{
-    if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-        return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
-
-    var normalized = incoming
-        .GroupBy(x => x.ScoreId)
-        .Select(g => g.Last())
-        .ToList();
-
-    var idsToDeleted = normalized
-        .Where(x => x.Deleted ?? false)
-        .Select(x => x.ScoreId)
-        .ToHashSet();
-
-    var entrysToDelete = _dbContext.ScoreMusicFolders
-        .Where(es => es.MusicFolderId == folder.MusicFolderId)
-        .Where(es => idsToDeleted.Contains(es.ScoreId))
-        .ToList();
-
-    _dbContext.RemoveRange(entrysToDelete);
-
-    var idsToCreate = normalized
-        .Where(x => (x.Deleted ?? false) == false)
-        .Select(x => x.ScoreId)
-        .ToHashSet();
-
-    var existingScores = _dbContext.Scores
-        .Where(x => idsToCreate.Contains(x.ScoreId))
-        .ToHashSet();
-
-    if (existingScores.Count != idsToCreate.Count)
     {
-        var foundIds = existingScores.Select(x => x.ScoreId).ToHashSet();
-        var missingId = idsToCreate.First(id => !foundIds.Contains(id));
-        return ErrorUtils.ValueNotFound(nameof(Score), missingId.ToString());
-    }
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
+            return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
 
-    var active = normalized
-        .Where(x => (x.Deleted ?? false) == false)
-        .ToList();
+        var normalized = incoming
+            .GroupBy(x => x.ScoreId)
+            .Select(g => g.Last())
+            .ToList();
 
-    var numbers = active.Select(x => x.Number).ToList();
+        var idsToDeleted = normalized
+            .Where(x => x.Deleted ?? false)
+            .Select(x => x.ScoreId)
+            .ToHashSet();
+
+        var entrysToDelete = _dbContext.ScoreMusicFolders
+            .Where(es => es.MusicFolderId == folder.MusicFolderId)
+            .Where(es => idsToDeleted.Contains(es.ScoreId))
+            .ToList();
+
+        _dbContext.RemoveRange(entrysToDelete);
+
+        var idsToCreate = normalized
+            .Where(x => (x.Deleted ?? false) == false)
+            .Select(x => x.ScoreId)
+            .ToHashSet();
+
+        var existingScores = _dbContext.Scores
+            .Where(x => idsToCreate.Contains(x.ScoreId))
+            .ToHashSet();
+
+        if (existingScores.Count != idsToCreate.Count)
+        {
+            var foundIds = existingScores.Select(x => x.ScoreId).ToHashSet();
+            var missingId = idsToCreate.First(id => !foundIds.Contains(id));
+            return ErrorUtils.ValueNotFound(nameof(Score), missingId.ToString());
+        }
+
+        var active = normalized
+            .Where(x => (x.Deleted ?? false) == false)
+            .ToList();
+
+        var numbers = active.Select(x => x.Number).ToList();
     if (numbers.Distinct().Count() != numbers.Count)
         return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder), "duplicate Number in request");
 
-    var numberByScoreId = active.ToDictionary(x => x.ScoreId, x => x.Number);
+        var numberByScoreId = active.ToDictionary(x => x.ScoreId, x => x.Number);
 
-    var createReferences = existingScores
-        .Select(CreateViaScoreId)
-        .ToList();
+        var createReferences = existingScores
+            .Select(CreateViaScoreId)
+            .ToList();
 
-    _dbContext.AddRange(createReferences);
-    _dbContext.SaveChanges();
+        _dbContext.AddRange(createReferences);
+        _dbContext.SaveChanges();
 
-    return folder;
+        return folder;
 
-    ScoreMusicFolder CreateViaScoreId(Score score)
-    {
-        return new ScoreMusicFolder
+        ScoreMusicFolder CreateViaScoreId(Score score)
         {
-            MusicFolder = folder,
-            Score = score,
-            Number = numberByScoreId[score.ScoreId]
-        };
+            return new ScoreMusicFolder
+            {
+                MusicFolder = folder,
+                Score = score,
+                Number = numberByScoreId[score.ScoreId]
+            };
+        }
     }
-}
 }

@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Syncfusion.Pdf.Parsing;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
@@ -97,6 +99,8 @@ public class PdfService : IPdfService
                     fileDto.File.CopyTo(fileStream);
                 }
 
+                (string fileHash, int pageCount) = ReadPdfMetadata(filePath);
+
                 MusicSheet musicSheet = new MusicSheet
                 {
                     ScoreId = request.ScoreId,
@@ -104,9 +108,9 @@ public class PdfService : IPdfService
                     VoiceId = fileDto.VoiceId,
                     Voice = voice,
                     FilePath = filePath,
-                    FileHash = string.Empty,
+                    FileHash = fileHash,
                     Filesize = (int)fileDto.File.Length,
-                    PageCount = 0,
+                    PageCount = pageCount,
                     FileModifiedDate = DateTime.UtcNow
                 };
 
@@ -169,5 +173,20 @@ public class PdfService : IPdfService
         }
 
         return matchingFiles[0];
+    }
+
+    private static (string FileHash, int PageCount) ReadPdfMetadata(string filePath)
+    {
+        using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+
+        using SHA256 sha256 = SHA256.Create();
+        string fileHash = Convert.ToHexString(sha256.ComputeHash(stream));
+
+        stream.Position = 0;
+
+        using PdfLoadedDocument document = new PdfLoadedDocument(stream);
+        int pageCount = document.Pages.Count;
+
+        return (fileHash, pageCount);
     }
 }

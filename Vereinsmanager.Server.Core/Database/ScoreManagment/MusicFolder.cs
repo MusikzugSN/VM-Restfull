@@ -17,6 +17,9 @@ public class MusicFolder : MetaData
     [Required]
     [MaxLength(24)]
     public required string Name { get; set; }
+
+    [Required] 
+    public bool ShowInMe { get; set; } = false;
     
     [Required]
     public Boolean ShowInMyArea { get; set; }

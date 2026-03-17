@@ -2,6 +2,18 @@ using Vereinsmanager.Database.ScoreManagment;
 
 namespace Vereinsmanager.Controllers.DataTransferObjects;
 
+public class ScoreMusicFolderDto
+{
+    public int MusicFolderId { get; init; }
+    public int Number { get; init; }
+
+    public ScoreMusicFolderDto(ScoreMusicFolder scoreMusicFolder)
+    {
+        MusicFolderId = scoreMusicFolder.MusicFolderId;
+        Number = scoreMusicFolder.Number;
+    }
+}
+
 public class ScoreDto : MetaDataDto
 {
     public int ScoreId { get; init; }
@@ -11,6 +23,8 @@ public class ScoreDto : MetaDataDto
     public double? Duration { get; init; }
 
     public int[]? Sheets { get; init; }
+
+    public ScoreMusicFolderDto[]? MusicFolders { get; init; }
 
     public ScoreDto(Score score)
     {
@@ -22,6 +36,11 @@ public class ScoreDto : MetaDataDto
 
         Sheets = score.MusicSheets?
             .Select(sheet => sheet.MusicSheetId)
+            .ToArray();
+
+        MusicFolders = score.ScoreMusicFolders?
+            .OrderBy(x => x.Number)
+            .Select(x => new ScoreMusicFolderDto(x))
             .ToArray();
 
         CreatedAt = score.CreatedAt;

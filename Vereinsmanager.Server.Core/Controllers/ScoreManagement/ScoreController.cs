@@ -11,9 +11,10 @@ public class ScoreController : ControllerBase
     [HttpGet]
     public ActionResult<ScoreDto[]> GetScores(
         [FromQuery] bool includeSheets,
+        [FromQuery] bool includeMusicFolders,
         [FromServices] ScoreService scoreService)
     {
-        var scoresResult = scoreService.ListScores(includeSheets);
+        var scoresResult = scoreService.ListScores(includeSheets, includeMusicFolders);
 
         if (scoresResult.IsSuccessful())
         {
@@ -29,9 +30,10 @@ public class ScoreController : ControllerBase
     public ActionResult<ScoreDto> GetScoreById(
         [FromRoute] int scoreId,
         [FromQuery] bool includeSheets,
+        [FromQuery] bool includeMusicFolders,
         [FromServices] ScoreService scoreService)
     {
-        var scoreResult = scoreService.GetScoreById(scoreId, includeSheets);
+        var scoreResult = scoreService.GetScoreById(scoreId, includeSheets, includeMusicFolders);
 
         if (scoreResult.IsSuccessful())
         {
