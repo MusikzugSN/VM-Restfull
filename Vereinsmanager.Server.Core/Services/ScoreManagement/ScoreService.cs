@@ -7,10 +7,10 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateScore(string Title, string Composer, string? Link, double? Duration);
+public record CreateScore(string Title, string Composer, string? Link, double? Duration, List<UpdateMusicFolderScore> MusicFolders);
 public record CreateMultipleScore(string Title, string Composer, string? Link, double? Duration, string? FolderName, string? Number);
-public record UpdateScore(string? Title, string? Composer, string? Link, double? Duration);
-
+public record UpdateScore(string? Title, string? Composer, string? Link, double? Duration, List<UpdateMusicFolderScore> MusicFolders);
+public record UpdateMusicFolderScore(int MusicFolderId, string Number, bool? Deleted);
 public class ScoreService
 {
     private readonly ServerDatabaseContext _dbContext;
@@ -286,9 +286,6 @@ public class ScoreService
         var active = normalized
             .Where(x => (x.Deleted ?? false) == false)
             .ToList();
-
-        if (active.Any(x => x.Number <= 0))
-            return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), "Number must be > 0");
 
         var folderIds = active.Select(x => x.MusicFolderId).ToHashSet();
 

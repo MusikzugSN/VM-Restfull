@@ -5,7 +5,7 @@ namespace Vereinsmanager.Controllers.DataTransferObjects;
 public class ScoreMusicFolderDto
 {
     public int MusicFolderId { get; init; }
-    public int Number { get; init; }
+    public string Number { get; init; }
 
     public ScoreMusicFolderDto(ScoreMusicFolder scoreMusicFolder)
     {
