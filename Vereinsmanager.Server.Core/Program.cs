@@ -8,6 +8,7 @@ using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.PdfManagement;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
 
