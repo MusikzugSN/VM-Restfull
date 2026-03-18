@@ -38,7 +38,7 @@ public class SeverModule : Module
         builder.RegisterType<MusicFolderService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<VoiceService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
-        builder.RegisterType<EventService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<EventsService>().AsSelf().InstancePerLifetimeScope();
         
         // PDF
         builder.RegisterType<PdfService>().AsSelf().InstancePerLifetimeScope();
