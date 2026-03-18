@@ -48,7 +48,6 @@ public class SeverModule : Module
     private void RegisterDbContext(ContainerBuilder builder)
     {
         var connectionData = _configuration.GetSection("Database").Get<DatabaseContext>();
-        Console.WriteLine(connectionData);
         builder.Register(container =>
         {
             var options = new DbContextOptionsBuilder<ServerDatabaseContext>();
@@ -70,4 +69,4 @@ public class SeverModule : Module
     }
 }
 
-public record DatabaseContext(string Provider, string Server, string Port, string Database, string User, string Password);
+public record DatabaseContext(string? Provider, string? Server, string? Port, string? Database, string? User, string? Password);
