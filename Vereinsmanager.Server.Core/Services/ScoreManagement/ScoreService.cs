@@ -7,10 +7,30 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateScore(string Title, string Composer, string? Link, double? Duration, List<UpdateMusicFolderScore> MusicFolders);
-public record CreateMultipleScore(string Title, string Composer, string? Link, double? Duration, string? FolderName, string? Number);
-public record UpdateScore(string? Title, string? Composer, string? Link, double? Duration, List<UpdateMusicFolderScore> MusicFolders);
+public record CreateScore(
+    string Title,
+    string Composer,
+    string? Link,
+    double? Duration,
+    List<UpdateMusicFolderScore>? MusicFolders);
+
+public record CreateMultipleScore(
+    string Title,
+    string Composer,
+    string? Link,
+    double? Duration,
+    string? FolderName,
+    string? Number);
+
+public record UpdateScore(
+    string? Title,
+    string? Composer,
+    string? Link,
+    double? Duration,
+    List<UpdateMusicFolderScore>? MusicFolders);
+
 public record UpdateMusicFolderScore(int MusicFolderId, string Number, bool? Deleted);
+
 public class ScoreService
 {
     private readonly ServerDatabaseContext _dbContext;
@@ -19,8 +39,9 @@ public class ScoreService
     private readonly Lazy<MusicFolderService> _folderServiceLazy;
     private readonly Lazy<GroupService> _groupServiceLazy;
 
-    public ScoreService(ServerDatabaseContext dbContext, 
-        Lazy<PermissionService> permissionServiceLazy, 
+    public ScoreService(
+        ServerDatabaseContext dbContext,
+        Lazy<PermissionService> permissionServiceLazy,
         Lazy<MusicFolderService> folderServiceLazy,
         Lazy<GroupService> groupService)
     {
@@ -56,8 +77,7 @@ public class ScoreService
             scoresQuery = scoresQuery.Include(s => s.MusicSheets);
 
         if (includeMusicFolders)
-            scoresQuery = scoresQuery
-                .Include(s => s.ScoreMusicFolders);
+            scoresQuery = scoresQuery.Include(s => s.ScoreMusicFolders);
 
         return scoresQuery.ToArray();
     }
@@ -88,10 +108,10 @@ public class ScoreService
             return ErrorUtils.NotPermitted(nameof(Score), createScore.Title);
 
         if (createScore.Duration is not null && createScore.Duration <= 0)
-            return ErrorUtils.ValueOutOfRange(nameof(Score), identifier: "Duration must be > 0");
+            return ErrorUtils.ValueOutOfRange(nameof(Score), "Duration must be > 0");
 
         if (createScore.Link != null && !IsValidHttpsLink(createScore.Link))
-            return ErrorUtils.ValueValidationFailed(nameof(Score), identifier: "Link must start with https://");
+            return ErrorUtils.ValueValidationFailed(nameof(Score), "Link must start with https://");
 
         var duplicate = _dbContext.Scores.Any(score => score.Title == createScore.Title);
         if (duplicate)
@@ -128,13 +148,9 @@ public class ScoreService
 
         var folders = _folderServiceLazy.Value.GetMusicFoldersByName(folderNames);
         
-        //todo far: berechtigung für die Gruppen prüfen - nicht generel
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScore))
-        {
-            return ErrorUtils.NotPermitted(nameof(Score), "read all");
-        }
+            return ErrorUtils.NotPermitted(nameof(Score), "create multiple");
         
-        // Gruppen laden (für neue Folder)
         var groupsResult = _groupServiceLazy.Value.ListGroups();
         if (!groupsResult.IsSuccessful())
             return ErrorUtils.ValueNotFound(nameof(Group), "no groups available");
@@ -142,53 +158,49 @@ public class ScoreService
         var defaultGroup = groupsResult.GetValue()!.First();
         
         var scoresToSave = new List<Score>(createScores.Count);
-        var scoreMusicFolderToSave = new List<ScoreMusicFolder>(createScores.Count(x => x.Number != null));
+        var scoreMusicFolderToSave = new List<ScoreMusicFolder>();
         var foldersToCreate = new List<MusicFolder>();
         
-        foreach (var createMultipleScore in createScores)
+        foreach (var item in createScores)
         {
-            if (string.IsNullOrWhiteSpace(createMultipleScore.Title))
-                continue; // skip invalid entries
+            if (string.IsNullOrWhiteSpace(item.Title))
+                continue;
             
-            if (scoresToSave.Any(x => x.Title == createMultipleScore.Title))
-            {
-                continue; // skip duplicates
-            }
+            if (scoresToSave.Any(x => x.Title == item.Title))
+                continue;
             
             var score = new Score
             {
-                Title = createMultipleScore.Title,
-                Composer = createMultipleScore.Composer,
-                Link = createMultipleScore.Link,
-                Duration = createMultipleScore.Duration
+                Title = item.Title,
+                Composer = item.Composer,
+                Link = item.Link,
+                Duration = item.Duration
             };
             
             scoresToSave.Add(score);
             
-            if (createMultipleScore.FolderName != null && createMultipleScore.Number != null)
+            if (!string.IsNullOrWhiteSpace(item.FolderName) && item.Number != null)
             {
-                var folder = folders.FirstOrDefault(f => f.Name == createMultipleScore.FolderName);
+                var folder = folders.FirstOrDefault(f => f.Name == item.FolderName);
                 if (folder == null)
                 {
                     folder = new MusicFolder
                     {
                         GroupId = defaultGroup.GroupId,
                         Group = defaultGroup,
-                        Name = createMultipleScore.FolderName
+                        Name = item.FolderName
                     };
 
                     foldersToCreate.Add(folder);
                     folders.Add(folder);
                 }
 
-                var scoreMusicFolder = new ScoreMusicFolder
+                scoreMusicFolderToSave.Add(new ScoreMusicFolder
                 {
                     Score = score,
                     MusicFolder = folder,
-                    Number = createMultipleScore.Number
-                };
-                
-                scoreMusicFolderToSave.Add(scoreMusicFolder);
+                    Number = item.Number
+                });
             }
         }
         
@@ -196,6 +208,7 @@ public class ScoreService
         _dbContext.Scores.AddRange(scoresToSave);
         _dbContext.ScoreMusicFolders.AddRange(scoreMusicFolderToSave);
         _dbContext.SaveChanges();
+
         return scoresToSave.ToArray();
     }
 
@@ -237,7 +250,7 @@ public class ScoreService
         if (wouldDuplicate)
             return ErrorUtils.AlreadyExists(nameof(Score), score.Title);
 
-        if (updateScore.MusicFolders != null)
+        if (updateScore.MusicFolders is { Count: > 0 })
         {
             var result = UpdateMusicFoldersToScore(score, updateScore.MusicFolders);
             if (!result.IsSuccessful())
@@ -284,7 +297,7 @@ public class ScoreService
             .ToList();
 
         var active = normalized
-            .Where(x => (x.Deleted ?? false) == false)
+            .Where(x => !(x.Deleted ?? false))
             .ToList();
 
         var folderIds = active.Select(x => x.MusicFolderId).ToHashSet();

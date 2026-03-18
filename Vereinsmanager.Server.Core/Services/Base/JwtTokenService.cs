@@ -27,7 +27,7 @@ public class JwtTokenService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
-        var privateRsa = LoadPrivateKey(_config["Jwt:PrivateKeyPath"] ?? "keys/private_key.pem"); 
+        var privateRsa = LoadPrivateKey((_config["Jwt:KeyPath"] ?? "data/keys/") + "private_key.pem"); 
         var key = new RsaSecurityKey(privateRsa); 
         var creds = new SigningCredentials(key, SecurityAlgorithms.RsaSha256);
 

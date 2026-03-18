@@ -84,7 +84,7 @@ var authService = builder.Services.AddAuthentication(options =>
     
 authService.AddJwtBearer(options =>
 {
-    var publicRsa = JwtTokenService.LoadPublicKey(builder.Configuration["Jwt:PublicKeyPath"] ?? "keys/public_key.pem"); 
+    var publicRsa = JwtTokenService.LoadPublicKey((builder.Configuration["Jwt:KeyPath"] ?? "data/keys/") + "public_key.pem"); 
     
     options.TokenValidationParameters = new TokenValidationParameters
     {
@@ -99,7 +99,7 @@ authService.AddJwtBearer(options =>
 });
 
 var providerConfigs = builder.Configuration
-    .GetSection("OAuthProviders")
+    .GetSection("OAuth")
     .Get<OAuthConfig[]>() ?? [];
 
 foreach (var provider in providerConfigs)

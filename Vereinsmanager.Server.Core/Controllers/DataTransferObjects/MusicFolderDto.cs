@@ -7,7 +7,6 @@ public class MusicFolderDto : MetaDataDto
     public int MusicFolderId { get; init; }
     public int GroupId { get; init; }
     public string Name { get; init; }
-    public bool ShowInMe { get; init; }
 
     public int[]? ScoreIds { get; init; }
     public bool ShowInMyArea { get; init; }
@@ -17,7 +16,7 @@ public class MusicFolderDto : MetaDataDto
         MusicFolderId = musicFolder.MusicFolderId;
         GroupId = musicFolder.GroupId;
         Name = musicFolder.Name;
-        ShowInMe = musicFolder.ShowInMe;
+        ShowInMyArea = musicFolder.ShowInMyArea;
 
         ScoreIds = musicFolder.ScoreMusicFolders?
             .Select(x => x.ScoreId)

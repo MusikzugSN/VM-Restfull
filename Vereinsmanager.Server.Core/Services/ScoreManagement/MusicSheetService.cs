@@ -8,6 +8,8 @@ using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
@@ -206,56 +208,69 @@ public class MusicSheetService
             || ext == ".bmp"
             || ext == ".gif";
     }
-
     private static void SavePdfOrConvertImageToPdf(IFormFile sourceFile, string targetPdfPath)
+{
+    if (IsPdfFile(sourceFile.FileName))
     {
-        if (IsPdfFile(sourceFile.FileName))
+        using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
         {
-            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
-            {
-                sourceFile.CopyTo(output);
-            }
-            return;
+            sourceFile.CopyTo(output);
         }
+        return;
+    }
 
-        if (!IsSupportedImageFile(sourceFile.FileName))
-            throw new InvalidOperationException("Dateityp nicht erlaubt.");
+    if (!IsSupportedImageFile(sourceFile.FileName))
+        throw new InvalidOperationException("Dateityp nicht erlaubt.");
 
-        using (Stream input = sourceFile.OpenReadStream())
-        using (PdfDocument document = new PdfDocument())
+    using (Stream input = sourceFile.OpenReadStream())
+    using (PdfDocument document = new PdfDocument())
+    {
+        PdfBitmap image = new PdfBitmap(input);
+
+        PdfPage page = document.Pages.Add();
+        page.Section.PageSettings.Size = PdfPageSize.A4;
+        page.Section.PageSettings.Orientation =
+            image.Width > image.Height
+                ? PdfPageOrientation.Landscape
+                : PdfPageOrientation.Portrait;
+
+        float pageWidth = page.GetClientSize().Width;
+        float pageHeight = page.GetClientSize().Height;
+
+        float imageWidth = image.Width;
+        float imageHeight = image.Height;
+
+        // vorsichtiger Beschnitt
+        float cropLeftPercent = 0.01f;
+        float cropRightPercent = 0.01f;
+        float cropTopPercent = 0.04f;
+        float cropBottomPercent = 0.06f;
+
+        float effectiveWidth = imageWidth * (1f - cropLeftPercent - cropRightPercent);
+        float effectiveHeight = imageHeight * (1f - cropTopPercent - cropBottomPercent);
+
+        float scaleX = pageWidth / imageWidth;
+        float scaleY = pageHeight / imageHeight;
+
+        // ganzes Bild behalten
+        float scale = Math.Min(scaleX, scaleY);
+
+        float drawWidth = imageWidth * scale;
+        float drawHeight = imageHeight * scale;
+
+        float offsetX = (pageWidth - drawWidth) / 2f - (imageWidth * cropLeftPercent * scale);
+        float offsetY = (pageHeight - drawHeight) / 2f - (imageHeight * cropTopPercent * scale);
+
+        page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+        using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
         {
-            PdfBitmap image = new PdfBitmap(input);
-
-            PdfPage page = document.Pages.Add();
-            page.Section.PageSettings.Size = PdfPageSize.A4;
-
-            if (image.Width > image.Height)
-                page.Section.PageSettings.Orientation = PdfPageOrientation.Landscape;
-            else
-                page.Section.PageSettings.Orientation = PdfPageOrientation.Portrait;
-
-            float pageWidth = page.GetClientSize().Width;
-            float pageHeight = page.GetClientSize().Height;
-
-            float imageWidth = image.Width;
-            float imageHeight = image.Height;
-
-            float scaleX = pageWidth / imageWidth;
-            float scaleY = pageHeight / imageHeight;
-            float scale = Math.Min(scaleX, scaleY);
-
-            float drawWidth = imageWidth * scale;
-            float drawHeight = imageHeight * scale;
-
-            float x = (pageWidth - drawWidth) / 2f;
-            float y = (pageHeight - drawHeight) / 2f;
-
-            page.Graphics.DrawImage(image, x, y, drawWidth, drawHeight);
-
-            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
-            {
-                document.Save(output);
-            }
+            document.Save(output);
         }
     }
+}
+
+  
+
+   
 }
