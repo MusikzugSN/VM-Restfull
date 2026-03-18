@@ -102,7 +102,7 @@ authService.AddJwtBearer(options =>
 });
 
 var providerConfigs = builder.Configuration
-    .GetSection("OAuth")
+    .GetSection("OAuthProviders")
     .Get<OAuthConfig[]>() ?? [];
 
 foreach (var provider in providerConfigs)

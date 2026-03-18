@@ -8,7 +8,7 @@
       "User": "admin",
       "Password": "admin"
     },
-  "OAuth": [
+  "OAuthProviders": [
      {
       "ProviderKey": "keycloak",
       "DisplayName": "Mein Musikzug",
