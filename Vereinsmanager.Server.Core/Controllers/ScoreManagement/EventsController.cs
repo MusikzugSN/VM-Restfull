@@ -11,49 +11,48 @@ public class EventsController : ControllerBase
     [HttpGet]
     public ActionResult<EventDto[]> GetEvents(
         [FromQuery] bool includeScores,
-        [FromServices] EventService eventService)
+        [FromServices] EventsService eventsService)
     {
-
-        var eventsResult = eventService.ListEvents(includeScores);
+        var eventsResult = eventsService.ListEvents(includeScores);
 
         if (eventsResult.IsSuccessful())
         {
-            var events = eventsResult.GetValue()!;
-            return events.Select(e => new EventDto(e)).ToArray();
+            return eventsResult.GetValue()!
+                .Select(eventItem => new EventDto(eventItem))
+                .ToArray();
         }
 
         return (ObjectResult)eventsResult;
     }
-    
-    [Route("forMyArea")]
-    [HttpGet]
-    public ActionResult<EventDto[]> GetMyEvents([FromServices] EventService eventService)
-    {
-        var eventResult = eventService.ListEventsForMyAreas();
 
-        if (eventResult.IsSuccessful())
+    [HttpGet("forMyArea")]
+    public ActionResult<EventDto[]> GetMyEvents(
+        [FromQuery] bool includeScores,
+        [FromServices] EventsService eventsService)
+    {
+        var eventsResult = eventsService.ListEventsForMyAreas(includeScores);
+
+        if (eventsResult.IsSuccessful())
         {
-            return eventResult.GetValue()!
-                .Select(folder => new EventDto(folder))
+            return eventsResult.GetValue()!
+                .Select(eventItem => new EventDto(eventItem))
                 .ToArray();
         }
 
-        return (ObjectResult)eventResult;
+        return (ObjectResult)eventsResult;
     }
 
-    [HttpGet]
-    [Route("{eventId:int}")]
+    [HttpGet("{eventId:int}")]
     public ActionResult<EventDto> GetEventById(
         [FromRoute] int eventId,
         [FromQuery] bool includeScores,
-        [FromServices] EventService eventService)
+        [FromServices] EventsService eventsService)
     {
-        var eventResult = eventService.GetEventById(eventId, includeScores);
+        var eventResult = eventsService.GetEventById(eventId, includeScores);
 
         if (eventResult.IsSuccessful())
         {
-            var loadedEvent = eventResult.GetValue()!;
-            return new EventDto(loadedEvent);
+            return new EventDto(eventResult.GetValue()!);
         }
 
         return (ObjectResult)eventResult;
@@ -62,9 +61,9 @@ public class EventsController : ControllerBase
     [HttpPost]
     public ActionResult<EventDto> CreateEvent(
         [FromBody] CreateEvent createEvent,
-        [FromServices] EventService eventService)
+        [FromServices] EventsService eventsService)
     {
-        var createdResult = eventService.CreateEvent(createEvent);
+        var createdResult = eventsService.CreateEvent(createEvent);
 
         if (createdResult.IsSuccessful())
         {
@@ -74,14 +73,13 @@ public class EventsController : ControllerBase
         return (ObjectResult)createdResult;
     }
 
-    [HttpPatch]
-    [Route("{eventId:int}")]
+    [HttpPatch("{eventId:int}")]
     public ActionResult<EventDto> UpdateEvent(
         [FromRoute] int eventId,
         [FromBody] UpdateEvent updateEvent,
-        [FromServices] EventService eventService)
+        [FromServices] EventsService eventsService)
     {
-        var updatedResult = eventService.UpdateEvent(eventId, updateEvent);
+        var updatedResult = eventsService.UpdateEvent(eventId, updateEvent);
 
         if (updatedResult.IsSuccessful())
         {
@@ -91,13 +89,12 @@ public class EventsController : ControllerBase
         return (ObjectResult)updatedResult;
     }
 
-    [HttpDelete]
-    [Route("{eventId:int}")]
+    [HttpDelete("{eventId:int}")]
     public ActionResult<bool> DeleteEvent(
         [FromRoute] int eventId,
-        [FromServices] EventService eventService)
+        [FromServices] EventsService eventsService)
     {
-        var deletedResult = eventService.DeleteEvent(eventId);
+        var deletedResult = eventsService.DeleteEvent(eventId);
 
         if (deletedResult.IsSuccessful())
         {
