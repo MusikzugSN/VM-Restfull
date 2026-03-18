@@ -9,9 +9,11 @@ namespace Vereinsmanager.Controllers.ScoreManagement;
 public class MusicFolderController : ControllerBase
 {
     [HttpGet]
-    public ActionResult<MusicFolderDto[]> GetMusicFolders([FromServices] MusicFolderService musicFolderService)
+    public ActionResult<MusicFolderDto[]> GetMusicFolders(
+        [FromQuery] bool includeSheets,
+        [FromServices] MusicFolderService musicFolderService)
     {
-        var foldersResult = musicFolderService.ListMusicFolders();
+        var foldersResult = musicFolderService.ListMusicFolders(includeSheets);
 
         if (foldersResult.IsSuccessful())
         {
@@ -23,11 +25,12 @@ public class MusicFolderController : ControllerBase
         return (ObjectResult)foldersResult;
     }
     
-    [Route("forMyArea")]
-    [HttpGet]
-    public ActionResult<MusicFolderDto[]> GetMyMusicFolders([FromServices] MusicFolderService musicFolderService)
+    [HttpGet("forMyArea")]
+    public ActionResult<MusicFolderDto[]> GetMyMusicFolders(
+        [FromQuery] bool includeSheets,
+        [FromServices] MusicFolderService musicFolderService)
     {
-        var foldersResult = musicFolderService.ListMusicFoldersForMyArea();
+        var foldersResult = musicFolderService.ListMusicFoldersForMyArea(includeSheets);
 
         if (foldersResult.IsSuccessful())
         {
@@ -42,9 +45,10 @@ public class MusicFolderController : ControllerBase
     [HttpGet("{musicFolderId:int}")]
     public ActionResult<MusicFolderDto> GetMusicFolderById(
         [FromRoute] int musicFolderId,
+        [FromQuery] bool includeSheets,
         [FromServices] MusicFolderService musicFolderService)
     {
-        var folderResult = musicFolderService.GetMusicFolderById(musicFolderId);
+        var folderResult = musicFolderService.GetMusicFolderById(musicFolderId, includeSheets);
 
         if (folderResult.IsSuccessful())
         {

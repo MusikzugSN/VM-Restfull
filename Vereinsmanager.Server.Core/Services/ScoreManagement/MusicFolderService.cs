@@ -31,26 +31,44 @@ public class MusicFolderService
     
     public ReturnValue<MusicFolder[]> ListMusicFolders()
     {
+        return ListMusicFolders(false);
+    }
+
+    public ReturnValue<MusicFolder[]> ListMusicFolders(bool includeSheets)
+    {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
 
-        return _dbContext.MusicFolders.ToArray();
+        return BuildMusicFolderQuery(includeSheets).ToArray();
     }
     
-    public ReturnValue<MusicFolder[]> ListMusicFoldersForMyArea()
+    public ReturnValue<MusicFolder[]> ListMusicFoldersForMyArea(bool includeSheets)
     {
-        var folders = _dbContext.MusicFolders.Where(x => x.ShowInMyArea).ToArray();
-        var permissionFilteredFolders = folders.Where(x => _permissionServiceLazy.Value.HasPermission(PermissionType.OpenMyNotes, x.GroupId)).ToArray();
         
+        var folders = BuildMusicFolderQuery(includeSheets)
+            .Where(x => x.ShowInMyArea)
+            .ToArray();
+
+        var permissionFilteredFolders = folders
+            .Where(x => _permissionServiceLazy.Value.HasPermission(PermissionType.OpenMyNotes, x.GroupId))
+            .ToArray();
+
         return permissionFilteredFolders;
     }
 
     public ReturnValue<MusicFolder> GetMusicFolderById(int musicFolderId)
     {
+        return GetMusicFolderById(musicFolderId, false);
+    }
+
+    public ReturnValue<MusicFolder> GetMusicFolderById(int musicFolderId, bool includeSheets)
+    {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
             return ErrorUtils.NotPermitted(nameof(MusicFolder), musicFolderId.ToString());
 
-        var folder = _dbContext.MusicFolders.FirstOrDefault(folderItem => folderItem.MusicFolderId == musicFolderId);
+        var folder = BuildMusicFolderQuery(includeSheets)
+            .FirstOrDefault(folderItem => folderItem.MusicFolderId == musicFolderId);
+
         if (folder == null)
             return ErrorUtils.ValueNotFound(nameof(MusicFolder), musicFolderId.ToString());
 
@@ -337,5 +355,15 @@ public class MusicFolderService
                 Number = numberByScoreId[score.ScoreId]
             };
         }
+    }
+
+    private IQueryable<MusicFolder> BuildMusicFolderQuery(bool includeSheets)
+    {
+        IQueryable<MusicFolder> query = _dbContext.MusicFolders;
+
+        if (includeSheets)
+            query = query.Include(folder => folder.ScoreMusicFolders);
+
+        return query;
     }
 }
