@@ -1,9 +1,14 @@
 {
   "FRONTEND_URL": "http://localhost:4200",
-  "ConnectionStrings": {
-    "MySqlConnection": "Server=localhost; Port=3306; Database=notes; Uid=admin; Pwd=admin"
-  },
-  "OAuthProviders": [
+  "Database": {
+      "Provider": "MySql",
+      "Server": "localhost",
+      "Port": 33062,
+      "Database": "notes",
+      "User": "admin",
+      "Password": "admin"
+    },
+  "OAuth": [
      {
       "ProviderKey": "keycloak",
       "DisplayName": "Mein Musikzug",
