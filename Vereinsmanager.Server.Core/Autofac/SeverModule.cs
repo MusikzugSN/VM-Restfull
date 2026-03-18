@@ -47,19 +47,19 @@ public class SeverModule : Module
 
     private void RegisterDbContext(ContainerBuilder builder)
     {
-        var mysqlConnectionString = _configuration.GetConnectionString("MySqlConnection");
-        Console.WriteLine(mysqlConnectionString);
+        var connectionData = _configuration.GetSection("Database").Get<DatabaseContext>();
+        Console.WriteLine(connectionData);
         builder.Register(container =>
         {
             var options = new DbContextOptionsBuilder<ServerDatabaseContext>();
-            
-            if (!string.IsNullOrEmpty(mysqlConnectionString))
+
+            var type = connectionData?.Provider ?? "MySql";
+
+            if (type == "MySql")
             {
-                options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString));
-            }
-            else
-            {
-                options.UseInMemoryDatabase("Vereinsmanager.Server.InMemoryDb");
+                var connectionString =
+                    $"Server={connectionData?.Server ?? "localhost"}; Port={connectionData?.Port ?? "3306"}; Database={connectionData?.Database ?? "notes"}; Uid={connectionData?.User ?? "vmanager"}; Pwd={connectionData.Password}";
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             }
             
             var userContext = container.Resolve<UserContext>();
@@ -67,3 +67,5 @@ public class SeverModule : Module
         }).AsSelf().InstancePerLifetimeScope();
     }
 }
+
+public record DatabaseContext(string Provider, string Server, string Port, string Database, string User, string Password);
