@@ -3,6 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
+public enum MusicSheetStatus
+{
+    Ungeprueft = 0,
+    Geprueft = 1
+}
+
 [Index(nameof(ScoreId), nameof(VoiceId), IsUnique = true)]
 [Index(nameof(FilePath), IsUnique = true)]
 public class MusicSheet : MetaData
@@ -26,12 +32,15 @@ public class MusicSheet : MetaData
     
     [Required]
     public DateTime FileModifiedDate { get; set; }
+
+    [Required]
+    public MusicSheetStatus Status { get; set; } = MusicSheetStatus.Ungeprueft;
     
     [Required]
     public required Score Score { get; set; }
     public virtual int ScoreId { get; set; }
     
     [Required]
-    public required Voice  Voice { get; set; }
-    public virtual int VoiceId {get; set;}
+    public required Voice Voice { get; set; }
+    public virtual int VoiceId { get; set; }
 }

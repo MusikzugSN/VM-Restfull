@@ -476,6 +476,9 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("varchar(24)");
 
+                    b.Property<bool>("ShowInMe")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<bool>("ShowInMyArea")
                         .HasColumnType("tinyint(1)");
 
@@ -537,6 +540,9 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime(6)");
@@ -595,8 +601,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("varchar(24)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -637,8 +643,9 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("MusicFolderId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Number")
-                        .HasColumnType("int");
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
@@ -821,7 +828,7 @@ namespace Vereinsmanager.Migrations
                         .IsRequired();
 
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
-                        .WithMany()
+                        .WithMany("ScoreMusicFolders")
                         .HasForeignKey("ScoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -870,6 +877,8 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
                 {
                     b.Navigation("MusicSheets");
+
+                    b.Navigation("ScoreMusicFolders");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>

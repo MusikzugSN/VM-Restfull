@@ -11,9 +11,10 @@ public class ScoreController : ControllerBase
     [HttpGet]
     public ActionResult<ScoreDto[]> GetScores(
         [FromQuery] bool includeSheets,
+        [FromQuery] bool includeMusicFolders,
         [FromServices] ScoreService scoreService)
     {
-        var scoresResult = scoreService.ListScores(includeSheets);
+        var scoresResult = scoreService.ListScores(includeSheets, includeMusicFolders);
 
         if (scoresResult.IsSuccessful())
         {
@@ -29,9 +30,10 @@ public class ScoreController : ControllerBase
     public ActionResult<ScoreDto> GetScoreById(
         [FromRoute] int scoreId,
         [FromQuery] bool includeSheets,
+        [FromQuery] bool includeMusicFolders,
         [FromServices] ScoreService scoreService)
     {
-        var scoreResult = scoreService.GetScoreById(scoreId, includeSheets);
+        var scoreResult = scoreService.GetScoreById(scoreId, includeSheets, includeMusicFolders);
 
         if (scoreResult.IsSuccessful())
         {
@@ -51,6 +53,22 @@ public class ScoreController : ControllerBase
         if (createdResult.IsSuccessful())
         {
             return new ScoreDto(createdResult.GetValue()!);
+        }
+
+        return (ObjectResult)createdResult;
+    }
+
+    [HttpPost]
+    [Route("multiple")]
+    public ActionResult<ScoreDto[]> CreateMultipleScores(
+        [FromBody] List<CreateMultipleScore> createScores,
+        [FromServices] ScoreService scoreService)
+    {
+        var createdResult = scoreService.CreateMultipleScores(createScores);
+
+        if (createdResult.IsSuccessful())
+        {
+            return createdResult.GetValue()!.Select(score => new ScoreDto(score)).ToArray();
         }
 
         return (ObjectResult)createdResult;

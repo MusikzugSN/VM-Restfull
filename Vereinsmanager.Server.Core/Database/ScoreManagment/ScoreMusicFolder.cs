@@ -19,5 +19,5 @@ public class ScoreMusicFolder : MetaData
     public int MusicFolderId { get; set; }
     
     [Required]
-    public int Number { get; set; }
+    public string Number { get; set; }
 }
