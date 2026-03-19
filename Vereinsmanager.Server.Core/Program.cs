@@ -8,7 +8,7 @@ using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
-using Vereinsmanager.Services.PdfManagement;
+using Vereinsmanager.Services.PrintManagementService;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
 
@@ -24,6 +24,9 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
     // Use the default property (Pascal) casing
     options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
 });
+
+builder.Services.AddScoped<PrintService>();
+builder.Services.AddSingleton<CustomTokenService>();
 
 var licenseKey = File.ReadAllText("syncfusion-license.txt");
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);

@@ -1,21 +1,21 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
-using Syncfusion.Pdf;
-using Syncfusion.Pdf.Graphics;
-using Syncfusion.Pdf.Parsing;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
-using System.Drawing;
-using System.Drawing.Imaging;
+using Syncfusion.Pdf;
+using Syncfusion.Pdf.Graphics;
+using Syncfusion.Pdf.Parsing;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
 public record UpdateMusicSheet(
     int? ScoreId,
     int? VoiceId,
+    bool? IsMarschbuch,
     MusicSheetStatus? Status);
 
 public class MusicSheetService
@@ -36,7 +36,8 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets;
+        IQueryable<MusicSheet> query = _dbContext.MusicSheets
+            .Include(x => x.Files);
 
         if (scoreId != null)
             query = query.Where(x => x.ScoreId == scoreId);
@@ -54,12 +55,25 @@ public class MusicSheetService
             .Select(x => x.ScoreId);
 
         IQueryable<MusicSheet> query = _dbContext.MusicSheets
+            .Include(x => x.Files)
             .Where(x => scoreIds.Contains(x.ScoreId));
 
         if (voiceIds.Length > 0)
             query = query.Where(x => voiceIds.Contains(x.VoiceId));
 
         return query.ToArray();
+    }
+
+    public ReturnValue<MusicSheet> GetMusicSheetById(int id)
+    {
+        var sheet = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .FirstOrDefault(x => x.MusicSheetId == id);
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        return sheet;
     }
 
     public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheetRequestDto request)
@@ -72,18 +86,39 @@ public class MusicSheetService
         if (voice == null)
             return ErrorUtils.ValueNotFound(nameof(Voice), request.VoiceId.ToString());
 
+        if (request.Files == null || request.Files.Length == 0)
+            return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
+
         string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
         Directory.CreateDirectory(basePath);
 
         string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
         Directory.CreateDirectory(scoreFolder);
 
-        string fileId = Guid.NewGuid().ToString("N");
-        string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+        var storedFiles = new List<MusicSheetFile>();
 
-        SavePdfOrConvertImageToPdf(request.File!, filePath);
+        for (int i = 0; i < request.Files.Length; i++)
+        {
+            var uploadedFile = request.Files[i];
 
-        var metadata = ReadPdfMetadata(filePath);
+            string fileId = Guid.NewGuid().ToString("N");
+            string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+
+            SaveSingleFileAsPdf(uploadedFile, filePath);
+
+            var fileMetadata = ReadSingleFileMetadata(filePath);
+
+            storedFiles.Add(new MusicSheetFile
+            {
+                FilePath = filePath,
+                SortOrder = i,
+                Filesize = fileMetadata.Filesize,
+                PageCount = fileMetadata.PageCount,
+                FileHash = fileMetadata.FileHash
+            });
+        }
+
+        var aggregatedMetadata = ReadStoredFilesMetadata(storedFiles);
 
         MusicSheet sheet = new MusicSheet
         {
@@ -91,23 +126,28 @@ public class MusicSheetService
             VoiceId = request.VoiceId,
             Score = score,
             Voice = voice,
-            FilePath = filePath,
-            FileHash = metadata.FileHash,
-            Filesize = (int)new FileInfo(filePath).Length,
-            PageCount = metadata.PageCount,
+            Files = storedFiles,
+            FileHash = aggregatedMetadata.FileHash,
+            Filesize = aggregatedMetadata.Filesize,
+            PageCount = aggregatedMetadata.PageCount,
             FileModifiedDate = DateTime.UtcNow,
+            IsMarschbuch = request.IsMarschbuch,
             Status = MusicSheetStatus.Ungeprueft
         };
 
         _dbContext.MusicSheets.Add(sheet);
         _dbContext.SaveChanges();
 
-        return sheet;
+        return _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .First(x => x.MusicSheetId == sheet.MusicSheetId);
     }
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
+        var sheet = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
@@ -118,6 +158,9 @@ public class MusicSheetService
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
 
+        if (update.IsMarschbuch != null)
+            sheet.IsMarschbuch = update.IsMarschbuch.Value;
+
         if (update.Status != null)
             sheet.Status = update.Status.Value;
 
@@ -126,12 +169,17 @@ public class MusicSheetService
         return sheet;
     }
 
-    public ReturnValue<MusicSheet> UpdateMusicSheetPdf(int id, IFormFile file)
+    public ReturnValue<MusicSheet> ReplaceMusicSheetFiles(int id, IFormFile[] files)
     {
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
+        var sheet = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        if (files == null || files.Length == 0)
+            return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
 
         string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
@@ -141,17 +189,47 @@ public class MusicSheetService
 
         Directory.CreateDirectory(scoreFolder);
 
-        string fileId = Guid.NewGuid().ToString("N");
-        string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+        foreach (var existingFile in sheet.Files.ToList())
+        {
+            if (File.Exists(existingFile.FilePath))
+                File.Delete(existingFile.FilePath);
+        }
 
-        SavePdfOrConvertImageToPdf(file, filePath);
+        _dbContext.MusicSheetFiles.RemoveRange(sheet.Files);
+        sheet.Files.Clear();
 
-        var metadata = ReadPdfMetadata(filePath);
+        var newFiles = new List<MusicSheetFile>();
 
-        sheet.FilePath = filePath;
-        sheet.FileHash = metadata.FileHash;
-        sheet.Filesize = (int)new FileInfo(filePath).Length;
-        sheet.PageCount = metadata.PageCount;
+        for (int i = 0; i < files.Length; i++)
+        {
+            var uploadedFile = files[i];
+
+            string fileId = Guid.NewGuid().ToString("N");
+            string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+
+            SaveSingleFileAsPdf(uploadedFile, filePath);
+
+            var fileMetadata = ReadSingleFileMetadata(filePath);
+
+            newFiles.Add(new MusicSheetFile
+            {
+                MusicSheet = sheet,
+                FilePath = filePath,
+                SortOrder = i,
+                Filesize = fileMetadata.Filesize,
+                PageCount = fileMetadata.PageCount,
+                FileHash = fileMetadata.FileHash
+            });
+        }
+
+        foreach (var file in newFiles)
+            sheet.Files.Add(file);
+
+        var aggregatedMetadata = ReadStoredFilesMetadata(sheet.Files);
+
+        sheet.FileHash = aggregatedMetadata.FileHash;
+        sheet.Filesize = aggregatedMetadata.Filesize;
+        sheet.PageCount = aggregatedMetadata.PageCount;
         sheet.FileModifiedDate = DateTime.UtcNow;
 
         _dbContext.SaveChanges();
@@ -161,33 +239,67 @@ public class MusicSheetService
 
     public ReturnValue<bool> DeleteMusicSheet(int id)
     {
-        var sheet = _dbContext.MusicSheets.FirstOrDefault(x => x.MusicSheetId == id);
+        var sheet = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
-        if (File.Exists(sheet.FilePath))
-            File.Delete(sheet.FilePath);
+        foreach (var file in sheet.Files)
+        {
+            if (File.Exists(file.FilePath))
+                File.Delete(file.FilePath);
+        }
 
+        _dbContext.MusicSheetFiles.RemoveRange(sheet.Files);
         _dbContext.MusicSheets.Remove(sheet);
         _dbContext.SaveChanges();
 
         return true;
     }
 
-    private static (string FileHash, int PageCount) ReadPdfMetadata(string filePath)
+    private static (string FileHash, int Filesize, int PageCount) ReadStoredFilesMetadata(IEnumerable<MusicSheetFile> files)
+    {
+        var orderedFiles = files
+            .OrderBy(x => x.SortOrder)
+            .ToArray();
+
+        using (SHA256 sha = SHA256.Create())
+        {
+            int totalSize = 0;
+            int totalPages = 0;
+
+            foreach (var file in orderedFiles)
+            {
+                byte[] bytes = File.ReadAllBytes(file.FilePath);
+                sha.TransformBlock(bytes, 0, bytes.Length, null, 0);
+
+                totalSize += file.Filesize;
+                totalPages += file.PageCount;
+            }
+
+            sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
+            string hash = Convert.ToHexString(sha.Hash!);
+
+            return (hash, totalSize, totalPages);
+        }
+    }
+
+    private static (string FileHash, int Filesize, int PageCount) ReadSingleFileMetadata(string filePath)
     {
         using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
         {
             using (SHA256 sha = SHA256.Create())
             {
                 string hash = Convert.ToHexString(sha.ComputeHash(stream));
+                int fileSize = (int)stream.Length;
 
                 stream.Position = 0;
 
                 using (PdfLoadedDocument document = new PdfLoadedDocument(stream))
                 {
-                    return (hash, document.Pages.Count);
+                    return (hash, fileSize, document.Pages.Count);
                 }
             }
         }
@@ -208,69 +320,61 @@ public class MusicSheetService
             || ext == ".bmp"
             || ext == ".gif";
     }
-    private static void SavePdfOrConvertImageToPdf(IFormFile sourceFile, string targetPdfPath)
-{
-    if (IsPdfFile(sourceFile.FileName))
+
+    private static void SaveSingleFileAsPdf(IFormFile sourceFile, string targetPdfPath)
     {
-        using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+        if (IsPdfFile(sourceFile.FileName))
         {
-            sourceFile.CopyTo(output);
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                sourceFile.CopyTo(output);
+            }
+            return;
         }
-        return;
-    }
 
-    if (!IsSupportedImageFile(sourceFile.FileName))
-        throw new InvalidOperationException("Dateityp nicht erlaubt.");
+        if (!IsSupportedImageFile(sourceFile.FileName))
+            throw new InvalidOperationException("Dateityp nicht erlaubt.");
 
-    using (Stream input = sourceFile.OpenReadStream())
-    using (PdfDocument document = new PdfDocument())
-    {
-        PdfBitmap image = new PdfBitmap(input);
-
-        PdfPage page = document.Pages.Add();
-        page.Section.PageSettings.Size = PdfPageSize.A4;
-        page.Section.PageSettings.Orientation =
-            image.Width > image.Height
-                ? PdfPageOrientation.Landscape
-                : PdfPageOrientation.Portrait;
-
-        float pageWidth = page.GetClientSize().Width;
-        float pageHeight = page.GetClientSize().Height;
-
-        float imageWidth = image.Width;
-        float imageHeight = image.Height;
-
-        // vorsichtiger Beschnitt
-        float cropLeftPercent = 0.01f;
-        float cropRightPercent = 0.01f;
-        float cropTopPercent = 0.04f;
-        float cropBottomPercent = 0.06f;
-
-        float effectiveWidth = imageWidth * (1f - cropLeftPercent - cropRightPercent);
-        float effectiveHeight = imageHeight * (1f - cropTopPercent - cropBottomPercent);
-
-        float scaleX = pageWidth / imageWidth;
-        float scaleY = pageHeight / imageHeight;
-
-        // ganzes Bild behalten
-        float scale = Math.Min(scaleX, scaleY);
-
-        float drawWidth = imageWidth * scale;
-        float drawHeight = imageHeight * scale;
-
-        float offsetX = (pageWidth - drawWidth) / 2f - (imageWidth * cropLeftPercent * scale);
-        float offsetY = (pageHeight - drawHeight) / 2f - (imageHeight * cropTopPercent * scale);
-
-        page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
-
-        using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+        using (Stream input = sourceFile.OpenReadStream())
+        using (PdfDocument document = new PdfDocument())
         {
-            document.Save(output);
+            PdfBitmap image = new PdfBitmap(input);
+
+            document.PageSettings.Size = PdfPageSize.A4;
+            document.PageSettings.Orientation =
+                image.Width > image.Height
+                    ? PdfPageOrientation.Landscape
+                    : PdfPageOrientation.Portrait;
+
+            PdfPage page = document.Pages.Add();
+
+            float pageWidth = page.GetClientSize().Width;
+            float pageHeight = page.GetClientSize().Height;
+
+            float imageWidth = image.Width;
+            float imageHeight = image.Height;
+
+            float cropLeftPercent = 0.01f;
+            float cropRightPercent = 0.01f;
+            float cropTopPercent = 0.04f;
+            float cropBottomPercent = 0.06f;
+
+            float scaleX = pageWidth / imageWidth;
+            float scaleY = pageHeight / imageHeight;
+            float scale = Math.Min(scaleX, scaleY);
+
+            float drawWidth = imageWidth * scale;
+            float drawHeight = imageHeight * scale;
+
+            float offsetX = (pageWidth - drawWidth) / 2f - (imageWidth * cropLeftPercent * scale);
+            float offsetY = (pageHeight - drawHeight) / 2f - (imageHeight * cropTopPercent * scale);
+
+            page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                document.Save(output);
+            }
         }
     }
-}
-
-  
-
-   
 }

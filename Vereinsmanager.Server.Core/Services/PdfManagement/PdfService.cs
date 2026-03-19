@@ -101,17 +101,28 @@ public class PdfService : IPdfService
 
                 (string fileHash, int pageCount) = ReadPdfMetadata(filePath);
 
+                MusicSheetFile musicSheetFile = new MusicSheetFile
+                {
+                    FilePath = filePath,
+                    SortOrder = 0,
+                    FileHash = fileHash,
+                    Filesize = (int)fileDto.File.Length,
+                    PageCount = pageCount
+                };
+
                 MusicSheet musicSheet = new MusicSheet
                 {
                     ScoreId = request.ScoreId,
                     Score = score,
                     VoiceId = fileDto.VoiceId,
                     Voice = voice,
-                    FilePath = filePath,
                     FileHash = fileHash,
                     Filesize = (int)fileDto.File.Length,
                     PageCount = pageCount,
-                    FileModifiedDate = DateTime.UtcNow
+                    FileModifiedDate = DateTime.UtcNow,
+                    IsMarschbuch = false,
+                    Status = MusicSheetStatus.Ungeprueft,
+                    Files = new List<MusicSheetFile> { musicSheetFile }
                 };
 
                 _dbContext.MusicSheets.Add(musicSheet);
@@ -177,16 +188,20 @@ public class PdfService : IPdfService
 
     private static (string FileHash, int PageCount) ReadPdfMetadata(string filePath)
     {
-        using FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        {
+            using (SHA256 sha256 = SHA256.Create())
+            {
+                string fileHash = Convert.ToHexString(sha256.ComputeHash(stream));
 
-        using SHA256 sha256 = SHA256.Create();
-        string fileHash = Convert.ToHexString(sha256.ComputeHash(stream));
+                stream.Position = 0;
 
-        stream.Position = 0;
-
-        using PdfLoadedDocument document = new PdfLoadedDocument(stream);
-        int pageCount = document.Pages.Count;
-
-        return (fileHash, pageCount);
+                using (PdfLoadedDocument document = new PdfLoadedDocument(stream))
+                {
+                    int pageCount = document.Pages.Count;
+                    return (fileHash, pageCount);
+                }
+            }
+        }
     }
 }

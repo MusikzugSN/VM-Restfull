@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Services;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers.ScoreManagement;
@@ -56,11 +57,17 @@ public class MusicSheetController : ControllerBase
         if (request.VoiceId <= 0)
             return BadRequest("voiceId ist ungültig.");
 
-        if (request.File == null || request.File.Length == 0)
+        if (request.Files == null || request.Files.Length == 0)
             return BadRequest("Es wurde keine gültige Datei übergeben.");
 
-        if (!IsSupportedUploadFile(request.File.FileName))
-            return BadRequest($"Die Datei '{request.File.FileName}' ist nicht erlaubt.");
+        foreach (var file in request.Files)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Mindestens eine Datei ist ungültig.");
+
+            if (!IsSupportedUploadFile(file.FileName))
+                return BadRequest($"Die Datei '{file.FileName}' ist nicht erlaubt.");
+        }
 
         var createdResult = musicSheetService.CreateMusicSheet(request);
 
@@ -97,20 +104,26 @@ public class MusicSheetController : ControllerBase
         return (ObjectResult)deletedResult;
     }
 
-    [HttpPut("{musicSheetId:int}/pdf")]
+    [HttpPut("{musicSheetId:int}/files")]
     [Consumes("multipart/form-data")]
-    public ActionResult<MusicSheetDto> UpdateMusicSheetPdf(
+    public ActionResult<MusicSheetDto> ReplaceMusicSheetFiles(
         [FromRoute] int musicSheetId,
-        [FromForm] IFormFile file,
+        [FromForm] IFormFile[] files,
         [FromServices] MusicSheetService musicSheetService)
     {
-        if (file == null || file.Length == 0)
+        if (files == null || files.Length == 0)
             return BadRequest("Es wurde keine gültige Datei übergeben.");
 
-        if (!IsSupportedUploadFile(file.FileName))
-            return BadRequest($"Die Datei '{file.FileName}' ist nicht erlaubt.");
+        foreach (var file in files)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Mindestens eine Datei ist ungültig.");
 
-        var result = musicSheetService.UpdateMusicSheetPdf(musicSheetId, file);
+            if (!IsSupportedUploadFile(file.FileName))
+                return BadRequest($"Die Datei '{file.FileName}' ist nicht erlaubt.");
+        }
+
+        var result = musicSheetService.ReplaceMusicSheetFiles(musicSheetId, files);
 
         if (result.IsSuccessful())
             return new MusicSheetDto(result.GetValue()!);
@@ -128,24 +141,5 @@ public class MusicSheetController : ControllerBase
             || ext == ".png"
             || ext == ".bmp"
             || ext == ".gif";
-    }
-    [HttpGet("{musicSheetId:int}/download")]
-    public IActionResult DownloadMusicSheet(
-        [FromRoute] int musicSheetId,
-        [FromServices] MusicSheetService musicSheetService)
-    {
-        var result = musicSheetService.ListMusicSheets()
-            .GetValue()!
-            .FirstOrDefault(x => x.MusicSheetId == musicSheetId);
-
-        if (result == null)
-            return NotFound();
-
-        if (!System.IO.File.Exists(result.FilePath))
-            return NotFound("Datei nicht gefunden.");
-
-        var bytes = System.IO.File.ReadAllBytes(result.FilePath);
-
-        return File(bytes, "application/pdf", $"musicSheet_{musicSheetId}.pdf");
     }
 }

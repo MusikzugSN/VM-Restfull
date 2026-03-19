@@ -38,8 +38,4 @@
       <Compile Remove="Database\PrintManagement\PrintJobFile.cs" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Database\PrintManagement\" />
-    </ItemGroup>
-
 </Project>
