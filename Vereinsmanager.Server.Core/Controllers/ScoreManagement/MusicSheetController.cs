@@ -43,29 +43,52 @@ public class MusicSheetController : ControllerBase
 
         return (ObjectResult)sheetsResult;
     }
+    
+    [HttpGet("status/{status:int}")]
+    public ActionResult<MusicSheetDto[]> GetMusicSheetsByStatus(
+        [FromRoute] int status,
+        [FromQuery] int[] voiceIds,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        var sheetsResult = musicSheetService.ListMusicSheetsByStatus(status, voiceIds);
+
+        if (sheetsResult.IsSuccessful())
+        {
+            return sheetsResult.GetValue()!
+                .Select(sheet => new MusicSheetDto(sheet))
+                .ToArray();
+        }
+
+        return (ObjectResult)sheetsResult;
+    }
 
     [HttpPost]
     [Consumes("multipart/form-data")]
-    public ActionResult<MusicSheetDto> CreateMusicSheet(
+    public ActionResult<MusicSheetDto[]> CreateMusicSheet(
         [FromForm] CreateMusicSheetRequestDto request,
         [FromServices] MusicSheetService musicSheetService)
     {
         if (request.ScoreId <= 0)
             return BadRequest("scoreId ist ungültig.");
+        
+        foreach (var fileUpload in request.Files)
+        {
+            if (fileUpload.VoiceId <= 0)
+                return BadRequest("voiceId ist ungültig.");
 
-        if (request.VoiceId <= 0)
-            return BadRequest("voiceId ist ungültig.");
+            if (fileUpload.File == null || fileUpload.File.Length == 0)
+                return BadRequest("Es wurde keine gültige Datei übergeben.");
 
-        if (request.File == null || request.File.Length == 0)
-            return BadRequest("Es wurde keine gültige Datei übergeben.");
-
-        if (!IsSupportedUploadFile(request.File.FileName))
-            return BadRequest($"Die Datei '{request.File.FileName}' ist nicht erlaubt.");
+            if (!IsSupportedUploadFile(fileUpload.File.FileName))
+                return BadRequest($"Die Datei '{fileUpload.File.FileName}' ist nicht erlaubt.");
+        }
 
         var createdResult = musicSheetService.CreateMusicSheet(request);
 
         if (createdResult.IsSuccessful())
-            return new MusicSheetDto(createdResult.GetValue()!);
+            return createdResult.GetValue()!
+                .Select(sheet => new MusicSheetDto(sheet))
+                .ToArray();
 
         return (ObjectResult)createdResult;
     }

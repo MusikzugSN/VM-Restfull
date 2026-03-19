@@ -61,48 +61,66 @@ public class MusicSheetService
 
         return query.ToArray();
     }
-
-    public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheetRequestDto request)
+    
+    public ReturnValue<MusicSheet[]> ListMusicSheetsByStatus(int status, int[] voiceIds)
     {
+        IQueryable<MusicSheet> query = _dbContext.MusicSheets
+            .Where(x => x.Status == (MusicSheetStatus)status);
+
+        if (voiceIds.Length > 0)
+            query = query.Where(x => voiceIds.Contains(x.VoiceId));
+
+        return query.ToArray();
+    }
+
+    public ReturnValue<List<MusicSheet>> CreateMusicSheet(CreateMusicSheetRequestDto request)
+    {
+        var sheetsToSave = new List<MusicSheet>();
+        
         var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
         if (score == null)
             return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
-
-        var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == request.VoiceId);
-        if (voice == null)
-            return ErrorUtils.ValueNotFound(nameof(Voice), request.VoiceId.ToString());
-
-        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
-        Directory.CreateDirectory(basePath);
-
-        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
-        Directory.CreateDirectory(scoreFolder);
-
-        string fileId = Guid.NewGuid().ToString("N");
-        string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
-
-        SavePdfOrConvertImageToPdf(request.File!, filePath);
-
-        var metadata = ReadPdfMetadata(filePath);
-
-        MusicSheet sheet = new MusicSheet
+        
+        foreach (var fileUpload in request.Files)
         {
-            ScoreId = request.ScoreId,
-            VoiceId = request.VoiceId,
-            Score = score,
-            Voice = voice,
-            FilePath = filePath,
-            FileHash = metadata.FileHash,
-            Filesize = (int)new FileInfo(filePath).Length,
-            PageCount = metadata.PageCount,
-            FileModifiedDate = DateTime.UtcNow,
-            Status = MusicSheetStatus.Ungeprueft
-        };
+            var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == fileUpload.VoiceId);
+            if (voice == null)
+                return ErrorUtils.ValueNotFound(nameof(Voice), fileUpload.VoiceId.ToString());
 
-        _dbContext.MusicSheets.Add(sheet);
+            string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+            Directory.CreateDirectory(basePath);
+
+            string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
+            Directory.CreateDirectory(scoreFolder);
+
+            string fileId = Guid.NewGuid().ToString("N");
+            string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+
+            SavePdfOrConvertImageToPdf(fileUpload.File!, filePath);
+
+            var metadata = ReadPdfMetadata(filePath);
+
+            MusicSheet sheet = new MusicSheet
+            {
+                ScoreId = request.ScoreId,
+                VoiceId = fileUpload.VoiceId,
+                Score = score,
+                Voice = voice,
+                FilePath = filePath,
+                FileHash = metadata.FileHash,
+                Filesize = (int)new FileInfo(filePath).Length,
+                PageCount = metadata.PageCount,
+                FileModifiedDate = DateTime.UtcNow,
+                Status = MusicSheetStatus.Ungeprueft
+            };
+            
+            sheetsToSave.Add(sheet);
+        }
+
+        _dbContext.MusicSheets.AddRange(sheetsToSave);
         _dbContext.SaveChanges();
 
-        return sheet;
+        return sheetsToSave;
     }
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
