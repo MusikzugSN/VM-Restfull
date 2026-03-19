@@ -77,6 +77,48 @@ public class MusicSheetController : ControllerBase
         return (ObjectResult)createdResult;
     }
 
+    [HttpPost("cropByVoices")]
+    [Consumes("multipart/form-data")]
+    public ActionResult<MusicSheetDto[]> CropPdfByVoices(
+        [FromForm] CropPdfByVoicesRequestDto request,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        if (request.ScoreId <= 0)
+            return BadRequest("scoreId ist ungültig.");
+
+        if (request.File == null || request.File.Length == 0)
+            return BadRequest("Es wurde keine gültige Datei übergeben.");
+
+        if (!IsSupportedUploadFile(request.File.FileName))
+            return BadRequest($"Die Datei '{request.File.FileName}' ist nicht erlaubt.");
+
+        if (request.Ranges == null || request.Ranges.Count == 0)
+            return BadRequest("Es wurden keine ranges übergeben.");
+
+        foreach (var range in request.Ranges)
+        {
+            if (range.VoiceId <= 0)
+                return BadRequest("Eine VoiceId ist ungültig.");
+
+            if (range.FromPage <= 0 || range.ToPage <= 0)
+                return BadRequest("Seitenzahlen müssen größer als 0 sein.");
+
+            if (range.FromPage > range.ToPage)
+                return BadRequest("FromPage darf nicht größer als ToPage sein.");
+        }
+
+        var result = musicSheetService.CropPdfByVoices(request);
+
+        if (result.IsSuccessful())
+        {
+            return result.GetValue()!
+                .Select(x => new MusicSheetDto(x))
+                .ToArray();
+        }
+
+        return (ObjectResult)result;
+    }
+
     [HttpPatch("{musicSheetId:int}")]
     public ActionResult<MusicSheetDto> UpdateMusicSheet(
         [FromRoute] int musicSheetId,

@@ -237,6 +237,125 @@ public class MusicSheetService
         return sheet;
     }
 
+    public ReturnValue<MusicSheet[]> CropPdfByVoices(CropPdfByVoicesRequestDto request)
+    {
+        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
+        if (score == null)
+            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
+
+        if (request.File == null)
+            return ErrorUtils.ValueNotFound(nameof(File), "null");
+
+        var duplicateVoiceIds = request.Ranges
+            .GroupBy(x => x.VoiceId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToArray();
+
+        if (duplicateVoiceIds.Length > 0)
+        {
+            return ErrorUtils.AlreadyExists(
+                nameof(MusicSheet),
+                $"mehrfache VoiceIds in ranges: {string.Join(", ", duplicateVoiceIds)}");
+        }
+
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        Directory.CreateDirectory(basePath);
+
+        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
+        Directory.CreateDirectory(scoreFolder);
+
+        List<MusicSheet> createdSheets = new List<MusicSheet>();
+
+        using (Stream inputStream = request.File.OpenReadStream())
+        using (PdfLoadedDocument sourceDocument = new PdfLoadedDocument(inputStream))
+        {
+            int totalPages = sourceDocument.Pages.Count;
+
+            foreach (var range in request.Ranges)
+            {
+                var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == range.VoiceId);
+                if (voice == null)
+                    return ErrorUtils.ValueNotFound(nameof(Voice), range.VoiceId.ToString());
+
+                var existingMusicSheet = _dbContext.MusicSheets
+                    .Include(x => x.Files)
+                    .FirstOrDefault(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
+
+                if (existingMusicSheet != null)
+                {
+                    return ErrorUtils.AlreadyExists(
+                        nameof(MusicSheet),
+                        $"ScoreId {request.ScoreId}, VoiceId {range.VoiceId}");
+                }
+
+                if (range.FromPage > totalPages || range.ToPage > totalPages)
+                {
+                    return ErrorUtils.ValueOutOfRange(
+                        nameof(CropPdfByVoicesRequestDto),
+                        $"Range {range.FromPage}-{range.ToPage} liegt außerhalb der PDF mit {totalPages} Seiten.");
+                }
+
+                string fileId = Guid.NewGuid().ToString("N");
+                string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+
+                using (PdfDocument newDocument = new PdfDocument())
+                {
+                    for (int pageNumber = range.FromPage; pageNumber <= range.ToPage; pageNumber++)
+                    {
+                        newDocument.ImportPage(sourceDocument, pageNumber - 1);
+                    }
+
+                    using (FileStream output = new FileStream(filePath, FileMode.Create))
+                    {
+                        newDocument.Save(output);
+                    }
+                }
+
+                var fileMetadata = ReadSingleFileMetadata(filePath);
+
+                MusicSheetFile musicSheetFile = new MusicSheetFile
+                {
+                    FilePath = filePath,
+                    SortOrder = 0,
+                    Filesize = fileMetadata.Filesize,
+                    PageCount = fileMetadata.PageCount,
+                    FileHash = fileMetadata.FileHash
+                };
+
+                MusicSheet musicSheet = new MusicSheet
+                {
+                    ScoreId = request.ScoreId,
+                    Score = score,
+                    VoiceId = range.VoiceId,
+                    Voice = voice,
+                    Files = new List<MusicSheetFile> { musicSheetFile },
+                    FileHash = fileMetadata.FileHash,
+                    Filesize = fileMetadata.Filesize,
+                    PageCount = fileMetadata.PageCount,
+                    FileModifiedDate = DateTime.UtcNow,
+                    IsMarschbuch = false,
+                    Status = MusicSheetStatus.Ungeprueft
+                };
+
+                _dbContext.MusicSheets.Add(musicSheet);
+                createdSheets.Add(musicSheet);
+            }
+
+            _dbContext.SaveChanges();
+        }
+
+        var createdIds = createdSheets.Select(x => x.MusicSheetId).ToArray();
+
+        var loadedSheets = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .Where(x => createdIds.Contains(x.MusicSheetId))
+            .OrderBy(x => x.VoiceId)
+            .ToArray();
+
+        return loadedSheets;
+    }
+
     public ReturnValue<bool> DeleteMusicSheet(int id)
     {
         var sheet = _dbContext.MusicSheets
