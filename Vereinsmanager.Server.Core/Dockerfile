@@ -20,4 +20,5 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 COPY data ./data
+COPY syncfusion-license.txt ./
 ENTRYPOINT ["dotnet", "Vereinsmanager.Server.Core.dll"]

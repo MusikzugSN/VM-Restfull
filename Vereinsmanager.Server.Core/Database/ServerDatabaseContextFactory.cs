@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Vereinsmanager.Autofac;
 
 namespace Vereinsmanager.Database;
 // DB Context for Migrations
@@ -14,16 +15,19 @@ public class ServerDatabaseContextFactory : IDesignTimeDbContextFactory<ServerDa
             .AddJsonFile("appsettings.Development.json", optional: true)
             .Build();
 
-        var optionsBuilder = new DbContextOptionsBuilder<ServerDatabaseContext>();
+        var connectionData = config.GetSection("Database").Get<DatabaseContext>();
         
-        var mysqlConnectionString = config.GetConnectionString("MySqlConnection");
+        var optionsBuilder = new DbContextOptionsBuilder<ServerDatabaseContext>();
+        var connectionString =
+            $"Server={connectionData?.Server ?? "localhost"}; Port={connectionData?.Port ?? "3306"}; Database={connectionData?.Database ?? "notes"}; Uid={connectionData?.User ?? "vmanager"}; Pwd={connectionData?.Password ?? ""}";
+        
 
-        if (mysqlConnectionString == null)
+        if (connectionString == null)
         {
             throw new InvalidOperationException("MySqlConnection string is not configured.");
         }
         
-        optionsBuilder.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString));
+        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
 
         // For design-time, we don't have a real UserContext
         var fakeUserContext = new UserContext(
