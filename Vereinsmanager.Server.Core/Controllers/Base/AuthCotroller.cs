@@ -90,7 +90,7 @@ public class AuthCotroller : ControllerBase
     {
         var userModel = userContext.GetUserModel();
         if (userModel == null)
-            return Unauthorized();
+            return new MeDto(-2, "Unauthorized", null, null, false, []);
         
         var providers = configuration
             .GetSection("OAuthProviders")

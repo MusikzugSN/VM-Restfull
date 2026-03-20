@@ -10,14 +10,15 @@ public class UserRole : MetaData
     public int UserRoleId { get; set; }
     
     [Required]
-    public required User User { get; set; }
-    public int UserId { get; private set; }
-    
+    public int UserId { get; set; }
     [Required]
-    public required Role Role { get; set; }
-    public virtual int RoleId { get; private set; }
-    
+    public int RoleId { get; set; }
     [Required]
-    public required Group Group { get; set; }
-    public virtual int GroupId { get; private set; }
+    public int GroupId { get; set; }
+    
+    
+    public User? User { get; set; }
+    public Role? Role { get; set; }
+    public Group? Group { get; set; }
+    
 }

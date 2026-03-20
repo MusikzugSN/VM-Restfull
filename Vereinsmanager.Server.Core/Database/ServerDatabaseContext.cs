@@ -17,6 +17,7 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<Configuration> Configurations { get; set; }
 
     // ScoreManagement
     public DbSet<AlternateVoice>  AlternateVoices { get; set; }

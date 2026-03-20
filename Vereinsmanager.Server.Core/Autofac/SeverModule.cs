@@ -31,6 +31,7 @@ public class SeverModule : Module
         builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<RoleService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PermissionService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<ConfigurationService>().AsSelf().InstancePerLifetimeScope();
         
         //ScoreManagement
         builder.RegisterType<ScoreService>().AsSelf().InstancePerLifetimeScope();

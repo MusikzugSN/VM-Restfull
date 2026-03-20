@@ -176,13 +176,14 @@ public class UserService
         var groupsToAssign = _dbContext.Groups.Where(x => groupIdsToAssign.Contains(x.GroupId)).ToList();
         
         var existingUserRoles = _dbContext.UserRoles
-            .Include(x => x.Group).Include(x => x.Role)
-            .Where(ur => ur.User.UserId == user.UserId)
+            .Include(x => x.Group)
+            .Include(x => x.Role)
+            .Where(ur => ur.User != null && ur.User.UserId == user.UserId)
             .ToList();
         
         var userRolesToRemove = existingUserRoles
             .Where(x => updateUserRoles
-                .Any(y => x.Group.GroupId == y.GroupId && x.Role.RoleId == y.RoleId && (y.Deleted ?? false)))
+                .Any(y => x.Group != null && x.Group.GroupId == y.GroupId && x.Role != null && x.Role.RoleId == y.RoleId && (y.Deleted ?? false)))
             .ToList();
         
         _dbContext.UserRoles.RemoveRange(userRolesToRemove);

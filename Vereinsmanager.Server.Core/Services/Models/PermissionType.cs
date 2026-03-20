@@ -41,10 +41,6 @@ public enum PermissionType
     
     [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Start)]
     OpenLoginSettings,
-    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Read)]
-    ListLoginSettings,
-    [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Create)]
-    CreateLoginSettings,
     [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Update)]
     UpdateLoginSettings,
     [PermissionDescription(PermissionGroup.LoginSettings, PermissionCategory.Delete)]
