@@ -476,9 +476,6 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("varchar(24)");
 
-                    b.Property<bool>("ShowInMe")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<bool>("ShowInMyArea")
                         .HasColumnType("tinyint(1)");
 
@@ -567,6 +564,51 @@ namespace Vereinsmanager.Migrations
                         .IsUnique();
 
                     b.ToTable("MusicSheets");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.PrintSettings", b =>
+                {
+                    b.Property<int>("PrintConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintConfigId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Duplex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileFormat")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("PrintConfigId");
+
+                    b.ToTable("PrintSettings");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
