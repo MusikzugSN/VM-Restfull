@@ -8,6 +8,7 @@ using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.PrintManagementService;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
 
@@ -23,6 +24,9 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
     // Use the default property (Pascal) casing
     options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
 });
+
+builder.Services.AddScoped<PrintService>();
+builder.Services.AddSingleton<CustomTokenService>();
 
 var licenseKey = File.ReadAllText("syncfusion-license.txt");
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
@@ -84,10 +88,7 @@ var authService = builder.Services.AddAuthentication(options =>
     
 authService.AddJwtBearer(options =>
 {
-    var path = (builder.Configuration["Jwt:KeyPath"] ?? "data/keys/") + "public_key.pem";
-    Console.WriteLine("JWT Key Path: " + builder.Configuration["Jwt:KeyPath"]);
-    Console.WriteLine($"Loading pubic key from: {path}");
-    var publicRsa = JwtTokenService.LoadPublicKey(path); 
+    var publicRsa = JwtTokenService.LoadPublicKey(builder.Configuration["Jwt:PublicKeyPath"] ?? "keys/public_key.pem"); 
     
     options.TokenValidationParameters = new TokenValidationParameters
     {
