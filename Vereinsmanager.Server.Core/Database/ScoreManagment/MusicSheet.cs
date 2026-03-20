@@ -22,26 +22,24 @@ public class MusicSheet : MetaData
     public int PageCount { get; set; }
 
     [Required]
-    public DateTime FileModifiedDate { get; set; }
-
+    [MaxLength(255)]
+    public required string FileName { get; set; }
+    
     [Required]
     [MaxLength(255)]
     public required string FileHash { get; set; }
 
     [Required]
-    public bool IsMarschbuch { get; set; }
-
+    public required int ScoreId { get; set; }    
+    
+    [Required]
+    public required int VoiceId { get; set; }
+    
     [Required]
     public MusicSheetStatus Status { get; set; } = MusicSheetStatus.Ungeprueft;
 
-    [Required]
-    public required Score Score { get; set; }
-    public virtual int ScoreId { get; set; }
-
-    [Required]
-    public required Voice Voice { get; set; }
-    public virtual int VoiceId { get; set; }
-
-    [Required]
-    public ICollection<MusicSheetFile> Files { get; set; } = new List<MusicSheetFile>();
+    
+    public Score? Score { get; set; }
+    public Voice? Voice { get; set; }
+    
 }

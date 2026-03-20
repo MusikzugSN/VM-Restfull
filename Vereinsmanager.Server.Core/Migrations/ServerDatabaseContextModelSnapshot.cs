@@ -557,14 +557,13 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime>("FileModifiedDate")
-                        .HasColumnType("datetime(6)");
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("Filesize")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsMarschbuch")
-                        .HasColumnType("tinyint(1)");
 
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
@@ -598,45 +597,49 @@ namespace Vereinsmanager.Migrations
                     b.ToTable("MusicSheets");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheetFile", b =>
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.PrintSettings", b =>
                 {
-                    b.Property<int>("MusicSheetFileId")
+                    b.Property<int>("PrintConfigId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MusicSheetFileId"));
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintConfigId"));
 
-                    b.Property<string>("FileHash")
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasColumnType("longtext");
 
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<int>("Filesize")
+                    b.Property<int>("Duplex")
                         .HasColumnType("int");
 
-                    b.Property<int>("MusicSheetId")
+                    b.Property<int>("FileFormat")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mode")
                         .HasColumnType("int");
 
                     b.Property<int>("PageCount")
                         .HasColumnType("int");
 
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
 
-                    b.HasKey("MusicSheetFileId");
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
 
-                    b.HasIndex("FilePath")
-                        .IsUnique();
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
-                    b.HasIndex("MusicSheetId", "SortOrder")
-                        .IsUnique();
+                    b.HasKey("PrintConfigId");
 
-                    b.ToTable("MusicSheetFiles");
+                    b.ToTable("PrintSettings");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
@@ -889,17 +892,6 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("Voice");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheetFile", b =>
-                {
-                    b.HasOne("Vereinsmanager.Database.ScoreManagment.MusicSheet", "MusicSheet")
-                        .WithMany("Files")
-                        .HasForeignKey("MusicSheetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MusicSheet");
-                });
-
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.ScoreMusicFolder", b =>
                 {
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.MusicFolder", "MusicFolder")
@@ -953,11 +945,6 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicFolder", b =>
                 {
                     b.Navigation("ScoreMusicFolders");
-                });
-
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheet", b =>
-                {
-                    b.Navigation("Files");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>

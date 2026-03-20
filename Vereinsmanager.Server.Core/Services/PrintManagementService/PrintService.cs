@@ -15,20 +15,21 @@ public class PrintService
 {
     private readonly ServerDatabaseContext _dbContext;
     private readonly IMemoryCache _memoryCache;
+    private readonly IWebHostEnvironment _hostingEnvironment;
 
-    public PrintService(ServerDatabaseContext dbContext, IMemoryCache memoryCache)
+    public PrintService(ServerDatabaseContext dbContext, IMemoryCache memoryCache, IWebHostEnvironment environment)
     {
         _dbContext = dbContext;
         _memoryCache = memoryCache;
+        _hostingEnvironment = environment;
     }
 
     public ReturnValue<string> CreatePrintUrl(int[] musicSheetIds, bool marschbuch)
     {
-        if (musicSheetIds == null || musicSheetIds.Length == 0)
+        if (musicSheetIds.Length == 0)
             return ErrorUtils.ValueNotFound("MusicSheetIds", "Keine MusicSheetIds übergeben.");
 
         var sheets = _dbContext.MusicSheets
-            .Include(x => x.Files)
             .Where(x => musicSheetIds.Contains(x.MusicSheetId))
             .ToList();
 
@@ -41,12 +42,9 @@ public class PrintService
                 nameof(MusicSheet),
                 $"Nicht gefunden: {string.Join(", ", missingIds)}");
         }
+        
 
-        var orderedSheets = musicSheetIds
-            .Select(id => sheets.First(x => x.MusicSheetId == id))
-            .ToList();
-
-        byte[] pdfBytes = BuildPrintPdf(orderedSheets, marschbuch);
+        byte[] pdfBytes = BuildPrintPdf(sheets, marschbuch);
 
         string token = Guid.NewGuid().ToString("N");
 
@@ -76,7 +74,7 @@ public class PrintService
         return $"print-pdf:{token}";
     }
 
-    private static byte[] BuildPrintPdf(List<MusicSheet> sheets, bool marschbuch)
+    private byte[] BuildPrintPdf(List<MusicSheet> sheets, bool marschbuch)
     {
         using (PdfDocument outputDocument = new PdfDocument())
         {
@@ -97,33 +95,43 @@ public class PrintService
         }
     }
 
-    private static void AppendNormalSheets(PdfDocument outputDocument, List<MusicSheet> sheets)
+    private void AppendNormalSheets(PdfDocument outputDocument, List<MusicSheet> sheets)
     {
         foreach (var sheet in sheets)
         {
-            foreach (var file in sheet.Files.OrderBy(x => x.SortOrder))
-            {
-                if (!File.Exists(file.FilePath))
-                    throw new InvalidOperationException($"Datei nicht gefunden: {file.FilePath}");
+            string scoreFolder = Path.Combine(
+                _hostingEnvironment.ContentRootPath,
+                "Data",
+                "Scores",
+                sheet.ScoreId.ToString());
+            
+            var filePath = Path.Combine(scoreFolder, sheet.FileName);
+            
+            if (!File.Exists(filePath))
+                throw new InvalidOperationException($"Datei nicht gefunden: {filePath}");
 
-                AppendAllPagesFromPdf(outputDocument, file.FilePath);
-            }
+            AppendAllPagesFromPdf(outputDocument, filePath);
         }
     }
 
-    private static void AppendMarschbuchSheets(PdfDocument outputDocument, List<MusicSheet> sheets)
+    private void AppendMarschbuchSheets(PdfDocument outputDocument, List<MusicSheet> sheets)
     {
         var collectedPages = new List<PdfPageSource>();
 
         foreach (var sheet in sheets)
         {
-            foreach (var file in sheet.Files.OrderBy(x => x.SortOrder))
-            {
-                if (!File.Exists(file.FilePath))
-                    throw new InvalidOperationException($"Datei nicht gefunden: {file.FilePath}");
+            string scoreFolder = Path.Combine(
+                _hostingEnvironment.ContentRootPath,
+                "Data",
+                "Scores",
+                sheet.ScoreId.ToString());
+            
+            var filePath = Path.Combine(scoreFolder, sheet.FileName);
+            
+            if (!File.Exists(filePath))
+                throw new InvalidOperationException($"Datei nicht gefunden: {filePath}");
 
-                collectedPages.AddRange(ReadAllPdfPages(file.FilePath));
-            }
+            collectedPages.AddRange(ReadAllPdfPages(filePath));
         }
 
         AppendCollectedPagesAsMarschbuch(outputDocument, collectedPages);

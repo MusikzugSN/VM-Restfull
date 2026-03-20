@@ -14,9 +14,7 @@ namespace Vereinsmanager.Services.ScoreManagement;
 
 public record UpdateMusicSheet(
     int? ScoreId,
-    int? VoiceId,
-    bool? IsMarschbuch,
-    MusicSheetStatus? Status);
+    int? VoiceId);
 
 public class MusicSheetService
 {
@@ -34,40 +32,52 @@ public class MusicSheetService
         _hostingEnvironment = hostingEnvironment;
     }
 
+    private IQueryable<MusicSheet> BaseMusicSheetQuery(int[]? scoreIds = null, int[]? voiceIds = null)
+    {
+        var dbSet = _dbContext.MusicSheets.AsQueryable();
+        
+        if (scoreIds != null)
+            dbSet.Where(x => scoreIds.Contains(x.ScoreId));
+        
+        if (voiceIds != null)
+            dbSet.Where(x => voiceIds.Contains(x.VoiceId));
+        
+        return dbSet;
+    }
+
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets
-            .Include(x => x.Files);
-
-        if (scoreId != null)
-            query = query.Where(x => x.ScoreId == scoreId);
-
-        if (voiceId != null)
-            query = query.Where(x => x.VoiceId == voiceId);
-
-        return query.ToArray();
+        return BaseMusicSheetQuery(
+            scoreId != null ? [scoreId.Value] : null,
+            voiceId != null ? [voiceId.Value] : null
+            ).ToArray();
     }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int folderId, int[] voiceIds)
     {
         var scoreIds = _dbContext.ScoreMusicFolders
             .Where(x => x.MusicFolderId == folderId)
-            .Select(x => x.ScoreId);
-
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets
-            .Include(x => x.Files)
-            .Where(x => scoreIds.Contains(x.ScoreId));
-
-        if (voiceIds.Length > 0)
-            query = query.Where(x => voiceIds.Contains(x.VoiceId));
-
-        return query.ToArray();
+            .Select(x => x.ScoreId)
+            .ToArray();
+        
+        return BaseMusicSheetQuery(
+            scoreIds, 
+            voiceIds.Length > 0 ? voiceIds : null
+            ).ToArray();
+    }
+    
+    public ReturnValue<MusicSheet[]> ListMusicSheetsByStatus(int status, int[] voiceIds)
+    {
+        return BaseMusicSheetQuery(
+            null, 
+            voiceIds.Length > 0 ? voiceIds : null)
+            .Where(x => x.Status == (MusicSheetStatus)status)
+            .ToArray();
     }
 
     public ReturnValue<MusicSheet> GetMusicSheetById(int id)
     {
         var sheet = _dbContext.MusicSheets
-            .Include(x => x.Files)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
@@ -76,17 +86,19 @@ public class MusicSheetService
         return sheet;
     }
 
-    public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheetRequestDto request)
+    public ReturnValue<List<MusicSheet>> CreateMusicSheets(CreateMusicSheetRequestDto request)
     {
-        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
-        if (score == null)
+        var scoreCount = _dbContext.Scores.Count(x => x.ScoreId == request.ScoreId);
+        if (scoreCount != 1)
             return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
 
-        var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == request.VoiceId);
-        if (voice == null)
-            return ErrorUtils.ValueNotFound(nameof(Voice), request.VoiceId.ToString());
-
-        if (request.Files == null || request.Files.Length == 0)
+        var voiceIds = request.Files.Select(x => x.VoiceId).ToList();
+        var foundVoiceIdCount = _dbContext.Voices.Count(x => voiceIds.Contains(x.VoiceId));
+        
+        if (foundVoiceIdCount < voiceIds.Count)
+            return ErrorUtils.ValueNotFound(nameof(Voice), $"Es wurden {voiceIds.Count - foundVoiceIdCount} ungültige VoiceIds übergeben.");
+        
+        if (request.Files.Length == 0)
             return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
 
         string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
@@ -95,58 +107,43 @@ public class MusicSheetService
         string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
         Directory.CreateDirectory(scoreFolder);
 
-        var storedFiles = new List<MusicSheetFile>();
+        var storesMusicSheets = new List<MusicSheet>();
 
-        for (int i = 0; i < request.Files.Length; i++)
+        foreach (var createMusicSheetFile in request.Files)
         {
-            var uploadedFile = request.Files[i];
-
+            if (createMusicSheetFile.VoiceId == null)
+                return ErrorUtils.ValueNotFound("VoiceId", "Keine Dateien übergeben.");
+            
+            if (createMusicSheetFile.File == null)
+                return ErrorUtils.ValueNotFound("File", "Keine Dateien übergeben.");
+            
             string fileId = Guid.NewGuid().ToString("N");
             string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
-
-            SaveSingleFileAsPdf(uploadedFile, filePath);
-
+            
+            SaveSingleFileAsPdf(createMusicSheetFile.File, filePath);
             var fileMetadata = ReadSingleFileMetadata(filePath);
-
-            storedFiles.Add(new MusicSheetFile
+            storesMusicSheets.Add(new MusicSheet
             {
-                FilePath = filePath,
-                SortOrder = i,
+                ScoreId = request.ScoreId,
+                VoiceId = createMusicSheetFile.VoiceId.Value,
+                
+                FileName = fileId + ".pdf",
+                FileHash = fileMetadata.FileHash,
                 Filesize = fileMetadata.Filesize,
                 PageCount = fileMetadata.PageCount,
-                FileHash = fileMetadata.FileHash
             });
+            
         }
 
-        var aggregatedMetadata = ReadStoredFilesMetadata(storedFiles);
-
-        MusicSheet sheet = new MusicSheet
-        {
-            ScoreId = request.ScoreId,
-            VoiceId = request.VoiceId,
-            Score = score,
-            Voice = voice,
-            Files = storedFiles,
-            FileHash = aggregatedMetadata.FileHash,
-            Filesize = aggregatedMetadata.Filesize,
-            PageCount = aggregatedMetadata.PageCount,
-            FileModifiedDate = DateTime.UtcNow,
-            IsMarschbuch = request.IsMarschbuch,
-            Status = MusicSheetStatus.Ungeprueft
-        };
-
-        _dbContext.MusicSheets.Add(sheet);
+        _dbContext.MusicSheets.AddRange(storesMusicSheets);
         _dbContext.SaveChanges();
 
-        return _dbContext.MusicSheets
-            .Include(x => x.Files)
-            .First(x => x.MusicSheetId == sheet.MusicSheetId);
+        return storesMusicSheets;
     }
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
         var sheet = _dbContext.MusicSheets
-            .Include(x => x.Files)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
@@ -158,28 +155,18 @@ public class MusicSheetService
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
 
-        if (update.IsMarschbuch != null)
-            sheet.IsMarschbuch = update.IsMarschbuch.Value;
-
-        if (update.Status != null)
-            sheet.Status = update.Status.Value;
-
         _dbContext.SaveChanges();
 
         return sheet;
     }
 
-    public ReturnValue<MusicSheet> ReplaceMusicSheetFiles(int id, IFormFile[] files)
+    public ReturnValue<MusicSheet> ReplaceMusicSheetFile(int id, IFormFile file)
     {
         var sheet = _dbContext.MusicSheets
-            .Include(x => x.Files)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
-
-        if (files == null || files.Length == 0)
-            return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
 
         string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
@@ -189,55 +176,25 @@ public class MusicSheetService
 
         Directory.CreateDirectory(scoreFolder);
 
-        foreach (var existingFile in sheet.Files.ToList())
-        {
-            if (File.Exists(existingFile.FilePath))
-                File.Delete(existingFile.FilePath);
-        }
+        var filePath = Path.Combine(scoreFolder, sheet.FileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
 
-        _dbContext.MusicSheetFiles.RemoveRange(sheet.Files);
-        sheet.Files.Clear();
 
-        var newFiles = new List<MusicSheetFile>();
-
-        for (int i = 0; i < files.Length; i++)
-        {
-            var uploadedFile = files[i];
-
-            string fileId = Guid.NewGuid().ToString("N");
-            string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
-
-            SaveSingleFileAsPdf(uploadedFile, filePath);
-
-            var fileMetadata = ReadSingleFileMetadata(filePath);
-
-            newFiles.Add(new MusicSheetFile
-            {
-                MusicSheet = sheet,
-                FilePath = filePath,
-                SortOrder = i,
-                Filesize = fileMetadata.Filesize,
-                PageCount = fileMetadata.PageCount,
-                FileHash = fileMetadata.FileHash
-            });
-        }
-
-        foreach (var file in newFiles)
-            sheet.Files.Add(file);
-
-        var aggregatedMetadata = ReadStoredFilesMetadata(sheet.Files);
-
-        sheet.FileHash = aggregatedMetadata.FileHash;
-        sheet.Filesize = aggregatedMetadata.Filesize;
-        sheet.PageCount = aggregatedMetadata.PageCount;
-        sheet.FileModifiedDate = DateTime.UtcNow;
-
+        SaveSingleFileAsPdf(file, filePath);
+        var fileMetadata = ReadSingleFileMetadata(filePath);
+        
+        sheet.FileHash = fileMetadata.FileHash;
+        sheet.Filesize = fileMetadata.Filesize;
+        sheet.PageCount = fileMetadata.PageCount;
+        
+        _dbContext.Update(sheet);
         _dbContext.SaveChanges();
 
         return sheet;
     }
 
-    public ReturnValue<MusicSheet[]> CropPdfByVoices(CropPdfByVoicesRequestDto request)
+    public ReturnValue<List<MusicSheet>> CropPdfByVoices(CropPdfByVoicesRequestDto request)
     {
         var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
         if (score == null)
@@ -271,18 +228,17 @@ public class MusicSheetService
         using (PdfLoadedDocument sourceDocument = new PdfLoadedDocument(inputStream))
         {
             int totalPages = sourceDocument.Pages.Count;
-
+            
             foreach (var range in request.Ranges)
             {
-                var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == range.VoiceId);
-                if (voice == null)
+                var voiceExists = _dbContext.Voices.Any(x => x.VoiceId == range.VoiceId);
+                if (!voiceExists)
                     return ErrorUtils.ValueNotFound(nameof(Voice), range.VoiceId.ToString());
 
                 var existingMusicSheet = _dbContext.MusicSheets
-                    .Include(x => x.Files)
-                    .FirstOrDefault(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
+                    .Any(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
 
-                if (existingMusicSheet != null)
+                if (existingMusicSheet)
                 {
                     return ErrorUtils.AlreadyExists(
                         nameof(MusicSheet),
@@ -313,98 +269,55 @@ public class MusicSheetService
                 }
 
                 var fileMetadata = ReadSingleFileMetadata(filePath);
-
-                MusicSheetFile musicSheetFile = new MusicSheetFile
-                {
-                    FilePath = filePath,
-                    SortOrder = 0,
-                    Filesize = fileMetadata.Filesize,
-                    PageCount = fileMetadata.PageCount,
-                    FileHash = fileMetadata.FileHash
-                };
-
-                MusicSheet musicSheet = new MusicSheet
+                
+                var musicSheet = new MusicSheet
                 {
                     ScoreId = request.ScoreId,
-                    Score = score,
                     VoiceId = range.VoiceId,
-                    Voice = voice,
-                    Files = new List<MusicSheetFile> { musicSheetFile },
                     FileHash = fileMetadata.FileHash,
                     Filesize = fileMetadata.Filesize,
                     PageCount = fileMetadata.PageCount,
-                    FileModifiedDate = DateTime.UtcNow,
-                    IsMarschbuch = false,
-                    Status = MusicSheetStatus.Ungeprueft
+                    Status = MusicSheetStatus.Ungeprueft,
+                    FileName = fileId + ".pdf"
                 };
 
-                _dbContext.MusicSheets.Add(musicSheet);
                 createdSheets.Add(musicSheet);
             }
-
-            _dbContext.SaveChanges();
+            
         }
 
-        var createdIds = createdSheets.Select(x => x.MusicSheetId).ToArray();
+        _dbContext.AddRange(createdSheets);
+        _dbContext.SaveChanges();
 
-        var loadedSheets = _dbContext.MusicSheets
-            .Include(x => x.Files)
-            .Where(x => createdIds.Contains(x.MusicSheetId))
-            .OrderBy(x => x.VoiceId)
-            .ToArray();
-
-        return loadedSheets;
+        return createdSheets;
     }
 
     public ReturnValue<bool> DeleteMusicSheet(int id)
     {
         var sheet = _dbContext.MusicSheets
-            .Include(x => x.Files)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
-        foreach (var file in sheet.Files)
-        {
-            if (File.Exists(file.FilePath))
-                File.Delete(file.FilePath);
-        }
+        string scoreFolder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Data",
+            "Scores",
+            sheet.ScoreId.ToString());
 
-        _dbContext.MusicSheetFiles.RemoveRange(sheet.Files);
+        Directory.CreateDirectory(scoreFolder);
+
+        var filePath = Path.Combine(scoreFolder, sheet.FileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
         _dbContext.MusicSheets.Remove(sheet);
         _dbContext.SaveChanges();
 
         return true;
     }
-
-    private static (string FileHash, int Filesize, int PageCount) ReadStoredFilesMetadata(IEnumerable<MusicSheetFile> files)
-    {
-        var orderedFiles = files
-            .OrderBy(x => x.SortOrder)
-            .ToArray();
-
-        using (SHA256 sha = SHA256.Create())
-        {
-            int totalSize = 0;
-            int totalPages = 0;
-
-            foreach (var file in orderedFiles)
-            {
-                byte[] bytes = File.ReadAllBytes(file.FilePath);
-                sha.TransformBlock(bytes, 0, bytes.Length, null, 0);
-
-                totalSize += file.Filesize;
-                totalPages += file.PageCount;
-            }
-
-            sha.TransformFinalBlock(Array.Empty<byte>(), 0, 0);
-            string hash = Convert.ToHexString(sha.Hash!);
-
-            return (hash, totalSize, totalPages);
-        }
-    }
-
+    
     private static (string FileHash, int Filesize, int PageCount) ReadSingleFileMetadata(string filePath)
     {
         using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))

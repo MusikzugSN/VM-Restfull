@@ -2,11 +2,8 @@
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
-using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services;
-using Vereinsmanager.Services.PdfManagement;
 using Vereinsmanager.Services.ScoreManagement;
-using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Autofac;
 
@@ -41,10 +38,6 @@ public class SeverModule : Module
         builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<EventsService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PrintSettingsService>().AsSelf().InstancePerLifetimeScope();
-        
-        // PDF
-        builder.RegisterType<PdfService>().AsSelf().InstancePerLifetimeScope();
-        
     }
 
     private void RegisterDbContext(ContainerBuilder builder)
