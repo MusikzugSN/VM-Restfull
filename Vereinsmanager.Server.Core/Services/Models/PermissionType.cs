@@ -102,7 +102,18 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.MyAreaNotes, PermissionCategory.Start)]
     OpenMyNotes,
     [PermissionDescription(PermissionGroup.MyAreaNotes, PermissionCategory.Create)]
-    CreateMyNotes
+    CreateMyNotes,
+
+    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Start)]
+    OpenPrintSettings,
+    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Read)]
+    ListPrintSettings,
+    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Create)]
+    CreatePrintSettings,
+    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Update)]
+    UpdatePrintSettings,
+    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Delete)]
+    DeletePrintSettings
 
     
 }
