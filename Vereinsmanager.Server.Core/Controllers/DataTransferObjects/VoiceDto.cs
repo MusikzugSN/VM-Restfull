@@ -21,6 +21,7 @@ public class VoiceDto : MetaDataDto
         InstrumentName = voice.Instrument?.Name;
         
         AlternateVoiceIds = voice.AlternateVoices?
+            .OrderBy(x => x.Priority)
             .Select(x => x.AlternativeId)
             .ToArray() ?? [];
 
