@@ -16,6 +16,28 @@ namespace Vereinsmanager.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4");
 
             migrationBuilder.CreateTable(
+                name: "Configurations",
+                columns: table => new
+                {
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Value = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UpdatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.ComputedColumn)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Configurations", x => x.Type);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
                 name: "Events",
                 columns: table => new
                 {
@@ -86,6 +108,31 @@ namespace Vereinsmanager.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Instruments", x => x.InstrumentId);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "PrintSettings",
+                columns: table => new
+                {
+                    PrintConfigId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    PageCount = table.Column<int>(type: "int", nullable: false),
+                    Mode = table.Column<int>(type: "int", nullable: false),
+                    Duplex = table.Column<int>(type: "int", nullable: false),
+                    FileFormat = table.Column<int>(type: "int", nullable: false),
+                    CreatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UpdatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.ComputedColumn)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrintSettings", x => x.PrintConfigId);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -180,7 +227,6 @@ namespace Vereinsmanager.Migrations
                     GroupId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "varchar(24)", maxLength: 24, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ShowInMe = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     ShowInMyArea = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -419,16 +465,15 @@ namespace Vereinsmanager.Migrations
                 {
                     MusicSheetId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
-                    FilePath = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                    Filesize = table.Column<int>(type: "int", nullable: false),
+                    PageCount = table.Column<int>(type: "int", nullable: false),
+                    FileName = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     FileHash = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Filesize = table.Column<int>(type: "int", nullable: false),
-                    PageCount = table.Column<int>(type: "int", nullable: false),
-                    FileModifiedDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    Status = table.Column<int>(type: "int", nullable: false),
                     ScoreId = table.Column<int>(type: "int", nullable: false),
                     VoiceId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
@@ -474,6 +519,12 @@ namespace Vereinsmanager.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Configurations_Type",
+                table: "Configurations",
+                column: "Type",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Events_Name_Date",
                 table: "Events",
                 columns: new[] { "Name", "Date" },
@@ -506,12 +557,6 @@ namespace Vereinsmanager.Migrations
                 name: "IX_MusicFolders_GroupId_Name",
                 table: "MusicFolders",
                 columns: new[] { "GroupId", "Name" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_MusicSheets_FilePath",
-                table: "MusicSheets",
-                column: "FilePath",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -595,6 +640,9 @@ namespace Vereinsmanager.Migrations
                 name: "AlternateVoices");
 
             migrationBuilder.DropTable(
+                name: "Configurations");
+
+            migrationBuilder.DropTable(
                 name: "EventScores");
 
             migrationBuilder.DropTable(
@@ -602,6 +650,9 @@ namespace Vereinsmanager.Migrations
 
             migrationBuilder.DropTable(
                 name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "PrintSettings");
 
             migrationBuilder.DropTable(
                 name: "ScoreMusicFolders");

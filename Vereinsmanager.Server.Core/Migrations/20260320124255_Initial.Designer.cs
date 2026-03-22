@@ -12,7 +12,7 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260318083743_Initial")]
+    [Migration("20260320124255_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -24,6 +24,43 @@ namespace Vereinsmanager.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
+
+            modelBuilder.Entity("Vereinsmanager.Database.Base.Configuration", b =>
+                {
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Type");
+
+                    b.HasIndex("Type")
+                        .IsUnique();
+
+                    b.ToTable("Configurations");
+                });
 
             modelBuilder.Entity("Vereinsmanager.Database.Base.Group", b =>
                 {
@@ -479,9 +516,6 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("varchar(24)");
 
-                    b.Property<bool>("ShowInMe")
-                        .HasColumnType("tinyint(1)");
-
                     b.Property<bool>("ShowInMyArea")
                         .HasColumnType("tinyint(1)");
 
@@ -526,10 +560,7 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime>("FileModifiedDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("FilePath")
+                    b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
@@ -561,15 +592,57 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("MusicSheetId");
 
-                    b.HasIndex("FilePath")
-                        .IsUnique();
-
                     b.HasIndex("VoiceId");
 
                     b.HasIndex("ScoreId", "VoiceId")
                         .IsUnique();
 
                     b.ToTable("MusicSheets");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.PrintSettings", b =>
+                {
+                    b.Property<int>("PrintConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintConfigId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Duplex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileFormat")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("PrintConfigId");
+
+                    b.ToTable("PrintSettings");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
