@@ -29,7 +29,7 @@ public class LoginConfigController : ControllerBase
             OAuthDefaultGroup = GetInt(ConfigType.OAuthDefaultGroup),
             OAuthDefaultRole = GetInt(ConfigType.OAuthDefaultRole),
             OAuthAllowPasswordLogin = GetBool(ConfigType.OAuthAllowPasswordLogin),
-            OAuthDisablePasswordLogin = GetBool(ConfigType.DisablePasswordLogin),
+            DisablePasswordLogin = GetBool(ConfigType.DisablePasswordLogin),
             NavigationBarText = GetString(ConfigType.NavigationBarText),
             UseCustomImprint = GetBool(ConfigType.UseCustomImprint),
             CustomImpressumLink = GetString(ConfigType.CustomImprintLink)
@@ -49,7 +49,7 @@ public class LoginConfigController : ControllerBase
         SetInt(ConfigType.OAuthDefaultGroup, dto.OAuthDefaultGroup);
         SetInt(ConfigType.OAuthDefaultRole, dto.OAuthDefaultRole);
         SetBool(ConfigType.OAuthAllowPasswordLogin, dto.OAuthAllowPasswordLogin);
-        SetBool(ConfigType.DisablePasswordLogin, dto.OAuthDisablePasswordLogin);
+        SetBool(ConfigType.DisablePasswordLogin, dto.DisablePasswordLogin);
         SetString(ConfigType.NavigationBarText, dto.NavigationBarText);
         SetBool(ConfigType.UseCustomImprint, dto.UseCustomImprint);
         SetString(ConfigType.CustomImprintLink, dto.CustomImpressumLink);
@@ -95,7 +95,7 @@ public class LoginConfigDto
     public int? OAuthDefaultGroup { get; set; }
     public int? OAuthDefaultRole { get; set; }
     public bool? OAuthAllowPasswordLogin { get; set; }
-    public bool? OAuthDisablePasswordLogin { get; set; }
+    public bool? DisablePasswordLogin { get; set; }
     public string? NavigationBarText { get; set; }
     public bool? UseCustomImprint { get; set; }
     public string? CustomImpressumLink { get; set; }

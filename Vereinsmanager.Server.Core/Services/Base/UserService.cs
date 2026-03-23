@@ -44,6 +44,16 @@ public class UserService
         return _installUserModel;
     }
 
+    public bool IsLocalLoginForOAuthUsersAllowed()
+    {
+        return _dbContext.Configurations.FirstOrDefault(c => c.Type == ConfigType.OAuthAllowPasswordLogin)?.Value == "True";
+    }
+
+    public bool IsPasswordLoginDisabled()
+    {
+        return _dbContext.Configurations.FirstOrDefault(c => c.Type == ConfigType.DisablePasswordLogin)?.Value == "True";
+    }
+    
     public int CountAdmins()
     {
         return _dbContext.Users.Count(x => x.IsAdmin);
