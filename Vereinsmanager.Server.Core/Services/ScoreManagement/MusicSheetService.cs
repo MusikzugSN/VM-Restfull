@@ -45,6 +45,11 @@ public class MusicSheetService
         return dbSet;
     }
 
+    public MusicSheet? LoadById(int id)
+    {
+        return BaseMusicSheetQuery().FirstOrDefault(x => x.MusicSheetId == id);
+    }
+
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
         return BaseMusicSheetQuery(
@@ -196,16 +201,17 @@ public class MusicSheetService
 
     public ReturnValue<List<MusicSheet>> CropPdfByVoices(CropPdfByVoicesRequestDto request)
     {
-        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
-        if (score == null)
-            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
+        var scoreIds = request.Ranges.Select(x => x.ScoreId).Distinct().ToArray();
+        var foundScores = _dbContext.Scores.Count(x => scoreIds.Contains(x.ScoreId));
+        if (foundScores < scoreIds.Length)
+            return ErrorUtils.ValueNotFound(nameof(Score), $"{scoreIds.Length - foundScores} ungültige ScoreIds übergeben.");
 
         if (request.File == null)
             return ErrorUtils.ValueNotFound(nameof(File), "null");
 
         var duplicateVoiceIds = request.Ranges
-            .GroupBy(x => x.VoiceId)
-            .Where(g => g.Count() > 1)
+            .GroupBy(x => x.ScoreId)
+            .Where(g => g.Select(x => x.VoiceId).Distinct().Count() < g.Count())
             .Select(g => g.Key)
             .ToArray();
 
@@ -219,9 +225,6 @@ public class MusicSheetService
         string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
         Directory.CreateDirectory(basePath);
 
-        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
-        Directory.CreateDirectory(scoreFolder);
-
         List<MusicSheet> createdSheets = new List<MusicSheet>();
 
         using (Stream inputStream = request.File.OpenReadStream())
@@ -234,15 +237,15 @@ public class MusicSheetService
                 var voiceExists = _dbContext.Voices.Any(x => x.VoiceId == range.VoiceId);
                 if (!voiceExists)
                     return ErrorUtils.ValueNotFound(nameof(Voice), range.VoiceId.ToString());
-
+                
                 var existingMusicSheet = _dbContext.MusicSheets
-                    .Any(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
+                    .Any(x => x.ScoreId == range.ScoreId && x.VoiceId == range.VoiceId);
 
                 if (existingMusicSheet)
                 {
                     return ErrorUtils.AlreadyExists(
                         nameof(MusicSheet),
-                        $"ScoreId {request.ScoreId}, VoiceId {range.VoiceId}");
+                        $"ScoreId {range.ScoreId}, VoiceId {range.VoiceId}");
                 }
 
                 if (range.FromPage > totalPages || range.ToPage > totalPages)
@@ -252,6 +255,9 @@ public class MusicSheetService
                         $"Range {range.FromPage}-{range.ToPage} liegt außerhalb der PDF mit {totalPages} Seiten.");
                 }
 
+                string scoreFolder = Path.Combine(basePath, range.ScoreId.ToString());
+                Directory.CreateDirectory(scoreFolder);
+                
                 string fileId = Guid.NewGuid().ToString("N");
                 string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
 
@@ -272,7 +278,7 @@ public class MusicSheetService
                 
                 var musicSheet = new MusicSheet
                 {
-                    ScoreId = request.ScoreId,
+                    ScoreId = range.ScoreId,
                     VoiceId = range.VoiceId,
                     FileHash = fileMetadata.FileHash,
                     Filesize = fileMetadata.Filesize,
