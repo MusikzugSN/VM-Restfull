@@ -37,10 +37,10 @@ public class MusicSheetService
         var dbSet = _dbContext.MusicSheets.AsQueryable();
         
         if (scoreIds != null)
-            dbSet.Where(x => scoreIds.Contains(x.ScoreId));
+            dbSet = dbSet.Where(x => scoreIds.Contains(x.ScoreId));
         
         if (voiceIds != null)
-            dbSet.Where(x => voiceIds.Contains(x.VoiceId));
+            dbSet = dbSet.Where(x => voiceIds.Contains(x.VoiceId));
         
         return dbSet;
     }
