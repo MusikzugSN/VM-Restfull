@@ -57,6 +57,15 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
     DeleteVoice,
     
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Read)]
+    ListTag,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Create)]
+    CreateTag,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Update)]
+    UpdateTag,
+    [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
+    DeleteTag,
+    
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
     OpenScores,
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
