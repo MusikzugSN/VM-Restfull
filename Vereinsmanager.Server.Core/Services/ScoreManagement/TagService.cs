@@ -6,8 +6,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateTag(string Name, string Type);
-public record UpdateTag(string? Name, string? Type);
+public record CreateTag(string Name, string? Type = null);
+public record UpdateTag(string? Name = null, string? Type = null);
 
 public class TagService
 {
@@ -110,17 +110,17 @@ public class TagService
             return ErrorUtils.NotPermitted(nameof(Tag), tagId.ToString());
 
         var tag = _dbContext.Tags
-            .FirstOrDefault(i => i.TagId == tagId);
-
+            .Include((t => t.Tags))
+            .FirstOrDefault(t => t.TagId == tagId);
+        
         if (tag == null)
             return ErrorUtils.ValueNotFound(nameof(Tag), tagId.ToString());
-
-        var hasTags = _dbContext.Tags.Any(v => v.TagId == tagId);
-        if (hasTags)
+        
+        if (tag.Tags != null && tag.Tags.Any())
             return ErrorUtils.NotPermitted(nameof(Tag), "delete (has Tags)");
 
         _dbContext.Tags.Remove(tag);
         _dbContext.SaveChanges();
         return true;
     }
-}
+} 
