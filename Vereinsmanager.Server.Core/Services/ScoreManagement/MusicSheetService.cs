@@ -45,6 +45,11 @@ public class MusicSheetService
         return dbSet;
     }
 
+    public MusicSheet? LoadById(int id)
+    {
+        return BaseMusicSheetQuery().FirstOrDefault(x => x.MusicSheetId == id);
+    }
+
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
         return BaseMusicSheetQuery(

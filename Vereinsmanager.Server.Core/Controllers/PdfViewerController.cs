@@ -10,6 +10,8 @@ using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Interactive;
 using Syncfusion.Pdf.Redaction;
+using Vereinsmanager.Database.ScoreManagment;
+using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Controllers;
 
@@ -36,7 +38,9 @@ public class PdfViewerController : ControllerBase
     [HttpPost("Load")]
     [Route("[controller]/Load")]
     //Post action for Loading the PDF documents
-    public IActionResult Load([FromBody] Dictionary<string, string> jsonObject)
+    public IActionResult Load(
+        [FromBody] Dictionary<string, string> jsonObject,
+        [FromServices] Lazy<MusicSheetService> musicSheetServiceLazy)
     {
         Console.WriteLine("Load called");
         //Initialize the PDF viewer object with memory cache object
@@ -55,18 +59,37 @@ public class PdfViewerController : ControllerBase
                 }
                 else
                 {
-                    string fileName = jsonObject["document"].Split(new string[] { "://" }, StringSplitOptions.None)[0];
+                    string[] split = jsonObject["document"].Split(new string[] { "://" }, StringSplitOptions.None);
+                    string type = split[0];
 
-                    if (fileName == "http" || fileName == "https")
+                    if (type == "http" || type == "https")
                     {
                         WebClient WebClient = new WebClient();
                         byte[] pdfDoc = WebClient.DownloadData(jsonObject["document"]);
                         stream = new MemoryStream(pdfDoc);
                     }
+                    else if (type == "vm-web" && split.Length > 1)
+                    {
+                        var musicSheetId = split[1];
+                        
+                        var musicSheet = musicSheetServiceLazy.Value.LoadById(int.Parse(musicSheetId));
+                        if (musicSheet == null)
+                        {
+                            return Content(jsonObject["document"] + " is not found");
+                        }
+                        
+                        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+                        string scoreFolder = Path.Combine(basePath, musicSheet.ScoreId.ToString());
+                        string filePath = Path.Combine(scoreFolder, musicSheet.FileName);
+                        
+                        byte[] bytes = System.IO.File.ReadAllBytes(filePath);
+                        stream = new MemoryStream(bytes);
+                        
+                    }
 
                     else
                     {
-                        return this.Content(jsonObject["document"] + " is not found");
+                        return Content(jsonObject["document"] + " is not found");
                     }
                 }
             }
