@@ -33,4 +33,9 @@
       </Content>
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="Controllers\DataTransferObjects\PrintJobDto.cs" />
+      <Compile Remove="Database\PrintManagement\PrintJobFile.cs" />
+    </ItemGroup>
+
 </Project>

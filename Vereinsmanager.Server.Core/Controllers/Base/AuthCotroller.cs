@@ -20,6 +20,11 @@ public class AuthCotroller : ControllerBase
         [FromServices] JwtTokenService jwtTokenService,
         [FromServices] UserService userService)
     {
+        if (userService.IsPasswordLoginDisabled())
+        {
+            return BadRequest("Password login is disabled");
+        }
+        
         var user = userService.LoadUserByUsername(loginRequest.Username);
         if (user == null)
         {
@@ -39,6 +44,11 @@ public class AuthCotroller : ControllerBase
         }
 
         if (!user.IsEnabled)
+        {
+            return StatusCode(403, AuthFailedMessage);
+        }
+        
+        if (user.OAuthSubject != null && user.Provider != null && !userService.IsLocalLoginForOAuthUsersAllowed())
         {
             return StatusCode(403, AuthFailedMessage);
         }
@@ -90,7 +100,7 @@ public class AuthCotroller : ControllerBase
     {
         var userModel = userContext.GetUserModel();
         if (userModel == null)
-            return Unauthorized();
+            return new MeDto(-2, "Unauthorized", null, null, false, []);
         
         var providers = configuration
             .GetSection("OAuthProviders")

@@ -8,12 +8,14 @@ using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.PrintManagementService;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks();
 builder.Services.AddMemoryCache();
 
@@ -22,6 +24,9 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
     // Use the default property (Pascal) casing
     options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
 });
+
+builder.Services.AddScoped<PrintService>();
+builder.Services.AddSingleton<CustomTokenService>();
 
 var licenseKey = File.ReadAllText("syncfusion-license.txt");
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
@@ -91,8 +96,8 @@ authService.AddJwtBearer(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "Vereinsmanager.Server.Core",
-        ValidAudience = builder.Configuration["Jwt:Audience"] ?? "Vereinsmanager.Server.Client",
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
         IssuerSigningKey = publicRsa
     };
 });

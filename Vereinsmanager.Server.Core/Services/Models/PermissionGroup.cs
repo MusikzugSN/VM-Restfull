@@ -27,6 +27,8 @@ public enum PermissionGroup
     ValidateNotes = 9,
     [Description("Mein Bereich - Noten")]
     MyAreaNotes = 10,
+    [Description("Druckeinstellungen")]
+    PrintSettingsManagement = 11,
     
 }
 

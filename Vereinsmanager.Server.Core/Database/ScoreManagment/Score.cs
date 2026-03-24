@@ -10,7 +10,7 @@ public class Score : MetaData
     public int ScoreId { get; set; }
 
     [Required]
-    [MaxLength(24)]
+    [MaxLength(128)]
     public required string Title { get; set; }
 
     [Required]
@@ -23,4 +23,6 @@ public class Score : MetaData
     public double? Duration { get; set; }
     
     public ICollection<MusicSheet>? MusicSheets { get; set; }
+
+    public ICollection<ScoreMusicFolder>? ScoreMusicFolders { get; set; } = new List<ScoreMusicFolder>();
 }

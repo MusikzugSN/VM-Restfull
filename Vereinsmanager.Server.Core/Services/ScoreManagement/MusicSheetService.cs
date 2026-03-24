@@ -1,14 +1,16 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
+using Syncfusion.Pdf;
+using Syncfusion.Pdf.Graphics;
+using Syncfusion.Pdf.Parsing;
 
 namespace Vereinsmanager.Services.ScoreManagement;
-
-public record CreateMusicSheet(
-    int ScoreId,
-    int VoiceId);
 
 public record UpdateMusicSheet(
     int? ScoreId,
@@ -18,163 +20,393 @@ public class MusicSheetService
 {
     private readonly ServerDatabaseContext _dbContext;
     private readonly Lazy<PermissionService> _permissionServiceLazy;
+    private readonly IWebHostEnvironment _hostingEnvironment;
 
-    public MusicSheetService(ServerDatabaseContext dbContext, Lazy<PermissionService> permissionServiceLazy)
+    public MusicSheetService(
+        ServerDatabaseContext dbContext,
+        Lazy<PermissionService> permissionServiceLazy,
+        IWebHostEnvironment hostingEnvironment)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
+        _hostingEnvironment = hostingEnvironment;
+    }
+
+    private IQueryable<MusicSheet> BaseMusicSheetQuery(int[]? scoreIds = null, int[]? voiceIds = null)
+    {
+        var dbSet = _dbContext.MusicSheets.AsQueryable();
+        
+        if (scoreIds != null)
+            dbSet.Where(x => scoreIds.Contains(x.ScoreId));
+        
+        if (voiceIds != null)
+            dbSet.Where(x => voiceIds.Contains(x.VoiceId));
+        
+        return dbSet;
     }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"scoreId={scoreId}, voiceId={voiceId}");
-
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets;
-
-        if (scoreId != null)
-            query = query.Where(sheet => sheet.ScoreId == scoreId.Value);
-
-        if (voiceId != null)
-            query = query.Where(sheet => sheet.VoiceId == voiceId.Value);
-
-        return query
-            .OrderBy(sheet => sheet.MusicSheetId)
-            .ToArray();
+        return BaseMusicSheetQuery(
+            scoreId != null ? [scoreId.Value] : null,
+            voiceId != null ? [voiceId.Value] : null
+            ).ToArray();
     }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int folderId, int[] voiceIds)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet),
-                $"folderId={folderId}, voiceIds=[{string.Join(",", voiceIds)}]");
-
-        var scoreIdsInFolder = _dbContext.ScoreMusicFolders
+        var scoreIds = _dbContext.ScoreMusicFolders
             .Where(x => x.MusicFolderId == folderId)
-            .Select(x => x.ScoreId);
-
-        IQueryable<MusicSheet> query = _dbContext.MusicSheets
-            .Where(sheet => scoreIdsInFolder.Contains(sheet.ScoreId));
-
-        if (voiceIds.Length > 0)
-            query = query.Where(sheet => voiceIds.Contains(sheet.VoiceId));
-
-        return query
-            .OrderBy(sheet => sheet.MusicSheetId)
+            .Select(x => x.ScoreId)
+            .ToArray();
+        
+        return BaseMusicSheetQuery(
+            scoreIds, 
+            voiceIds.Length > 0 ? voiceIds : null
+            ).ToArray();
+    }
+    
+    public ReturnValue<MusicSheet[]> ListMusicSheetsByStatus(int status, int[] voiceIds)
+    {
+        return BaseMusicSheetQuery(
+            null, 
+            voiceIds.Length > 0 ? voiceIds : null)
+            .Where(x => x.Status == (MusicSheetStatus)status)
             .ToArray();
     }
 
-    public ReturnValue<MusicSheet> GetMusicSheetById(int musicSheetId)
+    public ReturnValue<MusicSheet> GetMusicSheetById(int id)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
         var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+            .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         return sheet;
     }
 
-    public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheet createMusicSheet)
+    public ReturnValue<List<MusicSheet>> CreateMusicSheets(CreateMusicSheetRequestDto request)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), $"{createMusicSheet.ScoreId}/{createMusicSheet.VoiceId}");
+        var scoreCount = _dbContext.Scores.Count(x => x.ScoreId == request.ScoreId);
+        if (scoreCount != 1)
+            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
 
-        var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == createMusicSheet.ScoreId);
+        var voiceIds = request.Files.Select(x => x.VoiceId).ToList();
+        var foundVoiceIdCount = _dbContext.Voices.Count(x => voiceIds.Contains(x.VoiceId));
+        
+        if (foundVoiceIdCount < voiceIds.Count)
+            return ErrorUtils.ValueNotFound(nameof(Voice), $"Es wurden {voiceIds.Count - foundVoiceIdCount} ungültige VoiceIds übergeben.");
+        
+        if (request.Files.Length == 0)
+            return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
+
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        Directory.CreateDirectory(basePath);
+
+        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
+        Directory.CreateDirectory(scoreFolder);
+
+        var storesMusicSheets = new List<MusicSheet>();
+
+        foreach (var createMusicSheetFile in request.Files)
+        {
+            if (createMusicSheetFile.VoiceId == null)
+                return ErrorUtils.ValueNotFound("VoiceId", "Keine Dateien übergeben.");
+            
+            if (createMusicSheetFile.File == null)
+                return ErrorUtils.ValueNotFound("File", "Keine Dateien übergeben.");
+            
+            string fileId = Guid.NewGuid().ToString("N");
+            string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+            
+            SaveSingleFileAsPdf(createMusicSheetFile.File, filePath);
+            var fileMetadata = ReadSingleFileMetadata(filePath);
+            storesMusicSheets.Add(new MusicSheet
+            {
+                ScoreId = request.ScoreId,
+                VoiceId = createMusicSheetFile.VoiceId.Value,
+                
+                FileName = fileId + ".pdf",
+                FileHash = fileMetadata.FileHash,
+                Filesize = fileMetadata.Filesize,
+                PageCount = fileMetadata.PageCount,
+            });
+            
+        }
+
+        _dbContext.MusicSheets.AddRange(storesMusicSheets);
+        _dbContext.SaveChanges();
+
+        return storesMusicSheets;
+    }
+
+    public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
+    {
+        var sheet = _dbContext.MusicSheets
+            .FirstOrDefault(x => x.MusicSheetId == id);
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        if (update.ScoreId != null)
+            sheet.ScoreId = update.ScoreId.Value;
+
+        if (update.VoiceId != null)
+            sheet.VoiceId = update.VoiceId.Value;
+
+        _dbContext.SaveChanges();
+
+        return sheet;
+    }
+
+    public ReturnValue<MusicSheet> ReplaceMusicSheetFile(int id, IFormFile file)
+    {
+        var sheet = _dbContext.MusicSheets
+            .FirstOrDefault(x => x.MusicSheetId == id);
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        string scoreFolder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Data",
+            "Scores",
+            sheet.ScoreId.ToString());
+
+        Directory.CreateDirectory(scoreFolder);
+
+        var filePath = Path.Combine(scoreFolder, sheet.FileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
+
+
+        SaveSingleFileAsPdf(file, filePath);
+        var fileMetadata = ReadSingleFileMetadata(filePath);
+        
+        sheet.FileHash = fileMetadata.FileHash;
+        sheet.Filesize = fileMetadata.Filesize;
+        sheet.PageCount = fileMetadata.PageCount;
+        
+        _dbContext.Update(sheet);
+        _dbContext.SaveChanges();
+
+        return sheet;
+    }
+
+    public ReturnValue<List<MusicSheet>> CropPdfByVoices(CropPdfByVoicesRequestDto request)
+    {
+        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
         if (score == null)
-            return ErrorUtils.ValueNotFound(nameof(Score), createMusicSheet.ScoreId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
 
-        var voice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == createMusicSheet.VoiceId);
-        if (voice == null)
-            return ErrorUtils.ValueNotFound(nameof(Voice), createMusicSheet.VoiceId.ToString());
+        if (request.File == null)
+            return ErrorUtils.ValueNotFound(nameof(File), "null");
 
-        var duplicate = _dbContext.MusicSheets.Any(ms =>
-            ms.ScoreId == createMusicSheet.ScoreId &&
-            ms.VoiceId == createMusicSheet.VoiceId);
+        var duplicateVoiceIds = request.Ranges
+            .GroupBy(x => x.VoiceId)
+            .Where(g => g.Count() > 1)
+            .Select(g => g.Key)
+            .ToArray();
 
-        if (duplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={createMusicSheet.ScoreId}, VoiceId={createMusicSheet.VoiceId}");
-
-        var sheet = new MusicSheet
+        if (duplicateVoiceIds.Length > 0)
         {
-            ScoreId = createMusicSheet.ScoreId,
-            Score = score,
-            VoiceId = createMusicSheet.VoiceId,
-            Voice = voice,
-            FilePath = string.Empty,
-            FileHash = string.Empty,
-            Filesize = 0,
-            PageCount = 0,
-            FileModifiedDate = DateTime.UtcNow
-        };
-
-        _dbContext.MusicSheets.Add(sheet);
-        _dbContext.SaveChanges();
-        return sheet;
-    }
-
-    public ReturnValue<MusicSheet> UpdateMusicSheet(int musicSheetId, UpdateMusicSheet updateMusicSheet)
-    {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
-
-        if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
-
-        var newScoreId = updateMusicSheet.ScoreId ?? sheet.ScoreId;
-        var newVoiceId = updateMusicSheet.VoiceId ?? sheet.VoiceId;
-
-        var wouldDuplicate = _dbContext.MusicSheets.Any(ms =>
-            ms.MusicSheetId != musicSheetId &&
-            ms.ScoreId == newScoreId &&
-            ms.VoiceId == newVoiceId);
-
-        if (wouldDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(MusicSheet), $"ScoreId={newScoreId}, VoiceId={newVoiceId}");
-
-        if (newScoreId != sheet.ScoreId)
-        {
-            var score = _dbContext.Scores.FirstOrDefault(s => s.ScoreId == newScoreId);
-            if (score == null)
-                return ErrorUtils.ValueNotFound(nameof(Score), newScoreId.ToString());
-
-            sheet.ScoreId = newScoreId;
-            sheet.Score = score;
+            return ErrorUtils.AlreadyExists(
+                nameof(MusicSheet),
+                $"mehrfache VoiceIds in ranges: {string.Join(", ", duplicateVoiceIds)}");
         }
 
-        if (newVoiceId != sheet.VoiceId)
-        {
-            var voice = _dbContext.Voices.FirstOrDefault(v => v.VoiceId == newVoiceId);
-            if (voice == null)
-                return ErrorUtils.ValueNotFound(nameof(Voice), newVoiceId.ToString());
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        Directory.CreateDirectory(basePath);
 
-            sheet.VoiceId = newVoiceId;
-            sheet.Voice = voice;
+        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
+        Directory.CreateDirectory(scoreFolder);
+
+        List<MusicSheet> createdSheets = new List<MusicSheet>();
+
+        using (Stream inputStream = request.File.OpenReadStream())
+        using (PdfLoadedDocument sourceDocument = new PdfLoadedDocument(inputStream))
+        {
+            int totalPages = sourceDocument.Pages.Count;
+            
+            foreach (var range in request.Ranges)
+            {
+                var voiceExists = _dbContext.Voices.Any(x => x.VoiceId == range.VoiceId);
+                if (!voiceExists)
+                    return ErrorUtils.ValueNotFound(nameof(Voice), range.VoiceId.ToString());
+
+                var existingMusicSheet = _dbContext.MusicSheets
+                    .Any(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
+
+                if (existingMusicSheet)
+                {
+                    return ErrorUtils.AlreadyExists(
+                        nameof(MusicSheet),
+                        $"ScoreId {request.ScoreId}, VoiceId {range.VoiceId}");
+                }
+
+                if (range.FromPage > totalPages || range.ToPage > totalPages)
+                {
+                    return ErrorUtils.ValueOutOfRange(
+                        nameof(CropPdfByVoicesRequestDto),
+                        $"Range {range.FromPage}-{range.ToPage} liegt außerhalb der PDF mit {totalPages} Seiten.");
+                }
+
+                string fileId = Guid.NewGuid().ToString("N");
+                string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
+
+                using (PdfDocument newDocument = new PdfDocument())
+                {
+                    for (int pageNumber = range.FromPage; pageNumber <= range.ToPage; pageNumber++)
+                    {
+                        newDocument.ImportPage(sourceDocument, pageNumber - 1);
+                    }
+
+                    using (FileStream output = new FileStream(filePath, FileMode.Create))
+                    {
+                        newDocument.Save(output);
+                    }
+                }
+
+                var fileMetadata = ReadSingleFileMetadata(filePath);
+                
+                var musicSheet = new MusicSheet
+                {
+                    ScoreId = request.ScoreId,
+                    VoiceId = range.VoiceId,
+                    FileHash = fileMetadata.FileHash,
+                    Filesize = fileMetadata.Filesize,
+                    PageCount = fileMetadata.PageCount,
+                    Status = MusicSheetStatus.Ungeprueft,
+                    FileName = fileId + ".pdf"
+                };
+
+                createdSheets.Add(musicSheet);
+            }
+            
         }
 
+        _dbContext.AddRange(createdSheets);
         _dbContext.SaveChanges();
-        return sheet;
+
+        return createdSheets;
     }
 
-    public ReturnValue<bool> DeleteMusicSheet(int musicSheetId)
+    public ReturnValue<bool> DeleteMusicSheet(int id)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), musicSheetId.ToString());
-
         var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(ms => ms.MusicSheetId == musicSheetId);
+            .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
-            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        string scoreFolder = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Data",
+            "Scores",
+            sheet.ScoreId.ToString());
+
+        Directory.CreateDirectory(scoreFolder);
+
+        var filePath = Path.Combine(scoreFolder, sheet.FileName);
+        if (File.Exists(filePath))
+            File.Delete(filePath);
 
         _dbContext.MusicSheets.Remove(sheet);
         _dbContext.SaveChanges();
+
         return true;
+    }
+    
+    private static (string FileHash, int Filesize, int PageCount) ReadSingleFileMetadata(string filePath)
+    {
+        using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        {
+            using (SHA256 sha = SHA256.Create())
+            {
+                string hash = Convert.ToHexString(sha.ComputeHash(stream));
+                int fileSize = (int)stream.Length;
+
+                stream.Position = 0;
+
+                using (PdfLoadedDocument document = new PdfLoadedDocument(stream))
+                {
+                    return (hash, fileSize, document.Pages.Count);
+                }
+            }
+        }
+    }
+
+    private static bool IsPdfFile(string fileName)
+    {
+        return Path.GetExtension(fileName).ToLowerInvariant() == ".pdf";
+    }
+
+    private static bool IsSupportedImageFile(string fileName)
+    {
+        string ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+        return ext == ".jpg"
+            || ext == ".jpeg"
+            || ext == ".png"
+            || ext == ".bmp"
+            || ext == ".gif";
+    }
+
+    private static void SaveSingleFileAsPdf(IFormFile sourceFile, string targetPdfPath)
+    {
+        if (IsPdfFile(sourceFile.FileName))
+        {
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                sourceFile.CopyTo(output);
+            }
+            return;
+        }
+
+        if (!IsSupportedImageFile(sourceFile.FileName))
+            throw new InvalidOperationException("Dateityp nicht erlaubt.");
+
+        using (Stream input = sourceFile.OpenReadStream())
+        using (PdfDocument document = new PdfDocument())
+        {
+            PdfBitmap image = new PdfBitmap(input);
+
+            document.PageSettings.Size = PdfPageSize.A4;
+            document.PageSettings.Orientation =
+                image.Width > image.Height
+                    ? PdfPageOrientation.Landscape
+                    : PdfPageOrientation.Portrait;
+
+            PdfPage page = document.Pages.Add();
+
+            float pageWidth = page.GetClientSize().Width;
+            float pageHeight = page.GetClientSize().Height;
+
+            float imageWidth = image.Width;
+            float imageHeight = image.Height;
+
+            float cropLeftPercent = 0.01f;
+            float cropRightPercent = 0.01f;
+            float cropTopPercent = 0.04f;
+            float cropBottomPercent = 0.06f;
+
+            float scaleX = pageWidth / imageWidth;
+            float scaleY = pageHeight / imageHeight;
+            float scale = Math.Min(scaleX, scaleY);
+
+            float drawWidth = imageWidth * scale;
+            float drawHeight = imageHeight * scale;
+
+            float offsetX = (pageWidth - drawWidth) / 2f - (imageWidth * cropLeftPercent * scale);
+            float offsetY = (pageHeight - drawHeight) / 2f - (imageHeight * cropTopPercent * scale);
+
+            page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+            using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
+            {
+                document.Save(output);
+            }
+        }
     }
 }

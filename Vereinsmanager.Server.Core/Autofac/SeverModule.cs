@@ -2,10 +2,8 @@
 using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
-using Vereinsmanager.Database.ScoreManagment;
 using Vereinsmanager.Services;
 using Vereinsmanager.Services.ScoreManagement;
-using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Autofac;
 
@@ -30,6 +28,7 @@ public class SeverModule : Module
         builder.RegisterType<GroupService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<RoleService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PermissionService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<ConfigurationService>().AsSelf().InstancePerLifetimeScope();
         
         //ScoreManagement
         builder.RegisterType<ScoreService>().AsSelf().InstancePerLifetimeScope();
@@ -37,25 +36,26 @@ public class SeverModule : Module
         builder.RegisterType<MusicFolderService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<VoiceService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
-        builder.RegisterType<EventService>().AsSelf().InstancePerLifetimeScope();
-        
+        builder.RegisterType<EventsService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<PrintSettingsService>().AsSelf().InstancePerLifetimeScope();
     }
 
     private void RegisterDbContext(ContainerBuilder builder)
     {
-        var mysqlConnectionString = _configuration.GetConnectionString("MySqlConnection");
-        Console.WriteLine(mysqlConnectionString);
+        var connectionData = _configuration.GetSection("Database").Get<DatabaseContext>();
         builder.Register(container =>
         {
             var options = new DbContextOptionsBuilder<ServerDatabaseContext>();
-            
-            if (!string.IsNullOrEmpty(mysqlConnectionString))
+
+            var type = connectionData?.Provider ?? "MySql";
+
+            if (type == "MySql")
             {
-                options.UseMySql(mysqlConnectionString, ServerVersion.AutoDetect(mysqlConnectionString));
-            }
-            else
-            {
-                options.UseInMemoryDatabase("Vereinsmanager.Server.InMemoryDb");
+                var connectionString =
+                    $"Server={connectionData?.Server ?? "localhost"}; Port={connectionData?.Port ?? "3306"}; Database={connectionData?.Database ?? "notes"}; Uid={connectionData?.User ?? "vmanager"}; Pwd={connectionData?.Password ?? ""}";
+                
+                Console.WriteLine("Datenbankverbindung: " + connectionString);
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             }
             
             var userContext = container.Resolve<UserContext>();
@@ -63,3 +63,5 @@ public class SeverModule : Module
         }).AsSelf().InstancePerLifetimeScope();
     }
 }
+
+public record DatabaseContext(string? Provider, string? Server, string? Port, string? Database, string? User, string? Password);

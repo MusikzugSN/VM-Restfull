@@ -22,6 +22,43 @@ namespace Vereinsmanager.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("Vereinsmanager.Database.Base.Configuration", b =>
+                {
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Type");
+
+                    b.HasIndex("Type")
+                        .IsUnique();
+
+                    b.ToTable("Configurations");
+                });
+
             modelBuilder.Entity("Vereinsmanager.Database.Base.Group", b =>
                 {
                     b.Property<int>("GroupId")
@@ -520,10 +557,7 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
-                    b.Property<DateTime>("FileModifiedDate")
-                        .HasColumnType("datetime(6)");
-
-                    b.Property<string>("FilePath")
+                    b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
@@ -535,6 +569,9 @@ namespace Vereinsmanager.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("ScoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -552,15 +589,57 @@ namespace Vereinsmanager.Migrations
 
                     b.HasKey("MusicSheetId");
 
-                    b.HasIndex("FilePath")
-                        .IsUnique();
-
                     b.HasIndex("VoiceId");
 
                     b.HasIndex("ScoreId", "VoiceId")
                         .IsUnique();
 
                     b.ToTable("MusicSheets");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.PrintSettings", b =>
+                {
+                    b.Property<int>("PrintConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("PrintConfigId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<DateTime>("CreatedAt"));
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("Duplex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FileFormat")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime(6)");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlComputedColumn(b.Property<DateTime>("UpdatedAt"));
+
+                    b.Property<string>("UpdatedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.HasKey("PrintConfigId");
+
+                    b.ToTable("PrintSettings");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
@@ -595,8 +674,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasMaxLength(24)
-                        .HasColumnType("varchar(24)");
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
@@ -637,8 +716,9 @@ namespace Vereinsmanager.Migrations
                     b.Property<int>("MusicFolderId")
                         .HasColumnType("int");
 
-                    b.Property<int>("Number")
-                        .HasColumnType("int");
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
@@ -821,7 +901,7 @@ namespace Vereinsmanager.Migrations
                         .IsRequired();
 
                     b.HasOne("Vereinsmanager.Database.ScoreManagment.Score", "Score")
-                        .WithMany()
+                        .WithMany("ScoreMusicFolders")
                         .HasForeignKey("ScoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -870,6 +950,8 @@ namespace Vereinsmanager.Migrations
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
                 {
                     b.Navigation("MusicSheets");
+
+                    b.Navigation("ScoreMusicFolders");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>

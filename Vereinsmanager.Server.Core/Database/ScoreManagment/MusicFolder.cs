@@ -19,7 +19,7 @@ public class MusicFolder : MetaData
     public required string Name { get; set; }
     
     [Required]
-    public Boolean ShowInMyArea { get; set; }
+    public bool ShowInMyArea { get; set; }
     
     public ICollection<ScoreMusicFolder> ScoreMusicFolders { get; set; } = new List<ScoreMusicFolder>();
 }

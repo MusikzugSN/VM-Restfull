@@ -17,6 +17,7 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<Permission> Permissions { get; set; }
     public DbSet<UserRole> UserRoles { get; set; }
+    public DbSet<Configuration> Configurations { get; set; }
 
     // ScoreManagement
     public DbSet<AlternateVoice>  AlternateVoices { get; set; }
@@ -26,6 +27,7 @@ public class ServerDatabaseContext : DbContext
     public DbSet<Instrument>  Instruments { get; set; }
     public DbSet<MusicFolder> MusicFolders { get; set; }
     public DbSet<MusicSheet> MusicSheets { get; set; }
+    public DbSet<PrintSettings> PrintSettings { get; set; }
     public DbSet<ScoreMusicFolder> ScoreMusicFolders { get; set; }
     public DbSet<Voice> Voices { get; set; }
     public override int SaveChanges()
