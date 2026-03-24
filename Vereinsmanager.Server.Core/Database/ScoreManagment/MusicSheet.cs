@@ -38,6 +38,7 @@ public class MusicSheet : MetaData
     [Required]
     public MusicSheetStatus Status { get; set; } = MusicSheetStatus.Ungeprueft;
 
+    public ICollection<Tag>? Tags { get; set; } = new List<Tag>();  
     
     public Score? Score { get; set; }
     public Voice? Voice { get; set; }

@@ -12,9 +12,14 @@ using Syncfusion.Pdf.Parsing;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record UpdateMusicSheet(
-    int? ScoreId,
-    int? VoiceId);
+//public record UpdateMusicSheet(
+//  int? ScoreId,
+// int? VoiceId);
+
+public record MusicSheetTagChange(int TagId, bool? Deleted = null);
+
+public record UpdateMusicSheet(int? ScoreId, int? VoiceId, List<MusicSheetTagChange>? Tags = null);
+
 
 public class MusicSheetService
 {
@@ -80,16 +85,23 @@ public class MusicSheetService
             .ToArray();
     }
 
-    public ReturnValue<MusicSheet> GetMusicSheetById(int id)
+    public ReturnValue<MusicSheet> GetMusicSheetById(int id, bool includeTags = false)
     {
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(x => x.MusicSheetId == id);
+        IQueryable<MusicSheet> q = _dbContext.MusicSheets;
+
+        if (includeTags)
+        {
+            q = q.Include(s => s.Tags);
+        }
+
+        var sheet = q.FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         return sheet;
     }
+
 
     public ReturnValue<List<MusicSheet>> CreateMusicSheets(CreateMusicSheetRequestDto request)
     {
@@ -148,7 +160,11 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateValidateNotes))
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
+
         var sheet = _dbContext.MusicSheets
+            .Include(x => x.Tags)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
@@ -159,6 +175,54 @@ public class MusicSheetService
 
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
+
+        if (update.Tags is { Count: > 0 })
+        {
+            var normalized = update.Tags
+                .GroupBy(x => x.TagId)
+                .Select(g => g.Last())
+                .ToList();
+
+            var idsToDelete = normalized
+                .Where(x => x.Deleted == true)
+                .Select(x => x.TagId)
+                .ToHashSet();
+
+            var idsToAdd = normalized
+                .Where(x => x.Deleted != true)
+                .Select(x => x.TagId)
+                .ToHashSet();
+
+            if (idsToDelete.Count > 0 && sheet.Tags != null)
+            {
+                var toDelete = sheet.Tags
+                    .Where(x => idsToDelete.Contains(x.TagId))
+                    .ToList();
+
+                foreach (var tag in toDelete)
+                    sheet.Tags.Remove(tag);
+            }
+
+            if (idsToAdd.Count > 0)
+            {
+                var existingIds = sheet.Tags?.Select(x => x.TagId).ToHashSet() ?? [];
+                var tagsToAttach = _dbContext.Tags
+                    .Where(x => idsToAdd.Contains(x.TagId) && !existingIds.Contains(x.TagId))
+                    .ToList();
+
+                var foundIds = tagsToAttach.Select(x => x.TagId).ToHashSet();
+                var missingIds = idsToAdd
+                    .Where(x => !foundIds.Contains(x) && !existingIds.Contains(x))
+                    .ToArray();
+
+                if (missingIds.Length > 0)
+                    return ErrorUtils.ValueNotFound(nameof(Tag), string.Join(',', missingIds));
+
+                sheet.Tags ??= [];
+                foreach (var tag in tagsToAttach)
+                    sheet.Tags.Add(tag);
+            }
+        }
 
         _dbContext.SaveChanges();
 
@@ -416,3 +480,6 @@ public class MusicSheetService
         }
     }
 }
+
+
+

@@ -174,6 +174,7 @@ public class MusicFolderService
         _dbContext.SaveChanges();
         return true;
     }
+    
 
     public ReturnValue<ScoreMusicFolder[]> ListScoresInFolder(int musicFolderId)
     {

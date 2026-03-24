@@ -15,6 +15,7 @@ public class Tag : MetaData
     [MaxLength(24)]
     public required string Name { get; set; }
     
+    public ICollection<MusicSheet>? MusicSheets { get; set; } = new List<MusicSheet>();
    
     public List<Tag>? Tags { get; set; }
 }
