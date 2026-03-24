@@ -54,7 +54,6 @@ public class SeverModule : Module
                 var connectionString =
                     $"Server={connectionData?.Server ?? "localhost"}; Port={connectionData?.Port ?? "3306"}; Database={connectionData?.Database ?? "notes"}; Uid={connectionData?.User ?? "vmanager"}; Pwd={connectionData?.Password ?? ""}";
                 
-                Console.WriteLine("Datenbankverbindung: " + connectionString);
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
             }
             
