@@ -20,7 +20,7 @@ public class VoiceController : ControllerBase
         [FromQuery] bool includeAlternateVoices = false,
         [FromQuery] bool includeInstrumentName = false)
     {
-        var voices = _voiceService.ListVoices(includeAlternateVoices, includeInstrumentName);
+        var voices = _voiceService.ListVoices(includeAlternateVoices);
 
         if (voices.IsSuccessful())
         {

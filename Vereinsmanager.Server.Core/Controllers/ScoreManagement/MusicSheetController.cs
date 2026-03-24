@@ -83,9 +83,6 @@ public class MusicSheetController : ControllerBase
         [FromForm] CropPdfByVoicesRequestDto request,
         [FromServices] MusicSheetService musicSheetService)
     {
-        if (request.ScoreId <= 0)
-            return BadRequest("scoreId ist ungültig.");
-
         if (request.File == null || request.File.Length == 0)
             return BadRequest("Es wurde keine gültige Datei übergeben.");
 

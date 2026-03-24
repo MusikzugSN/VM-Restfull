@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Cryptography;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database;
@@ -23,15 +24,18 @@ public class MusicSheetService
     private readonly ServerDatabaseContext _dbContext;
     private readonly Lazy<PermissionService> _permissionServiceLazy;
     private readonly IWebHostEnvironment _hostingEnvironment;
+    private readonly IMemoryCache _memoryCache;
 
     public MusicSheetService(
         ServerDatabaseContext dbContext,
         Lazy<PermissionService> permissionServiceLazy,
-        IWebHostEnvironment hostingEnvironment)
+        IWebHostEnvironment hostingEnvironment,
+        IMemoryCache memoryCache)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
         _hostingEnvironment = hostingEnvironment;
+        _memoryCache = memoryCache;
     }
 
     public ReturnValue<MusicSheet[]> ListMusicSheets(int? scoreId = null, int? voiceId = null)
@@ -74,6 +78,44 @@ public class MusicSheetService
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         return sheet;
+    }
+
+    public ReturnValue<byte[]> GetViewerPdfContent(int musicSheetId, int? fromPage = null, int? toPage = null)
+    {
+        var sheet = _dbContext.MusicSheets
+            .Include(x => x.Files)
+            .FirstOrDefault(x => x.MusicSheetId == musicSheetId);
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), musicSheetId.ToString());
+
+        string[] filePaths = sheet.Files
+            .OrderBy(x => x.SortOrder)
+            .Select(x => x.FilePath)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToArray();
+
+        if (filePaths.Length == 0)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheetFile), musicSheetId.ToString());
+
+        foreach (string filePath in filePaths)
+        {
+            if (!File.Exists(filePath))
+                return ErrorUtils.ValueNotFound(nameof(MusicSheetFile), filePath);
+        }
+
+        string cacheKey =
+            $"musicsheet:viewer:{musicSheetId}:{sheet.FileHash}:{sheet.FileModifiedDate.Ticks}:{fromPage?.ToString() ?? "all"}:{toPage?.ToString() ?? "all"}";
+
+        byte[] bytes = _memoryCache.GetOrCreate(cacheKey, entry =>
+        {
+            entry.SlidingExpiration = TimeSpan.FromMinutes(10);
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+
+            return BuildViewerPdfContent(filePaths, fromPage, toPage);
+        })!;
+
+        return bytes.ToArray();
     }
 
     public ReturnValue<MusicSheet> CreateMusicSheet(CreateMusicSheetRequestDto request)
@@ -239,31 +281,24 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet[]> CropPdfByVoices(CropPdfByVoicesRequestDto request)
     {
-        var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == request.ScoreId);
-        if (score == null)
-            return ErrorUtils.ValueNotFound(nameof(Score), request.ScoreId.ToString());
-
         if (request.File == null)
             return ErrorUtils.ValueNotFound(nameof(File), "null");
 
-        var duplicateVoiceIds = request.Ranges
-            .GroupBy(x => x.VoiceId)
+        var duplicatePairs = request.Ranges
+            .GroupBy(x => new { x.ScoreId, x.VoiceId })
             .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
+            .Select(g => $"ScoreId {g.Key.ScoreId}, VoiceId {g.Key.VoiceId}")
             .ToArray();
 
-        if (duplicateVoiceIds.Length > 0)
+        if (duplicatePairs.Length > 0)
         {
             return ErrorUtils.AlreadyExists(
                 nameof(MusicSheet),
-                $"mehrfache VoiceIds in ranges: {string.Join(", ", duplicateVoiceIds)}");
+                $"mehrfache Kombinationen in ranges: {string.Join("; ", duplicatePairs)}");
         }
 
         string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
         Directory.CreateDirectory(basePath);
-
-        string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
-        Directory.CreateDirectory(scoreFolder);
 
         List<MusicSheet> createdSheets = new List<MusicSheet>();
 
@@ -274,19 +309,23 @@ public class MusicSheetService
 
             foreach (var range in request.Ranges)
             {
+                var score = _dbContext.Scores.FirstOrDefault(x => x.ScoreId == range.ScoreId);
+                if (score == null)
+                    return ErrorUtils.ValueNotFound(nameof(Score), range.ScoreId.ToString());
+
                 var voice = _dbContext.Voices.FirstOrDefault(x => x.VoiceId == range.VoiceId);
                 if (voice == null)
                     return ErrorUtils.ValueNotFound(nameof(Voice), range.VoiceId.ToString());
 
                 var existingMusicSheet = _dbContext.MusicSheets
                     .Include(x => x.Files)
-                    .FirstOrDefault(x => x.ScoreId == request.ScoreId && x.VoiceId == range.VoiceId);
+                    .FirstOrDefault(x => x.ScoreId == range.ScoreId && x.VoiceId == range.VoiceId);
 
                 if (existingMusicSheet != null)
                 {
                     return ErrorUtils.AlreadyExists(
                         nameof(MusicSheet),
-                        $"ScoreId {request.ScoreId}, VoiceId {range.VoiceId}");
+                        $"ScoreId {range.ScoreId}, VoiceId {range.VoiceId}");
                 }
 
                 if (range.FromPage > totalPages || range.ToPage > totalPages)
@@ -295,6 +334,9 @@ public class MusicSheetService
                         nameof(CropPdfByVoicesRequestDto),
                         $"Range {range.FromPage}-{range.ToPage} liegt außerhalb der PDF mit {totalPages} Seiten.");
                 }
+
+                string scoreFolder = Path.Combine(basePath, range.ScoreId.ToString());
+                Directory.CreateDirectory(scoreFolder);
 
                 string fileId = Guid.NewGuid().ToString("N");
                 string filePath = Path.Combine(scoreFolder, fileId + ".pdf");
@@ -325,7 +367,7 @@ public class MusicSheetService
 
                 MusicSheet musicSheet = new MusicSheet
                 {
-                    ScoreId = request.ScoreId,
+                    ScoreId = range.ScoreId,
                     Score = score,
                     VoiceId = range.VoiceId,
                     Voice = voice,
@@ -350,7 +392,8 @@ public class MusicSheetService
         var loadedSheets = _dbContext.MusicSheets
             .Include(x => x.Files)
             .Where(x => createdIds.Contains(x.MusicSheetId))
-            .OrderBy(x => x.VoiceId)
+            .OrderBy(x => x.ScoreId)
+            .ThenBy(x => x.VoiceId)
             .ToArray();
 
         return loadedSheets;
@@ -376,6 +419,77 @@ public class MusicSheetService
         _dbContext.SaveChanges();
 
         return true;
+    }
+
+    private static byte[] BuildViewerPdfContent(string[] filePaths, int? fromPage = null, int? toPage = null)
+    {
+        byte[] fullPdfBytes = BuildMergedPdf(filePaths);
+
+        if (fromPage == null && toPage == null)
+            return fullPdfBytes;
+
+        using MemoryStream input = new MemoryStream(fullPdfBytes);
+        using PdfLoadedDocument loadedDocument = new PdfLoadedDocument(input);
+
+        int totalPages = loadedDocument.Pages.Count;
+        int startPage = fromPage ?? 1;
+        int endPage = toPage ?? totalPages;
+
+        if (startPage < 1 || endPage < 1 || startPage > endPage || endPage > totalPages)
+            throw new ArgumentOutOfRangeException($"Ungültiger Seitenbereich {startPage}-{endPage} für PDF mit {totalPages} Seiten.");
+
+        using PdfDocument rangeDocument = new PdfDocument();
+
+        for (int pageNumber = startPage; pageNumber <= endPage; pageNumber++)
+        {
+            rangeDocument.ImportPage(loadedDocument, pageNumber - 1);
+        }
+
+        using MemoryStream output = new MemoryStream();
+        rangeDocument.Save(output);
+        return output.ToArray();
+    }
+
+    private static byte[] BuildMergedPdf(string[] filePaths)
+    {
+        if (filePaths.Length == 1)
+            return File.ReadAllBytes(filePaths[0]);
+
+        List<FileStream> streams = new List<FileStream>();
+        List<PdfLoadedDocument> loadedDocuments = new List<PdfLoadedDocument>();
+
+        try
+        {
+            PdfDocument mergedDocument = new PdfDocument();
+
+            foreach (string filePath in filePaths)
+            {
+                FileStream input = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+                streams.Add(input);
+
+                PdfLoadedDocument loadedDocument = new PdfLoadedDocument(input);
+                loadedDocuments.Add(loadedDocument);
+
+                for (int pageIndex = 0; pageIndex < loadedDocument.Pages.Count; pageIndex++)
+                {
+                    mergedDocument.ImportPage(loadedDocument, pageIndex);
+                }
+            }
+
+            using MemoryStream output = new MemoryStream();
+            mergedDocument.Save(output);
+            mergedDocument.Close(true);
+
+            return output.ToArray();
+        }
+        finally
+        {
+            foreach (PdfLoadedDocument loadedDocument in loadedDocuments)
+                loadedDocument.Close(true);
+
+            foreach (FileStream stream in streams)
+                stream.Dispose();
+        }
     }
 
     private static (string FileHash, int Filesize, int PageCount) ReadStoredFilesMetadata(IEnumerable<MusicSheetFile> files)
