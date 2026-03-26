@@ -37,6 +37,7 @@ public class SeverModule : Module
         builder.RegisterType<VoiceService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<InstrumentService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<EventsService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<TagService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PrintSettingsService>().AsSelf().InstancePerLifetimeScope();
     }
 

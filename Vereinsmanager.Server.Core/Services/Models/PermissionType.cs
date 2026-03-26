@@ -57,6 +57,15 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.VoiceManagement, PermissionCategory.Delete)]
     DeleteVoice,
     
+    [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Start)]
+    OpenTag,
+    [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Create)]
+    CreateTag,
+    [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Update)]
+    UpdateTag,
+    [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Delete)]
+    DeleteTag,
+    
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Start)]
     OpenScores,
     [PermissionDescription(PermissionGroup.ScoreManagement, PermissionCategory.Read)]
@@ -100,16 +109,16 @@ public enum PermissionType
     [PermissionDescription(PermissionGroup.MyAreaNotes, PermissionCategory.Create)]
     CreateMyNotes,
 
-    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Start)]
-    OpenPrintSettings,
-    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Read)]
-    ListPrintSettings,
-    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Create)]
-    CreatePrintSettings,
-    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Update)]
-    UpdatePrintSettings,
-    [PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Delete)]
-    DeletePrintSettings
+    //[PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Start)]
+    //OpenPrintSettings,
+    //[PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Read)]
+    //ListPrintSettings,
+    //[PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Create)]
+    //CreatePrintSettings,
+    //[PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Update)]
+    //UpdatePrintSettings,
+    //[PermissionDescription(PermissionGroup.PrintSettingsManagement, PermissionCategory.Delete)]
+    //DeletePrintSettings
 
     
 }

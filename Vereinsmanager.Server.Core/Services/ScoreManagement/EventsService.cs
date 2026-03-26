@@ -52,8 +52,10 @@ public class EventsService
 
     public ReturnValue<Event[]> ListEventsForMyAreas(bool includeScores)
     {
+        var today = DateTime.UtcNow.Date;
+        
         var events = BuildEventQuery(includeScores)
-            .Where(x => x.ShowInMyArea)
+            .Where(x => x.ShowInMyArea && x.Date >= today)
             .ToArray();
 
         var permissionFilteredEvents = events
