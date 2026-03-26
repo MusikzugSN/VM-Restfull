@@ -85,4 +85,22 @@ public class TagsController : ControllerBase
 
         return (ObjectResult)deletedResult;
     }
+    
+    [HttpGet("forMyArea")]
+      public ActionResult<TagDto[]> GetTagsForMyArea(
+        [FromQuery] bool includeTags,
+        [FromServices] TagService tagService)
+    {
+        var tagsResult = tagService.ListTags(includeTags);
+    
+        if (tagsResult.IsSuccessful())
+        {
+            return tagsResult.GetValue()!
+                .Select(tag => new TagDto(tag))
+                .ToArray();
+        }
+    
+        return (ObjectResult)tagsResult;
+    }
+    
 }
