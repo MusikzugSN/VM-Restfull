@@ -207,7 +207,19 @@ public class PrintService
                 PdfLoadedPage sourcePage = (PdfLoadedPage)loadedDocument.Pages[i];
                 PdfTemplate template = sourcePage.CreateTemplate();
 
-                PdfPage outputPage = outputDocument.Pages.Add();
+                // Daten des Original PDF möglichst genau üernehmen
+                // Orientierung
+                bool isLandscape = sourcePage.Size.Width > sourcePage.Size.Height;
+                PdfSection section = outputDocument.Sections.Add();
+                section.PageSettings.Orientation =
+                    isLandscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+
+                // Rotation
+                section.PageSettings.Rotate = sourcePage.Rotation;
+                
+                section.PageSettings.Margins.All = 0;
+
+                PdfPage outputPage = section.Pages.Add();
 
                 float pageWidth = outputPage.GetClientSize().Width;
                 float pageHeight = outputPage.GetClientSize().Height;

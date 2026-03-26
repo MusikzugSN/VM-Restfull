@@ -271,7 +271,7 @@ public class MusicSheetService
         var duplicateVoiceIds = request.Ranges
             .GroupBy(x => x.ScoreId)
             .Where(g => g.Select(x => x.VoiceId).Distinct().Count() < g.Count())
-            .Select(g => g.Key)
+            .Select(g => g.Key + '_' + string.Join(",", g.Select(x => x.VoiceId).GroupBy(x => x).Where(g2 => g2.Count() > 1).Select(g2 => g2.Key)))
             .ToArray();
 
         if (duplicateVoiceIds.Length > 0)
@@ -438,6 +438,7 @@ public class MusicSheetService
             PdfBitmap image = new PdfBitmap(input);
 
             document.PageSettings.Size = PdfPageSize.A4;
+            document.PageSettings.Margins.All = 0;
             document.PageSettings.Orientation =
                 image.Width > image.Height
                     ? PdfPageOrientation.Landscape
@@ -457,8 +458,11 @@ public class MusicSheetService
 
             float drawWidth = imageWidth * scale;
             float drawHeight = imageHeight * scale;
+            
+            float offsetX = (pageWidth - drawWidth) / 2f;
+            float offsetY = (pageHeight - drawHeight) / 2f;
 
-            page.Graphics.DrawImage(image, 0, 0, drawWidth, drawHeight);
+            page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
 
             using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
             {
