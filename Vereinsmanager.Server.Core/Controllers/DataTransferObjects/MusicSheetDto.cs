@@ -11,14 +11,13 @@ public class MusicSheetDto : MetaDataDto
 {
     public int MusicSheetId { get; init; }
     public int Filesize { get; init; }
-    
     public int PageCount { get; init; }
     public int ScoreId { get; init; }
     public int VoiceId { get; init; }
     public MusicSheetStatus Status { get; init; }
-    public MusicSheetTagDto[] Tags { get; init; } = Array.Empty<MusicSheetTagDto>();
+    public MusicSheetTagDto[] Tags { get; init; }
 
-    public MusicSheetDto(MusicSheet musicSheet)
+    public MusicSheetDto(MusicSheet musicSheet, int userId = -1)
     {
         MusicSheetId = musicSheet.MusicSheetId;
         Filesize = musicSheet.Filesize;
@@ -27,13 +26,13 @@ public class MusicSheetDto : MetaDataDto
         VoiceId = musicSheet.VoiceId;
         Status = musicSheet.Status;
 
-        Tags = musicSheet.Tags?.Select(t => new MusicSheetTagDto { TagId = t.TagId }).ToArray()
-            ?? Array.Empty<MusicSheetTagDto>();
+        Tags = musicSheet.TagUsers?.Where(x => x.UserId == userId).Select(t => new MusicSheetTagDto { TagId = t.TagId }).ToArray()
+            ?? [];
     
 
-    CreatedAt = musicSheet.CreatedAt; 
-    CreatedBy = musicSheet.CreatedBy;
-    UpdatedAt = musicSheet.UpdatedAt;
-    UpdatedBy = musicSheet.UpdatedBy;
+        CreatedAt = musicSheet.CreatedAt; 
+        CreatedBy = musicSheet.CreatedBy;
+        UpdatedAt = musicSheet.UpdatedAt;
+        UpdatedBy = musicSheet.UpdatedBy;
     }
 }
