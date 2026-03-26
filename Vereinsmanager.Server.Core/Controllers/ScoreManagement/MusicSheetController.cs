@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services;
 using Vereinsmanager.Services.ScoreManagement;
 
@@ -62,6 +63,25 @@ public class MusicSheetController : ControllerBase
 
         return (ObjectResult)sheetsResult;
     }
+    
+    [HttpGet("{musicSheetId:int}")]
+    public ActionResult<MusicSheetDto> GetMusicSheetById(
+        [FromRoute] int musicSheetId,
+        [FromQuery] bool includeTags,
+        [FromServices] MusicSheetService musicSheetService,
+        [FromServices] UserContext userContext)
+    {
+        var sheetResult = musicSheetService.GetMusicSheetById(musicSheetId, includeTags);
+
+        if (sheetResult.IsSuccessful())
+        {
+            return new MusicSheetDto(sheetResult.GetValue()!, userContext.GetUserModel()?.UserId ?? -1);
+        }
+
+        return (ObjectResult)sheetResult;
+    }
+
+    
 
     [HttpPost("upload")]
     [Consumes("multipart/form-data")]
@@ -199,4 +219,6 @@ public class MusicSheetController : ControllerBase
             || ext == ".bmp"
             || ext == ".gif";
     }
+    
+    
 }

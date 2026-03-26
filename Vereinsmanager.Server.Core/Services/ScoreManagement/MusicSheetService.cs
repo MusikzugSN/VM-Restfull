@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Vereinsmanager.Controllers.DataTransferObjects;
@@ -9,12 +8,18 @@ using Vereinsmanager.Utils;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
+using TagUser = Vereinsmanager.Database.ScoreManagment.TagUser;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record UpdateMusicSheet(
-    int? ScoreId,
-    int? VoiceId);
+//public record UpdateMusicSheet(
+//  int? ScoreId,
+// int? VoiceId);
+
+public record MusicSheetTagChange(int TagId, bool? Deleted = null);
+
+public record UpdateMusicSheet(int? ScoreId, int? VoiceId, List<MusicSheetTagChange>? Tags = null);
+
 
 public class MusicSheetService
 {
@@ -22,17 +27,20 @@ public class MusicSheetService
     private readonly Lazy<PermissionService> _permissionServiceLazy;
     private readonly IWebHostEnvironment _hostingEnvironment;
     private readonly Lazy<VoiceService> _voiceServiceLazy;
+    private readonly Lazy<UserContext> _userContextLazy;
 
     public MusicSheetService(
         ServerDatabaseContext dbContext,
         Lazy<PermissionService> permissionServiceLazy,
         IWebHostEnvironment hostingEnvironment,
-        Lazy<VoiceService> voiceServiceLazy)
+        Lazy<VoiceService> voiceServiceLazy,
+        Lazy<UserContext> userContextLazy)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
         _hostingEnvironment = hostingEnvironment;
         _voiceServiceLazy = voiceServiceLazy;
+        _userContextLazy = userContextLazy;
     }
 
     private IQueryable<MusicSheet> BaseMusicSheetQuery(int[]? scoreIds = null, int[]? voiceIds = null)
@@ -91,14 +99,14 @@ public class MusicSheetService
         var allPossibleMusicSheets = _dbContext.MusicSheets.Where(x => missingScoreIds.Contains(x.ScoreId) && alternativeVoiceIds.Contains(x.VoiceId)).ToList();
         
         if (allPossibleMusicSheets.Count == 0)
-            return musicSheets; // Keine Alternativen vorhanden, also können wir uns die Suche sparen.
+            return musicSheets; // Keine Alternativen vorhanden, keine Suche 
         
         foreach (var missingEntity in missingEntities)
         {
             var searchingVoice = voices.FirstOrDefault(x => x.VoiceId == missingEntity.MissingVoiceId);
             
             if (searchingVoice == null)
-                continue; // Sollte nicht passieren da wir die VoiceIds vorher geladen haben, aber sicher ist sicher...
+                continue; // Sollte nicht passieren da die VoiceIds vorher lud, just in case
             
             var alternativeMusicSheet = FindBestAlternative(searchingVoice, missingEntity.ScoreId, allPossibleMusicSheets);
             if (alternativeMusicSheet != null)
@@ -114,7 +122,7 @@ public class MusicSheetService
                 .Select(x => x.AlternativeId)
                 .FirstOrDefault(-1);
             
-            // Abbruch wenn keine Alternative gefunden wird weil man über die höchste Prio läuft..
+            // Abbruch wenn keine Alternative gefunden wird, weil die höchste Prio läuft
             if (altVoiceId == -1)
                 return null;
             
@@ -139,16 +147,23 @@ public class MusicSheetService
             .ToArray();
     }
 
-    public ReturnValue<MusicSheet> GetMusicSheetById(int id)
+    public ReturnValue<MusicSheet> GetMusicSheetById(int id, bool includeTags = false)
     {
-        var sheet = _dbContext.MusicSheets
-            .FirstOrDefault(x => x.MusicSheetId == id);
+        IQueryable<MusicSheet> q = _dbContext.MusicSheets;
+
+        if (includeTags)
+        {
+            q = q.Include(s => s.TagUsers);
+        }
+
+        var sheet = q.FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         return sheet;
     }
+
 
     public ReturnValue<List<MusicSheet>> CreateMusicSheets(CreateMusicSheetRequestDto request)
     {
@@ -207,7 +222,11 @@ public class MusicSheetService
 
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateValidateNotes))
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
+
         var sheet = _dbContext.MusicSheets
+            .Include(x => x.TagUsers)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
@@ -218,6 +237,67 @@ public class MusicSheetService
 
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
+
+        if (update.Tags?.Count > 0)
+        {
+            var normalized = update.Tags
+                .GroupBy(x => x.TagId)
+                .Select(g => g.Last())
+                .ToList();
+
+            var idsToDelete = normalized
+                .Where(x => x.Deleted == true)
+                .Select(x => x.TagId)
+                .ToHashSet();
+
+            var idsToAdd = normalized
+                .Where(x => x.Deleted != true)
+                .Select(x => x.TagId)
+                .ToHashSet();
+
+            var user = _userContextLazy.Value.GetUserModel();
+
+            if (user == null)
+            {
+                return ErrorUtils.NotPermitted(nameof(MusicSheet), "Require Login");
+            }
+            
+            if (idsToDelete.Count > 0)
+            {
+                var toDelete = sheet.TagUsers?
+                    .Where(x => idsToDelete.Contains(x.TagId) && user.UserId == x.UserId)
+                    .ToList() ?? [];
+
+                foreach (var tag in toDelete)
+                    sheet.TagUsers?.Remove(tag);
+            }
+
+            if (idsToAdd.Count > 0)
+            {
+                var existingIds = sheet.TagUsers?.Where(x => user.UserId == x.UserId).Select(x => x.TagId).ToHashSet() ?? [];
+                var tagsToAttach = _dbContext.Tags
+                    .Select(x => x.TagId)
+                    .Where(x => idsToAdd.Contains(x) && !existingIds.Contains(x))
+                    .ToList();
+
+                var missingIds = idsToAdd
+                    .Where(x => !tagsToAttach.Contains(x) && !existingIds.Contains(x))
+                    .ToArray();
+
+                if (missingIds.Length > 0)
+                    return ErrorUtils.ValueNotFound(nameof(Tag), string.Join(',', missingIds));
+
+                foreach (var tag in tagsToAttach)
+                {
+                    sheet.TagUsers?.Add(new TagUser
+                    {
+                        MusicSheetId = sheet.MusicSheetId,
+                        TagId = tag,
+                        UserId = user.UserId
+                    });
+                }
+            }
+        }
 
         _dbContext.SaveChanges();
 
@@ -471,3 +551,6 @@ public class MusicSheetService
         }
     }
 }
+
+
+
