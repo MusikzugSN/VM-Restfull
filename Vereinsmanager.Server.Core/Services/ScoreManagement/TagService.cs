@@ -36,17 +36,11 @@ public class TagService
 
     public ReturnValue<Tag[]> ListTags(bool includeTags)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListTag))
-            return ErrorUtils.NotPermitted(nameof(Tag), "read all");
-
         return GetTags(includeTags).ToArray();
     }
 
     public ReturnValue<Tag> GetTagById(int tagId, bool includeTags)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListTag))
-            return ErrorUtils.NotPermitted(nameof(Tag), tagId.ToString());
-
         var tag = GetTags(includeTags)
             .FirstOrDefault(i => i.TagId == tagId);
 
