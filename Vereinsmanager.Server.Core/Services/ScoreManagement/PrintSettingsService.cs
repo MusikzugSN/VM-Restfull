@@ -30,7 +30,8 @@ public class PrintSettingsService
 
     public ReturnValue<PrintSettings[]> ListPrintSettings()
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListPrintSettings))
+        throw new NotImplementedException();
+        //if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListPrintSettings))
             return ErrorUtils.NotPermitted(nameof(PrintSettings), "read all");
 
         return _dbContext.PrintSettings.ToArray();
@@ -38,7 +39,8 @@ public class PrintSettingsService
 
     public ReturnValue<PrintSettings> GetPrintSettingsById(int printConfigId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListPrintSettings))
+        throw new NotImplementedException();
+        //if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListPrintSettings))
             return ErrorUtils.NotPermitted(nameof(PrintSettings), printConfigId.ToString());
 
         var loaded = _dbContext.PrintSettings
@@ -52,7 +54,8 @@ public class PrintSettingsService
 
     public ReturnValue<PrintSettings> CreatePrintSettings(CreatePrintSettings createPrintSettings)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreatePrintSettings))
+        throw new NotImplementedException();
+        //if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreatePrintSettings))
             return ErrorUtils.NotPermitted(nameof(PrintSettings), createPrintSettings.PageCount.ToString());
 
         var duplicate = _dbContext.PrintSettings.Any(x =>
@@ -80,7 +83,8 @@ public class PrintSettingsService
 
     public ReturnValue<PrintSettings> UpdatePrintSettings(int printConfigId, UpdatePrintSettings updatePrintSettings)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdatePrintSettings))
+        throw new NotImplementedException();
+        //if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdatePrintSettings))
             return ErrorUtils.NotPermitted(nameof(PrintSettings), printConfigId.ToString());
 
         var loaded = _dbContext.PrintSettings
@@ -117,7 +121,8 @@ public class PrintSettingsService
 
     public ReturnValue<bool> DeletePrintSettings(int printConfigId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeletePrintSettings))
+        throw new NotImplementedException();
+        //if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeletePrintSettings))
             return ErrorUtils.NotPermitted(nameof(PrintSettings), printConfigId.ToString());
 
         var loaded = _dbContext.PrintSettings
