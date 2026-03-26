@@ -17,18 +17,18 @@ public enum PermissionGroup
     LoginSettings = 4,
     [Description("Stimmenverwaltung (übergreifend)")]
     VoiceManagement = 5,
+    [Description("Tagverwaltung (übergreifend)")]
+    TagManagement = 6,
     [Description("Notenverwaltung (übergreifend)")]
-    ScoreManagement = 6,
+    ScoreManagement = 7,
     [Description("Eventverwaltung")]
-    EventManagement = 7,
+    EventManagement = 8,
     [Description("Mappenverwaltung")]
-    MusicFolderManagement = 8,
+    MusicFolderManagement = 9,
     [Description("Noten prüfen")]
-    ValidateNotes = 9,
+    ValidateNotes = 10,
     [Description("Mein Bereich - Noten")]
-    MyAreaNotes = 10,
-    [Description("Druckeinstellungen")]
-    PrintSettingsManagement = 11,
+    MyAreaNotes = 11
     
 }
 
