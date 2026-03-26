@@ -96,14 +96,14 @@ public class MusicSheetService
         var allPossibleMusicSheets = _dbContext.MusicSheets.Where(x => missingScoreIds.Contains(x.ScoreId) && alternativeVoiceIds.Contains(x.VoiceId)).ToList();
         
         if (allPossibleMusicSheets.Count == 0)
-            return musicSheets; // Keine Alternativen vorhanden, also können wir uns die Suche sparen.
+            return musicSheets; // Keine Alternativen vorhanden, keine Suche 
         
         foreach (var missingEntity in missingEntities)
         {
             var searchingVoice = voices.FirstOrDefault(x => x.VoiceId == missingEntity.MissingVoiceId);
             
             if (searchingVoice == null)
-                continue; // Sollte nicht passieren da wir die VoiceIds vorher geladen haben, aber sicher ist sicher...
+                continue; // Sollte nicht passieren da die VoiceIds vorher lud, just in case
             
             var alternativeMusicSheet = FindBestAlternative(searchingVoice, missingEntity.ScoreId, allPossibleMusicSheets);
             if (alternativeMusicSheet != null)
@@ -119,7 +119,7 @@ public class MusicSheetService
                 .Select(x => x.AlternativeId)
                 .FirstOrDefault(-1);
             
-            // Abbruch wenn keine Alternative gefunden wird weil man über die höchste Prio läuft..
+            // Abbruch wenn keine Alternative gefunden wird, weil die höchste Prio läuft
             if (altVoiceId == -1)
                 return null;
             
