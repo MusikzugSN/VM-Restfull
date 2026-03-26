@@ -25,7 +25,12 @@ public class EventsService
     public List<Event> GetEventsByName(HashSet<string?> names)
     {
         names = names.Select(name => name?.Trim()).Select(name => name?.ToLower()).ToHashSet();
-        return _dbContext.Events.Where(eventItem => names.Contains(eventItem.Name.ToLower())).ToList();
+
+        return _dbContext.Events
+            .Where(eventItem => names.Contains(eventItem.Name.ToLower()))
+            .ToArray()
+            .Where(eventItem => _permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent, eventItem.GroupId))
+            .ToList();
     }
 
     public ReturnValue<Event[]> ListEvents()
@@ -35,10 +40,14 @@ public class EventsService
 
     public ReturnValue<Event[]> ListEvents(bool includeScores)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
-            return ErrorUtils.NotPermitted(nameof(Event), "read all");
+        var events = BuildEventQuery(includeScores)
+            .ToArray();
 
-        return BuildEventQuery(includeScores).ToArray();
+        var permittedEvents = events
+            .Where(eventItem => _permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent, eventItem.GroupId))
+            .ToArray();
+
+        return permittedEvents;
     }
 
     public ReturnValue<Event[]> ListEventsForMyAreas(bool includeScores)
@@ -61,21 +70,21 @@ public class EventsService
 
     public ReturnValue<Event> GetEventById(int eventId, bool includeScores)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
-            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
-
         var loadedEvent = BuildEventQuery(includeScores)
             .FirstOrDefault(eventItem => eventItem.EventId == eventId);
 
         if (loadedEvent == null)
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
 
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent, loadedEvent.GroupId))
+            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
+
         return loadedEvent;
     }
 
     public ReturnValue<Event> CreateEvent(CreateEvent createEvent)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateEvent))
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateEvent, createEvent.GroupId))
             return ErrorUtils.NotPermitted(nameof(Event), createEvent.Name);
 
         var group = _dbContext.Groups.FirstOrDefault(groupItem => groupItem.GroupId == createEvent.GroupId);
@@ -115,12 +124,12 @@ public class EventsService
 
     public ReturnValue<Event> UpdateEvent(int eventId, UpdateEvent updateEvent)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent))
-            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
-
         var loadedEvent = _dbContext.Events.FirstOrDefault(eventItem => eventItem.EventId == eventId);
         if (loadedEvent == null)
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent, loadedEvent.GroupId))
+            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
 
         var newName = updateEvent.Name ?? loadedEvent.Name;
         var newDate = updateEvent.Date ?? loadedEvent.Date;
@@ -130,6 +139,10 @@ public class EventsService
         var groupExists = _dbContext.Groups.Any(groupItem => groupItem.GroupId == newGroupId);
         if (!groupExists)
             return ErrorUtils.ValueNotFound(nameof(Group), newGroupId.ToString());
+
+        if (newGroupId != loadedEvent.GroupId &&
+            !_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent, newGroupId))
+            return ErrorUtils.NotPermitted(nameof(Event), $"{eventId} -> GroupId={newGroupId}");
 
         var duplicate = _dbContext.Events.Any(eventItem =>
             eventItem.EventId != eventId &&
@@ -158,12 +171,12 @@ public class EventsService
 
     public ReturnValue<bool> DeleteEvent(int eventId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteEvent))
-            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
-
         var loadedEvent = _dbContext.Events.FirstOrDefault(eventItem => eventItem.EventId == eventId);
         if (loadedEvent == null)
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteEvent, loadedEvent.GroupId))
+            return ErrorUtils.NotPermitted(nameof(Event), eventId.ToString());
 
         var links = _dbContext.EventScores
             .Where(link => link.EventId == eventId)
@@ -179,12 +192,12 @@ public class EventsService
 
     public ReturnValue<EventScore[]> ListScoresInEvent(int eventId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
-            return ErrorUtils.NotPermitted(nameof(EventScore), "read all for event");
-
-        var eventExists = _dbContext.Events.Any(eventItem => eventItem.EventId == eventId);
-        if (!eventExists)
+        var loadedEvent = _dbContext.Events.FirstOrDefault(eventItem => eventItem.EventId == eventId);
+        if (loadedEvent == null)
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent, loadedEvent.GroupId))
+            return ErrorUtils.NotPermitted(nameof(EventScore), "read all for event");
 
         IQueryable<EventScore> query = _dbContext.EventScores
             .Where(link => link.EventId == eventId)
@@ -195,9 +208,6 @@ public class EventsService
 
     public ReturnValue<EventScore> GetEventScoreById(int eventScoreId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
-            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
-
         var link = _dbContext.EventScores
             .Include(linkItem => linkItem.Score)
             .Include(linkItem => linkItem.Event)
@@ -206,17 +216,20 @@ public class EventsService
         if (link == null)
             return ErrorUtils.ValueNotFound(nameof(EventScore), eventScoreId.ToString());
 
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent, link.Event.GroupId))
+            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
+
         return link;
     }
 
     public ReturnValue<EventScore> AddScoreToEvent(int eventId, UpdateEventScore updateEventScore)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateEvent))
-            return ErrorUtils.NotPermitted(nameof(EventScore), eventId.ToString());
-
         var loadedEvent = _dbContext.Events.FirstOrDefault(eventItem => eventItem.EventId == eventId);
         if (loadedEvent == null)
             return ErrorUtils.ValueNotFound(nameof(Event), eventId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateEvent, loadedEvent.GroupId))
+            return ErrorUtils.NotPermitted(nameof(EventScore), eventId.ToString());
 
         var score = _dbContext.Scores.FirstOrDefault(scoreItem => scoreItem.ScoreId == updateEventScore.ScoreId);
         if (score == null)
@@ -244,12 +257,15 @@ public class EventsService
 
     public ReturnValue<EventScore> UpdateEventScore(int eventScoreId, UpdateEventScore updateEventScore)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent))
-            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
+        var link = _dbContext.EventScores
+            .Include(linkItem => linkItem.Event)
+            .FirstOrDefault(linkItem => linkItem.EventScoreId == eventScoreId);
 
-        var link = _dbContext.EventScores.FirstOrDefault(linkItem => linkItem.EventScoreId == eventScoreId);
         if (link == null)
             return ErrorUtils.ValueNotFound(nameof(EventScore), eventScoreId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateEvent, link.Event.GroupId))
+            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
 
         var score = _dbContext.Scores.FirstOrDefault(scoreItem => scoreItem.ScoreId == updateEventScore.ScoreId);
         if (score == null)
@@ -272,12 +288,15 @@ public class EventsService
 
     public ReturnValue<bool> DeleteEventScore(int eventScoreId)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteEvent))
-            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
+        var link = _dbContext.EventScores
+            .Include(linkItem => linkItem.Event)
+            .FirstOrDefault(linkItem => linkItem.EventScoreId == eventScoreId);
 
-        var link = _dbContext.EventScores.FirstOrDefault(linkItem => linkItem.EventScoreId == eventScoreId);
         if (link == null)
             return ErrorUtils.ValueNotFound(nameof(EventScore), eventScoreId.ToString());
+
+        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.DeleteEvent, link.Event.GroupId))
+            return ErrorUtils.NotPermitted(nameof(EventScore), eventScoreId.ToString());
 
         _dbContext.EventScores.Remove(link);
         _dbContext.SaveChanges();
@@ -286,9 +305,6 @@ public class EventsService
 
     private ReturnValue<Event> UpdateScoresToEvent(Event eventEntity, List<UpdateEventScore> incoming)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListEvent))
-            return ErrorUtils.NotPermitted(nameof(Event), "read all");
-
         var normalized = incoming
             .GroupBy(x => x.ScoreId)
             .Select(group => group.Last())

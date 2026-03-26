@@ -35,7 +35,7 @@ public class ScoreService
 {
     private readonly ServerDatabaseContext _dbContext;
     private readonly Lazy<PermissionService> _permissionServiceLazy;
-    
+
     private readonly Lazy<MusicFolderService> _folderServiceLazy;
     private readonly Lazy<GroupService> _groupServiceLazy;
 
@@ -47,7 +47,7 @@ public class ScoreService
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
-        
+
         _folderServiceLazy = folderServiceLazy;
         _groupServiceLazy = groupService;
     }
@@ -66,13 +66,24 @@ public class ScoreService
                string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
     }
 
+    private ReturnValue<bool> EnsureMusicFolderUpdatePermission(IEnumerable<MusicFolder> folders, string reference)
+    {
+        foreach (var folder in folders)
+        {
+            if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder, folder.GroupId))
+                return ErrorUtils.NotPermitted(nameof(MusicFolder), reference);
+        }
+
+        return true;
+    }
+
     public ReturnValue<Score[]> ListScores(bool includeMusicSheets = false, bool includeMusicFolders = false)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), "read all");
-        
+
         IQueryable<Score> scoresQuery = _dbContext.Scores;
-        
+
         if (includeMusicSheets)
             scoresQuery = scoresQuery.Include(s => s.MusicSheets);
 
@@ -86,7 +97,7 @@ public class ScoreService
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListScore))
             return ErrorUtils.NotPermitted(nameof(Score), scoreId.ToString());
-        
+
         IQueryable<Score> query = _dbContext.Scores;
 
         if (includeSheets)
@@ -139,36 +150,36 @@ public class ScoreService
 
         return newScore;
     }
-    
+
     public ReturnValue<Score[]> CreateMultipleScores(List<CreateMultipleScore> createScores)
     {
-        var folderNames = createScores.Select(c => c.FolderName)
-            .Where(fn => !string.IsNullOrWhiteSpace(fn))
-            .ToHashSet();
-
-        var folders = _folderServiceLazy.Value.GetMusicFoldersByName(folderNames);
-        
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.CreateScore))
             return ErrorUtils.NotPermitted(nameof(Score), "create multiple");
-        
-        var groupsResult = _groupServiceLazy.Value.ListGroups();
-        if (!groupsResult.IsSuccessful())
-            return ErrorUtils.ValueNotFound(nameof(Group), "no groups available");
 
-        var defaultGroup = groupsResult.GetValue()!.First();
-        
+        var normalizedFolderNames = createScores
+            .Select(c => c.FolderName?.Trim())
+            .Where(fn => !string.IsNullOrWhiteSpace(fn))
+            .Select(fn => fn!.ToLower())
+            .ToHashSet();
+
+        var existingFolders = _dbContext.MusicFolders
+            .Where(folder => normalizedFolderNames.Contains(folder.Name.ToLower()))
+            .ToList();
+
+        Group? defaultGroupForNewFolders = null;
+
         var scoresToSave = new List<Score>(createScores.Count);
         var scoreMusicFolderToSave = new List<ScoreMusicFolder>();
         var foldersToCreate = new List<MusicFolder>();
-        
+
         foreach (var item in createScores)
         {
             if (string.IsNullOrWhiteSpace(item.Title))
                 continue;
-            
+
             if (scoresToSave.Any(x => x.Title == item.Title))
                 continue;
-            
+
             var score = new Score
             {
                 Title = item.Title,
@@ -176,23 +187,41 @@ public class ScoreService
                 Link = item.Link,
                 Duration = item.Duration
             };
-            
+
             scoresToSave.Add(score);
-            
+
             if (!string.IsNullOrWhiteSpace(item.FolderName) && item.Number != null)
             {
-                var folder = folders.FirstOrDefault(f => f.Name == item.FolderName);
+                var folder = existingFolders
+                    .FirstOrDefault(f =>
+                        string.Equals(f.Name, item.FolderName, StringComparison.OrdinalIgnoreCase) &&
+                        _permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder, f.GroupId));
+
                 if (folder == null)
                 {
+                    if (defaultGroupForNewFolders == null)
+                    {
+                        var groupsResult = _groupServiceLazy.Value.ListGroups();
+                        if (!groupsResult.IsSuccessful())
+                            return ErrorUtils.ValueNotFound(nameof(Group), "no groups available");
+
+                        defaultGroupForNewFolders = groupsResult
+                            .GetValue()!
+                            .FirstOrDefault(g => _permissionServiceLazy.Value.HasPermission(PermissionType.CreateMusicFolder, g.GroupId));
+
+                        if (defaultGroupForNewFolders == null)
+                            return ErrorUtils.NotPermitted(nameof(MusicFolder), item.FolderName!);
+                    }
+
                     folder = new MusicFolder
                     {
-                        GroupId = defaultGroup.GroupId,
-                        Group = defaultGroup,
-                        Name = item.FolderName
+                        GroupId = defaultGroupForNewFolders.GroupId,
+                        Group = defaultGroupForNewFolders,
+                        Name = item.FolderName!
                     };
 
                     foldersToCreate.Add(folder);
-                    folders.Add(folder);
+                    existingFolders.Add(folder);
                 }
 
                 scoreMusicFolderToSave.Add(new ScoreMusicFolder
@@ -203,7 +232,7 @@ public class ScoreService
                 });
             }
         }
-        
+
         _dbContext.MusicFolders.AddRange(foldersToCreate);
         _dbContext.Scores.AddRange(scoresToSave);
         _dbContext.ScoreMusicFolders.AddRange(scoreMusicFolderToSave);
@@ -275,8 +304,16 @@ public class ScoreService
             return ErrorUtils.NotPermitted(nameof(Score), "delete (has MusicSheets)");
 
         var folderLinks = _dbContext.ScoreMusicFolders
+            .Include(link => link.MusicFolder)
             .Where(link => link.ScoreId == scoreId)
             .ToList();
+
+        var folderPermissionResult = EnsureMusicFolderUpdatePermission(
+            folderLinks.Select(link => link.MusicFolder!).Where(folder => folder != null),
+            scoreId.ToString());
+
+        if (!folderPermissionResult.IsSuccessful())
+            return folderPermissionResult;
 
         if (folderLinks.Count > 0)
             _dbContext.ScoreMusicFolders.RemoveRange(folderLinks);
@@ -288,30 +325,33 @@ public class ScoreService
 
     private ReturnValue<Score> UpdateMusicFoldersToScore(Score score, List<UpdateMusicFolderScore> incoming)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListMusicFolder))
-            return ErrorUtils.NotPermitted(nameof(MusicFolder), "read all");
-
         var normalized = incoming
             .GroupBy(x => x.MusicFolderId)
             .Select(g => g.Last())
             .ToList();
 
+        var allFolderIds = normalized
+            .Select(x => x.MusicFolderId)
+            .ToHashSet();
+
+        var folders = _dbContext.MusicFolders
+            .Where(x => allFolderIds.Contains(x.MusicFolderId))
+            .ToList();
+
+        if (folders.Count != allFolderIds.Count)
+        {
+            var foundIds = folders.Select(x => x.MusicFolderId).ToHashSet();
+            var missingId = allFolderIds.First(id => !foundIds.Contains(id));
+            return ErrorUtils.ValueNotFound(nameof(MusicFolder), missingId.ToString());
+        }
+
+        var folderPermissionResult = EnsureMusicFolderUpdatePermission(folders, score.ScoreId.ToString());
+        if (!folderPermissionResult.IsSuccessful())
+            return ErrorUtils.NotPermitted(nameof(MusicFolder), score.ScoreId.ToString());
+
         var active = normalized
             .Where(x => !(x.Deleted ?? false))
             .ToList();
-
-        var folderIds = active.Select(x => x.MusicFolderId).ToHashSet();
-
-        var folders = _dbContext.MusicFolders
-            .Where(x => folderIds.Contains(x.MusicFolderId))
-            .ToList();
-
-        if (folders.Count != folderIds.Count)
-        {
-            var foundIds = folders.Select(x => x.MusicFolderId).ToHashSet();
-            var missingId = folderIds.First(id => !foundIds.Contains(id));
-            return ErrorUtils.ValueNotFound(nameof(MusicFolder), missingId.ToString());
-        }
 
         var existingLinks = _dbContext.ScoreMusicFolders
             .Where(x => x.ScoreId == score.ScoreId)
@@ -337,8 +377,11 @@ public class ScoreService
                 x.Number == item.Number);
 
             if (numberAlreadyUsed)
-                return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder),
+            {
+                return ErrorUtils.AlreadyExists(
+                    nameof(ScoreMusicFolder),
                     $"MusicFolderId={item.MusicFolderId}, Number={item.Number}");
+            }
 
             var existingLink = existingLinks.FirstOrDefault(x => x.MusicFolderId == item.MusicFolderId);
 
