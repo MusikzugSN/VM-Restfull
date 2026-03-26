@@ -34,6 +34,13 @@ public class VoiceService
         return voiceQuery;
     }
 
+    public List<Voice> LoadsVoices(int[] voiceIds, bool includeAlternateVoices)
+    {
+        return BuildVoiceQuery(includeAlternateVoices)
+            .Where(voice => voiceIds.Contains(voice.VoiceId))
+            .ToList();
+    }
+    
     private ReturnValue<Voice> SynchronizeAlternateVoices(Voice voice, List<UpdateAlternateVoice> incomingAlternateVoices)
     {
         var normalized = incomingAlternateVoices
