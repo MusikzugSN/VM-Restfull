@@ -1,4 +1,3 @@
-using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using Vereinsmanager.Controllers.DataTransferObjects;
@@ -9,6 +8,7 @@ using Vereinsmanager.Utils;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
+using TagUser = Vereinsmanager.Database.ScoreManagment.TagUser;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
@@ -27,17 +27,20 @@ public class MusicSheetService
     private readonly Lazy<PermissionService> _permissionServiceLazy;
     private readonly IWebHostEnvironment _hostingEnvironment;
     private readonly Lazy<VoiceService> _voiceServiceLazy;
+    private readonly Lazy<UserContext> _userContextLazy;
 
     public MusicSheetService(
         ServerDatabaseContext dbContext,
         Lazy<PermissionService> permissionServiceLazy,
         IWebHostEnvironment hostingEnvironment,
-        Lazy<VoiceService> voiceServiceLazy)
+        Lazy<VoiceService> voiceServiceLazy,
+        Lazy<UserContext> userContextLazy)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
         _hostingEnvironment = hostingEnvironment;
         _voiceServiceLazy = voiceServiceLazy;
+        _userContextLazy = userContextLazy;
     }
 
     private IQueryable<MusicSheet> BaseMusicSheetQuery(int[]? scoreIds = null, int[]? voiceIds = null)
@@ -150,7 +153,7 @@ public class MusicSheetService
 
         if (includeTags)
         {
-            q = q.Include(s => s.Tags);
+            q = q.Include(s => s.TagUsers);
         }
 
         var sheet = q.FirstOrDefault(x => x.MusicSheetId == id);
@@ -223,7 +226,7 @@ public class MusicSheetService
             return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
 
         var sheet = _dbContext.MusicSheets
-            .Include(x => x.Tags)
+            .Include(x => x.TagUsers)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
         if (sheet == null)
@@ -235,7 +238,7 @@ public class MusicSheetService
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
 
-        if (update.Tags is { Count: > 0 })
+        if (update.Tags?.Count > 0)
         {
             var normalized = update.Tags
                 .GroupBy(x => x.TagId)
@@ -252,34 +255,47 @@ public class MusicSheetService
                 .Select(x => x.TagId)
                 .ToHashSet();
 
-            if (idsToDelete.Count > 0 && sheet.Tags != null)
+            var user = _userContextLazy.Value.GetUserModel();
+
+            if (user == null)
             {
-                var toDelete = sheet.Tags
-                    .Where(x => idsToDelete.Contains(x.TagId))
-                    .ToList();
+                return ErrorUtils.NotPermitted(nameof(MusicSheet), "Require Login");
+            }
+            
+            if (idsToDelete.Count > 0)
+            {
+                var toDelete = sheet.TagUsers?
+                    .Where(x => idsToDelete.Contains(x.TagId) && user.UserId == x.UserId)
+                    .ToList() ?? [];
 
                 foreach (var tag in toDelete)
-                    sheet.Tags.Remove(tag);
+                    sheet.TagUsers?.Remove(tag);
             }
 
             if (idsToAdd.Count > 0)
             {
-                var existingIds = sheet.Tags?.Select(x => x.TagId).ToHashSet() ?? [];
+                var existingIds = sheet.TagUsers?.Where(x => user.UserId == x.UserId).Select(x => x.TagId).ToHashSet() ?? [];
                 var tagsToAttach = _dbContext.Tags
-                    .Where(x => idsToAdd.Contains(x.TagId) && !existingIds.Contains(x.TagId))
+                    .Select(x => x.TagId)
+                    .Where(x => idsToAdd.Contains(x) && !existingIds.Contains(x))
                     .ToList();
 
-                var foundIds = tagsToAttach.Select(x => x.TagId).ToHashSet();
                 var missingIds = idsToAdd
-                    .Where(x => !foundIds.Contains(x) && !existingIds.Contains(x))
+                    .Where(x => !tagsToAttach.Contains(x) && !existingIds.Contains(x))
                     .ToArray();
 
                 if (missingIds.Length > 0)
                     return ErrorUtils.ValueNotFound(nameof(Tag), string.Join(',', missingIds));
 
-                sheet.Tags ??= [];
                 foreach (var tag in tagsToAttach)
-                    sheet.Tags.Add(tag);
+                {
+                    sheet.TagUsers?.Add(new TagUser
+                    {
+                        MusicSheetId = sheet.MusicSheetId,
+                        TagId = tag,
+                        UserId = user.UserId
+                    });
+                }
             }
         }
 

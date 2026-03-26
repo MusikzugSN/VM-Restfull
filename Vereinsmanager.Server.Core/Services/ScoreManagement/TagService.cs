@@ -6,8 +6,8 @@ using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.ScoreManagement;
 
-public record CreateTag(string Name, string? Type = null);
-public record UpdateTag(string? Name = null, string? Type = null);
+public record CreateTag(string Name);
+public record UpdateTag(string? Name = null);
 
 public class TagService
 {
@@ -20,21 +20,21 @@ public class TagService
         _permissionServiceLazy = permissionServiceLazy;
     }
 
-    private IQueryable<Tag> GetTags(bool includeTags)
+    private IQueryable<Tag> GetTags(bool includeTagUsers)
     {
         IQueryable<Tag> q = _dbContext.Tags;
-        if (includeTags)
-            q = q.Include(i => i.Tags);
+        if (includeTagUsers)
+            q = q.Include(i => i.TagUsers);
         return q;
     }
 
-    public Tag? LoadTagById(int tagId, bool includeTags = false)
+    public Tag? LoadTagById(int tagId, bool includeTags)
     {
         return GetTags(includeTags)
             .FirstOrDefault(i => i.TagId == tagId);
     }
 
-    public ReturnValue<Tag[]> ListTags(bool includeTags = false)
+    public ReturnValue<Tag[]> ListTags(bool includeTags)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListTag))
             return ErrorUtils.NotPermitted(nameof(Tag), "read all");
@@ -42,7 +42,7 @@ public class TagService
         return GetTags(includeTags).ToArray();
     }
 
-    public ReturnValue<Tag> GetTagById(int tagId, bool includeTags = true)
+    public ReturnValue<Tag> GetTagById(int tagId, bool includeTags)
     {
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.ListTag))
             return ErrorUtils.NotPermitted(nameof(Tag), tagId.ToString());
@@ -110,14 +110,14 @@ public class TagService
             return ErrorUtils.NotPermitted(nameof(Tag), tagId.ToString());
 
         var tag = _dbContext.Tags
-            .Include((t => t.Tags))
+            .Include((t => t.TagUsers))
             .FirstOrDefault(t => t.TagId == tagId);
         
         if (tag == null)
             return ErrorUtils.ValueNotFound(nameof(Tag), tagId.ToString());
         
-        if (tag.Tags != null && tag.Tags.Any())
-            return ErrorUtils.NotPermitted(nameof(Tag), "delete (has Tags)");
+        if (tag.TagUsers != null && tag.TagUsers.Any())
+            return ErrorUtils.NotPermitted(nameof(Tag), "delete (is in use)");
 
         _dbContext.Tags.Remove(tag);
         _dbContext.SaveChanges();

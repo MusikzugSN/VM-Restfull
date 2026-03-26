@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
+using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services.ScoreManagement;
 
 
@@ -9,10 +10,11 @@ public class TagsController : ControllerBase
 {
     [HttpGet]
     public ActionResult<TagDto[]> GetTags(
-        [FromQuery] bool includeTags,
-        [FromServices] TagService tagService)
+        [FromQuery] bool includeTagUsers,
+        [FromServices] TagService tagService,
+        [FromServices] UserContext userContext)
     {
-        var tagsResult = tagService.ListTags(includeTags);
+        var tagsResult = tagService.ListTags(includeTagUsers);
 
         if (tagsResult.IsSuccessful())
         {
@@ -27,10 +29,10 @@ public class TagsController : ControllerBase
     [HttpGet("{tagId:int}")]
     public ActionResult<TagDto> GetTagById(
         [FromRoute] int tagId,
-        [FromQuery] bool includeTags,
+        [FromQuery] bool includeTagUsers,
         [FromServices] TagService tagService)
     {
-        var tagResult = tagService.GetTagById(tagId, includeTags);
+        var tagResult = tagService.GetTagById(tagId, includeTagUsers);
 
         if (tagResult.IsSuccessful())
         {
