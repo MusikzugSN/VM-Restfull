@@ -21,15 +21,18 @@ public class MusicSheetService
     private readonly ServerDatabaseContext _dbContext;
     private readonly Lazy<PermissionService> _permissionServiceLazy;
     private readonly IWebHostEnvironment _hostingEnvironment;
+    private readonly Lazy<VoiceService> _voiceServiceLazy;
 
     public MusicSheetService(
         ServerDatabaseContext dbContext,
         Lazy<PermissionService> permissionServiceLazy,
-        IWebHostEnvironment hostingEnvironment)
+        IWebHostEnvironment hostingEnvironment,
+        Lazy<VoiceService> voiceServiceLazy)
     {
         _dbContext = dbContext;
         _permissionServiceLazy = permissionServiceLazy;
         _hostingEnvironment = hostingEnvironment;
+        _voiceServiceLazy = voiceServiceLazy;
     }
 
     private IQueryable<MusicSheet> BaseMusicSheetQuery(int[]? scoreIds = null, int[]? voiceIds = null)
@@ -64,11 +67,67 @@ public class MusicSheetService
             .Where(x => x.MusicFolderId == folderId)
             .Select(x => x.ScoreId)
             .ToArray();
+
+        var searchVoiceIds = voiceIds.Length > 0 ? voiceIds : null;
         
-        return BaseMusicSheetQuery(
-            scoreIds, 
-            voiceIds.Length > 0 ? voiceIds : null
-            ).ToArray();
+        var musicSheets = BaseMusicSheetQuery(
+            scoreIds,
+            searchVoiceIds
+        ).ToArray();
+
+        if (searchVoiceIds == null)
+            return musicSheets;
+
+        var missingEntities = scoreIds
+            .SelectMany(scoreId => voiceIds.Select(voiceId => new { ScoreId = scoreId, MissingVoiceId = voiceId }))
+            .Where(x => musicSheets.All(sheet => sheet.ScoreId != x.ScoreId && sheet.VoiceId != x.MissingVoiceId))
+            .ToArray();
+        
+        var missingVoiceIds = missingEntities.Select(x => x.MissingVoiceId).Distinct().ToArray();
+        var missingScoreIds = missingEntities.Select(x => x.ScoreId).Distinct().ToArray();
+        var voices = _voiceServiceLazy.Value.LoadsVoices(missingVoiceIds, true);
+        var alternativeVoiceIds = voices.SelectMany(x => x.AlternateVoices?.Select(y => y.AlternativeId) ?? []).Distinct().ToArray();
+        
+        var allPossibleMusicSheets = _dbContext.MusicSheets.Where(x => missingScoreIds.Contains(x.ScoreId) && alternativeVoiceIds.Contains(x.VoiceId)).ToList();
+        
+        if (allPossibleMusicSheets.Count == 0)
+            return musicSheets; // Keine Alternativen vorhanden, also können wir uns die Suche sparen.
+        
+        foreach (var missingEntity in missingEntities)
+        {
+            var searchingVoice = voices.FirstOrDefault(x => x.VoiceId == missingEntity.MissingVoiceId);
+            
+            if (searchingVoice == null)
+                continue; // Sollte nicht passieren da wir die VoiceIds vorher geladen haben, aber sicher ist sicher...
+            
+            var alternativeMusicSheet = FindBestAlternative(searchingVoice, missingEntity.ScoreId, allPossibleMusicSheets);
+            if (alternativeMusicSheet != null)
+                musicSheets = musicSheets.Append(alternativeMusicSheet).ToArray();
+        }
+        
+        return musicSheets;
+
+        MusicSheet? FindBestAlternative(Voice voice, int scoreId, List<MusicSheet> allMusicSheets, int priority = 1)
+        {
+            var altVoiceId = voice.AlternateVoices?
+                .Where(x => x.Priority == priority)
+                .Select(x => x.AlternativeId)
+                .FirstOrDefault(-1);
+            
+            // Abbruch wenn keine Alternative gefunden wird weil man über die höchste Prio läuft..
+            if (altVoiceId == -1)
+                return null;
+            
+            var musicSheet = allMusicSheets.FirstOrDefault(x => x.ScoreId == scoreId && x.VoiceId == altVoiceId);
+            if (musicSheet != null)
+                return musicSheet;
+            
+            return FindBestAlternative(
+                voice, 
+                scoreId, 
+                allMusicSheets, 
+                priority + 1);
+        }
     }
     
     public ReturnValue<MusicSheet[]> ListMusicSheetsByStatus(int status, int[] voiceIds)
@@ -384,18 +443,13 @@ public class MusicSheetService
                     ? PdfPageOrientation.Landscape
                     : PdfPageOrientation.Portrait;
 
-            PdfPage page = document.Pages.Add();
-
-            float pageWidth = page.GetClientSize().Width;
-            float pageHeight = page.GetClientSize().Height;
+            PdfPage page = document.Pages.Add(); 
+            
+            float pageWidth = page.Size.Width;
+            float pageHeight = page.Size.Height;
 
             float imageWidth = image.Width;
             float imageHeight = image.Height;
-
-            float cropLeftPercent = 0.01f;
-            float cropRightPercent = 0.01f;
-            float cropTopPercent = 0.04f;
-            float cropBottomPercent = 0.06f;
 
             float scaleX = pageWidth / imageWidth;
             float scaleY = pageHeight / imageHeight;
@@ -404,10 +458,7 @@ public class MusicSheetService
             float drawWidth = imageWidth * scale;
             float drawHeight = imageHeight * scale;
 
-            float offsetX = (pageWidth - drawWidth) / 2f - (imageWidth * cropLeftPercent * scale);
-            float offsetY = (pageHeight - drawHeight) / 2f - (imageHeight * cropTopPercent * scale);
-
-            page.Graphics.DrawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+            page.Graphics.DrawImage(image, 0, 0, drawWidth, drawHeight);
 
             using (FileStream output = new FileStream(targetPdfPath, FileMode.Create))
             {
