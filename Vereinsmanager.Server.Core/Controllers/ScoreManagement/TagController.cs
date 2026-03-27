@@ -3,6 +3,7 @@ using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services.ScoreManagement;
 
+namespace Vereinsmanager.Controllers.ScoreManagement;
 
 [ApiController]
 [Route("api/v1/tag")]
@@ -18,7 +19,7 @@ public class TagsController : ControllerBase
 
         if (tagsResult.IsSuccessful())
         {
-            return tagsResult.GetValue()
+            return tagsResult.GetValue()!
                 .Select(tag => new TagDto(tag))
                 .ToArray();
         }

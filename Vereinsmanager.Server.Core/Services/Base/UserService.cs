@@ -5,6 +5,7 @@ using DevOne.Security.Cryptography.BCrypt;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 

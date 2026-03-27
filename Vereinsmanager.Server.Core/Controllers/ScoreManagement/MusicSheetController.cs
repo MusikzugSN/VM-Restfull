@@ -234,6 +234,4 @@ public class MusicSheetController : ControllerBase
             || ext == ".bmp"
             || ext == ".gif";
     }
-    
-    
 }

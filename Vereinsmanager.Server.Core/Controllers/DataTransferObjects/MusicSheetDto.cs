@@ -11,7 +11,6 @@ public class MusicSheetDto : MetaDataDto
 {
     public int MusicSheetId { get; init; }
     public int Filesize { get; init; }
-    
     public int PageCount { get; init; }
     public int ScoreId { get; init; }
     public int VoiceId { get; init; }

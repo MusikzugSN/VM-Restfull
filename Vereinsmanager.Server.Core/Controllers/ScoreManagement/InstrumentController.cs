@@ -17,7 +17,7 @@ public class InstrumentController : ControllerBase
 
         if (instrumentsResult.IsSuccessful())
         {
-            return instrumentsResult.GetValue()
+            return instrumentsResult.GetValue()!
                 .Select(instrument => new InstrumentDto(instrument))
                 .ToArray();
         }
