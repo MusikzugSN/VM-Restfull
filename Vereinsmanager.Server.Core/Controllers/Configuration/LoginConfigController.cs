@@ -1,8 +1,8 @@
-#nullable enable
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 
 namespace Vereinsmanager.Controllers.Configuration;
@@ -79,13 +79,13 @@ public class LoginConfigController : ControllerBase
     private void SetBool(ConfigType type, bool? value)
     {
         if (value != null)
-            _configService.CreateOrUpdateConfiguration(new CreateConfiguration(type, value.ToString()));
+            _configService.CreateOrUpdateConfiguration(new CreateConfiguration(type, value.Value.ToString()));
     }
 
     private void SetInt(ConfigType type, int? value)
     {
         if (value != null)
-            _configService.CreateOrUpdateConfiguration(new CreateConfiguration(type, value.ToString()));
+            _configService.CreateOrUpdateConfiguration(new CreateConfiguration(type, value.Value.ToString()));
     }
 }
 

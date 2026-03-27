@@ -1,10 +1,11 @@
 #nullable enable
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
-namespace Vereinsmanager.Services;
+namespace Vereinsmanager.Services.Base;
 
 public record CreateConfiguration(ConfigType Type, string Value);
 public record UpdateConfiguration(string? Value);

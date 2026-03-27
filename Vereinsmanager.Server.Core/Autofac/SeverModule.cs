@@ -3,6 +3,7 @@ using Autofac;
 using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Autofac;

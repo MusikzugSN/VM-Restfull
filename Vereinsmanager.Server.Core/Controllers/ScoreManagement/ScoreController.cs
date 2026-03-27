@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Services.ScoreManagement;
 
+
 namespace Vereinsmanager.Controllers.ScoreManagement;
 
 [ApiController]
