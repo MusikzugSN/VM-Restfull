@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using Vereinsmanager.Database.Base;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Vereinsmanager.Database.ScoreManagment;
 
+[Table("TagUser")]
 public class TagUser
 {
     [Key]
