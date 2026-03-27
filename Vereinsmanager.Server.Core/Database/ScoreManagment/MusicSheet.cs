@@ -6,7 +6,8 @@ namespace Vereinsmanager.Database.ScoreManagment;
 public enum MusicSheetStatus
 {
     Ungeprueft = 0,
-    Geprueft = 1
+    Accepted = 1,
+    Rejected = 2
 }
 
 [Index(nameof(ScoreId), nameof(VoiceId), IsUnique = true)]
@@ -20,10 +21,9 @@ public class MusicSheet : MetaData
 
     [Required]
     public int PageCount { get; set; }
-
-    [Required]
+    
     [MaxLength(255)]
-    public required string FileName { get; set; }
+    public string? FileName { get; set; }
     
     [Required]
     [MaxLength(255)]
