@@ -245,7 +245,7 @@ public class MusicSheetService
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         if (update.ScoreId != null)
-            sheet.ScoreId = update.ScoreId.Value;
+            UpdateSheetsScore(sheet, update.ScoreId.Value);
 
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
@@ -264,8 +264,7 @@ public class MusicSheetService
         {
             return ErrorUtils.ValueOutOfRange(nameof(UpdateMusicSheetStatus), "Ungültiger Statuswert.");
         }
-
-
+        
         _dbContext.SaveChanges();
         return sheet;
     }
@@ -291,7 +290,7 @@ public class MusicSheetService
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
         if (update.ScoreId != null)
-            sheet.ScoreId = update.ScoreId.Value;
+            UpdateSheetsScore(sheet, update.ScoreId.Value);
 
         if (update.VoiceId != null)
             sheet.VoiceId = update.VoiceId.Value;
@@ -511,6 +510,23 @@ public class MusicSheetService
         return true;
     }
 
+    private void UpdateSheetsScore(MusicSheet sheet, int scoreId)
+    {
+        string basePath = Path.Combine(
+            _hostingEnvironment.ContentRootPath,
+            "Data",
+            "Scores");
+
+        var oldFilePath = Path.Combine(basePath, sheet.ScoreId.ToString(), sheet.FileName);
+        var newScorePath = Path.Combine(basePath, scoreId.ToString());
+        
+        Directory.CreateDirectory(newScorePath);
+        
+        var newFilePath = Path.Combine(newScorePath, sheet.FileName);
+        File.Move(oldFilePath, newFilePath);
+        sheet.ScoreId = scoreId;
+    }
+    
     private void DeleteFile(MusicSheet sheet)
     {
         if (sheet.FileName == null)
@@ -521,8 +537,6 @@ public class MusicSheetService
             "Data",
             "Scores",
             sheet.ScoreId.ToString());
-
-        Directory.CreateDirectory(scoreFolder);
 
         var filePath = Path.Combine(scoreFolder, sheet.FileName);
         if (File.Exists(filePath))
