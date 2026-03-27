@@ -19,6 +19,7 @@ namespace Vereinsmanager.Services.ScoreManagement;
 public record MusicSheetTagChange(int TagId, bool? Deleted = null);
 
 public record UpdateMusicSheet(int? ScoreId, int? VoiceId, List<MusicSheetTagChange>? Tags = null);
+public record UpdateMusicSheetStatus(MusicSheetStatus Status, int? ScoreId, int? VoiceId);
 
 
 public class MusicSheetService
@@ -81,7 +82,9 @@ public class MusicSheetService
         var musicSheets = BaseMusicSheetQuery(
             scoreIds,
             searchVoiceIds
-        ).ToArray();
+        )
+        .Where(x => x.Status == MusicSheetStatus.Accepted)
+        .ToArray();
 
         if (searchVoiceIds == null)
             return musicSheets;
@@ -220,15 +223,70 @@ public class MusicSheetService
         return storesMusicSheets;
     }
 
+    public ReturnValue<MusicSheet> UpdateMusicSheetStatus(int id, UpdateMusicSheetStatus update)
+    {
+        var sheet = _dbContext.MusicSheets
+            .Where(x => x.Status == MusicSheetStatus.Ungeprueft)
+            .Include(x => x.TagUsers)
+            .FirstOrDefault(x => x.MusicSheetId == id);
+
+        var groupsToSheet = _dbContext.ScoreMusicFolders
+            .Where(x => x.ScoreId == sheet!.ScoreId)
+            .Include(x => x.MusicFolder)
+            .Select(x => x.MusicFolder.GroupId)
+            .ToArray();
+      
+        if (!groupsToSheet.Any(x => _permissionServiceLazy.Value.HasPermission(PermissionType.UpdateValidateNotes, x)))
+        {
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
+        }
+
+        if (sheet == null)
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
+
+        if (update.ScoreId != null)
+            sheet.ScoreId = update.ScoreId.Value;
+
+        if (update.VoiceId != null)
+            sheet.VoiceId = update.VoiceId.Value;
+        
+        if (update.Status == MusicSheetStatus.Accepted || update.Status == MusicSheetStatus.Rejected)
+        {
+            sheet.Status = update.Status;
+
+            if (update.Status == MusicSheetStatus.Rejected)
+            {
+                DeleteFile(sheet);
+                _dbContext.Remove(sheet);
+            }
+        }
+        else
+        {
+            return ErrorUtils.ValueOutOfRange(nameof(UpdateMusicSheetStatus), "Ungültiger Statuswert.");
+        }
+
+
+        _dbContext.SaveChanges();
+        return sheet;
+    }
+    
     public ReturnValue<MusicSheet> UpdateMusicSheet(int id, UpdateMusicSheet update)
     {
-        if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateValidateNotes))
-            return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
-
         var sheet = _dbContext.MusicSheets
             .Include(x => x.TagUsers)
             .FirstOrDefault(x => x.MusicSheetId == id);
 
+        var groupsToSheet = _dbContext.ScoreMusicFolders
+            .Where(x => x.ScoreId == sheet!.ScoreId)
+            .Include(x => x.MusicFolder)
+            .Select(x => x.MusicFolder.GroupId)
+            .ToArray();
+      
+        if (!groupsToSheet.Any(x => _permissionServiceLazy.Value.HasPermission(PermissionType.UpdateScore, x)))
+        {
+            return ErrorUtils.NotPermitted(nameof(MusicSheet), id.ToString());
+        }
+        
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
@@ -445,6 +503,19 @@ public class MusicSheetService
         if (sheet == null)
             return ErrorUtils.ValueNotFound(nameof(MusicSheet), id.ToString());
 
+        DeleteFile(sheet);
+
+        _dbContext.MusicSheets.Remove(sheet);
+        _dbContext.SaveChanges();
+
+        return true;
+    }
+
+    private void DeleteFile(MusicSheet sheet)
+    {
+        if (sheet.FileName == null)
+            return;
+        
         string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
             "Data",
@@ -456,11 +527,6 @@ public class MusicSheetService
         var filePath = Path.Combine(scoreFolder, sheet.FileName);
         if (File.Exists(filePath))
             File.Delete(filePath);
-
-        _dbContext.MusicSheets.Remove(sheet);
-        _dbContext.SaveChanges();
-
-        return true;
     }
     
     private static (string FileHash, int Filesize, int PageCount) ReadSingleFileMetadata(string filePath)
