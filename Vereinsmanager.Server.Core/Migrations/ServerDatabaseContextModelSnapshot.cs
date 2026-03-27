@@ -49,7 +49,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Value")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
 
                     b.HasKey("Type");
 
@@ -718,7 +719,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Number")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
@@ -809,7 +811,7 @@ namespace Vereinsmanager.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("TagUser");
+                    b.ToTable("TagUsers");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>

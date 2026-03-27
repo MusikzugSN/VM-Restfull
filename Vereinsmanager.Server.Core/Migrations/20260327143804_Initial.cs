@@ -20,7 +20,7 @@ namespace Vereinsmanager.Migrations
                 columns: table => new
                 {
                     Type = table.Column<int>(type: "int", nullable: false),
-                    Value = table.Column<string>(type: "longtext", nullable: false)
+                    Value = table.Column<string>(type: "varchar(64)", maxLength: 64, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -184,6 +184,29 @@ namespace Vereinsmanager.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Scores", x => x.ScoreId);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "Tags",
+                columns: table => new
+                {
+                    TagId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    Name = table.Column<string>(type: "varchar(24)", maxLength: 24, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UpdatedBy = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.ComputedColumn)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Tags", x => x.TagId);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
@@ -394,7 +417,7 @@ namespace Vereinsmanager.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     ScoreId = table.Column<int>(type: "int", nullable: false),
                     MusicFolderId = table.Column<int>(type: "int", nullable: false),
-                    Number = table.Column<string>(type: "longtext", nullable: false)
+                    Number = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CreatedBy = table.Column<string>(type: "longtext", nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -501,6 +524,40 @@ namespace Vereinsmanager.Migrations
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
 
+            migrationBuilder.CreateTable(
+                name: "TagUsers",
+                columns: table => new
+                {
+                    TagUserId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    TagId = table.Column<int>(type: "int", nullable: false),
+                    UserId = table.Column<int>(type: "int", nullable: false),
+                    MusicSheetId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TagUsers", x => x.TagUserId);
+                    table.ForeignKey(
+                        name: "FK_TagUsers_MusicSheets_MusicSheetId",
+                        column: x => x.MusicSheetId,
+                        principalTable: "MusicSheets",
+                        principalColumn: "MusicSheetId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TagUsers_Tags_TagId",
+                        column: x => x.TagId,
+                        principalTable: "Tags",
+                        principalColumn: "TagId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_TagUsers_Users_UserId",
+                        column: x => x.UserId,
+                        principalTable: "Users",
+                        principalColumn: "UserId",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
             migrationBuilder.CreateIndex(
                 name: "IX_AlternateVoices_AlternativeId",
                 table: "AlternateVoices",
@@ -600,6 +657,27 @@ namespace Vereinsmanager.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Tags_Name",
+                table: "Tags",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TagUsers_MusicSheetId",
+                table: "TagUsers",
+                column: "MusicSheetId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TagUsers_TagId",
+                table: "TagUsers",
+                column: "TagId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_TagUsers_UserId",
+                table: "TagUsers",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserRoles_GroupId",
                 table: "UserRoles",
                 column: "GroupId");
@@ -646,9 +724,6 @@ namespace Vereinsmanager.Migrations
                 name: "EventScores");
 
             migrationBuilder.DropTable(
-                name: "MusicSheets");
-
-            migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
@@ -658,19 +733,22 @@ namespace Vereinsmanager.Migrations
                 name: "ScoreMusicFolders");
 
             migrationBuilder.DropTable(
+                name: "TagUsers");
+
+            migrationBuilder.DropTable(
                 name: "UserRoles");
 
             migrationBuilder.DropTable(
                 name: "Events");
 
             migrationBuilder.DropTable(
-                name: "Voices");
-
-            migrationBuilder.DropTable(
                 name: "MusicFolders");
 
             migrationBuilder.DropTable(
-                name: "Scores");
+                name: "MusicSheets");
+
+            migrationBuilder.DropTable(
+                name: "Tags");
 
             migrationBuilder.DropTable(
                 name: "Roles");
@@ -679,10 +757,16 @@ namespace Vereinsmanager.Migrations
                 name: "Users");
 
             migrationBuilder.DropTable(
-                name: "Instruments");
+                name: "Groups");
 
             migrationBuilder.DropTable(
-                name: "Groups");
+                name: "Scores");
+
+            migrationBuilder.DropTable(
+                name: "Voices");
+
+            migrationBuilder.DropTable(
+                name: "Instruments");
         }
     }
 }
