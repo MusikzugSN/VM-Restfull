@@ -1,6 +1,7 @@
 #nullable enable
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 

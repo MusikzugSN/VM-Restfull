@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Database.ScoreManagment;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
@@ -363,7 +364,8 @@ public class MusicFolderService
             {
                 MusicFolder = folder,
                 Score = score,
-                Number = numberByScoreId[score.ScoreId]
+                Number = numberByScoreId[score.ScoreId],
+                MusicFolderId = folder.MusicFolderId,
             };
         }
     }

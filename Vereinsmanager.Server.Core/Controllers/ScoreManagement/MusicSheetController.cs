@@ -160,6 +160,21 @@ public class MusicSheetController : ControllerBase
 
         return (ObjectResult)result;
     }
+    
+    [HttpPatch("{musicSheetId:int}/status")]
+    public ActionResult<MusicSheetDto> UpdateMusicSheetStatus(
+        [FromRoute] int musicSheetId,
+        [FromBody] UpdateMusicSheetStatus updateStatus,
+        [FromServices] MusicSheetService musicSheetService)
+    {
+        var updatedResult = musicSheetService.UpdateMusicSheetStatus(musicSheetId, updateStatus);
+
+        if (updatedResult.IsSuccessful())
+            return new MusicSheetDto(updatedResult.GetValue()!);
+
+        return (ObjectResult)updatedResult;
+    }
+    
 
     [HttpPatch("{musicSheetId:int}")]
     public ActionResult<MusicSheetDto> UpdateMusicSheet(
@@ -219,6 +234,4 @@ public class MusicSheetController : ControllerBase
             || ext == ".bmp"
             || ext == ".gif";
     }
-    
-    
 }

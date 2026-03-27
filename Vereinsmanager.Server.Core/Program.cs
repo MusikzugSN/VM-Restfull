@@ -109,7 +109,7 @@ var providerConfigs = builder.Configuration
 foreach (var provider in providerConfigs)
 {
     //init loading keys to make them available
-    JwksLoader.LoadKeysAsync(provider.IssuerUrl);
+    await JwksLoader.LoadKeysAsync(provider.IssuerUrl);
     
     authService.AddJwtBearer(provider.ProviderKey, options =>
     {

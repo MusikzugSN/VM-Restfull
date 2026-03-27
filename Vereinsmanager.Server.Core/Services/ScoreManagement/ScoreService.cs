@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.Base;
 using Vereinsmanager.Database.ScoreManagment;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
@@ -228,7 +229,8 @@ public class ScoreService
                 {
                     Score = score,
                     MusicFolder = folder,
-                    Number = item.Number
+                    Number = item.Number,
+                    MusicFolderId = folder.MusicFolderId,
                 });
             }
         }
@@ -309,8 +311,8 @@ public class ScoreService
             .ToList();
 
         var folderPermissionResult = EnsureMusicFolderUpdatePermission(
-            folderLinks.Select(link => link.MusicFolder!).Where(folder => folder != null),
-            scoreId.ToString());
+            folders: folderLinks.Select(link => link.MusicFolder),
+            reference: scoreId.ToString());
 
         if (!folderPermissionResult.IsSuccessful())
             return folderPermissionResult;

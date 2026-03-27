@@ -16,8 +16,9 @@ public class ScoreMusicFolder : MetaData
 
     [Required]
     public required MusicFolder MusicFolder { get; set; }
-    public int MusicFolderId { get; set; }
+    public required int MusicFolderId { get; set; }
     
     [Required]
-    public string Number { get; set; }
+    [MaxLength(255)]
+    public required string Number { get; set; }
 }

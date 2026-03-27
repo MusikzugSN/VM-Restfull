@@ -1,5 +1,6 @@
 ﻿using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
+using Vereinsmanager.Services.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 

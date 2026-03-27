@@ -5,11 +5,11 @@ using Vereinsmanager.Database;
 using Vereinsmanager.Services;
 using Vereinsmanager.Utils;
 
-namespace Vereinsmanager.Controllers;
+namespace Vereinsmanager.Controllers.Base;
 
 [ApiController]
 [Route("api/v1/auth")]
-public class AuthCotroller : ControllerBase
+public class AuthController : ControllerBase
 {
     private const string AuthFailedMessage = "login_failed";
 
@@ -115,14 +115,14 @@ public class AuthCotroller : ControllerBase
         var userFromDb = dbContextLazy.Value.Users
             .Where(u => u.UserId == userModel.UserId)
             .Include(u => u.UserRoles)
-            .ThenInclude(ur => ur.Role)
+            .ThenInclude(ur => ur.Role!)
             .ThenInclude(r => r.Permissions)
             .FirstOrDefault();
             
         foreach (var userUserRole in userFromDb?.UserRoles ?? [])
         {
             var groupId = userUserRole.GroupId;
-            foreach (var rolePermission in userUserRole.Role.Permissions)
+            foreach (var rolePermission in userUserRole.Role?.Permissions ?? [])
             {
                 permissions.Add(new PermissionTeaserWithGroup(groupId, rolePermission.PermissionType, rolePermission.PermissionValue));
             }

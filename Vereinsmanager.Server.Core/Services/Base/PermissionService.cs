@@ -4,7 +4,7 @@ using Vereinsmanager.Database.Base;
 using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
-namespace Vereinsmanager.Services;
+namespace Vereinsmanager.Services.Base;
 
 public class PermissionService
 {
@@ -38,17 +38,17 @@ public class PermissionService
             return true;
 
         var roles = _dbContext.UserRoles
-            .Where(x => x.User.UserId == user.UserId)
-            .Where(x => groupId == null || groupId == x.Group.GroupId)
+            .Where(x => x.User!.UserId == user.UserId)
+            .Where(x => groupId == null || groupId == x.Group!.GroupId)
             .Select(x => x.Role)
             .ToList();
         
         foreach (var role in roles)
         {
-            if (HasRolePermission(role, PermissionType.Administrator, 1))
+            if (HasRolePermission(role!, PermissionType.Administrator, 1))
                 return true;
             
-            if (HasRolePermission(role, permissionType, permissionValue))
+            if (HasRolePermission(role!, permissionType, permissionValue))
                 return true;
         }
 
