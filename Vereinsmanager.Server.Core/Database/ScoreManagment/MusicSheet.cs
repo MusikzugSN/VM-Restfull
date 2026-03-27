@@ -22,8 +22,9 @@ public class MusicSheet : MetaData
     [Required]
     public int PageCount { get; set; }
     
+    [Required]
     [MaxLength(255)]
-    public string? FileName { get; set; }
+    public required string FileName { get; set; }
     
     [Required]
     [MaxLength(255)]
