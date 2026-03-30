@@ -12,8 +12,8 @@ using Vereinsmanager.Database;
 namespace Vereinsmanager.Migrations
 {
     [DbContext(typeof(ServerDatabaseContext))]
-    [Migration("20260324102419_addedTags")]
-    partial class addedTags
+    [Migration("20260327143804_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,7 +52,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Value")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)");
 
                     b.HasKey("Type");
 
@@ -721,7 +722,8 @@ namespace Vereinsmanager.Migrations
 
                     b.Property<string>("Number")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("ScoreId")
                         .HasColumnType("int");
@@ -750,7 +752,6 @@ namespace Vereinsmanager.Migrations
                 {
                     b.Property<int>("TagId")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(24)
                         .HasColumnType("int");
 
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TagId"));
@@ -770,9 +771,6 @@ namespace Vereinsmanager.Migrations
                         .HasMaxLength(24)
                         .HasColumnType("varchar(24)");
 
-                    b.Property<int?>("TagId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("datetime(6)");
@@ -788,9 +786,35 @@ namespace Vereinsmanager.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.HasIndex("TagId1");
-
                     b.ToTable("Tags");
+                });
+
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.TagUser", b =>
+                {
+                    b.Property<int>("TagUserId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("TagUserId"));
+
+                    b.Property<int>("MusicSheetId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TagId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TagUserId");
+
+                    b.HasIndex("MusicSheetId");
+
+                    b.HasIndex("TagId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("TagUsers");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
@@ -961,11 +985,31 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("Score");
                 });
 
-            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Tag", b =>
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.TagUser", b =>
                 {
-                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Tag", null)
-                        .WithMany("Tags")
-                        .HasForeignKey("TagId1");
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.MusicSheet", "MusicSheet")
+                        .WithMany("TagUsers")
+                        .HasForeignKey("MusicSheetId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vereinsmanager.Database.ScoreManagment.Tag", "Tag")
+                        .WithMany("TagUsers")
+                        .HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Vereinsmanager.Database.Base.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MusicSheet");
+
+                    b.Navigation("Tag");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
@@ -1004,6 +1048,11 @@ namespace Vereinsmanager.Migrations
                     b.Navigation("ScoreMusicFolders");
                 });
 
+            modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.MusicSheet", b =>
+                {
+                    b.Navigation("TagUsers");
+                });
+
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Score", b =>
                 {
                     b.Navigation("MusicSheets");
@@ -1013,7 +1062,7 @@ namespace Vereinsmanager.Migrations
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Tag", b =>
                 {
-                    b.Navigation("Tags");
+                    b.Navigation("TagUsers");
                 });
 
             modelBuilder.Entity("Vereinsmanager.Database.ScoreManagment.Voice", b =>
