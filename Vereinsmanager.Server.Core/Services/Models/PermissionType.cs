@@ -59,6 +59,8 @@ public enum PermissionType
     
     [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Start)]
     OpenTag,
+    [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Read)]
+    ListTag,
     [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Create)]
     CreateTag,
     [PermissionDescription(PermissionGroup.TagManagement, PermissionCategory.Update)]
