@@ -220,6 +220,7 @@ public class MusicFolderService
 
     public ReturnValue<ScoreMusicFolder> AddScoreToFolder(int musicFolderId, UpdateScoreMusicFolder updateScoreMusicFolder)
     {
+        var number = updateScoreMusicFolder.Number.Trim();
         var folder = _dbContext.MusicFolders.FirstOrDefault(folderItem => folderItem.MusicFolderId == musicFolderId);
         if (folder == null)
             return ErrorUtils.ValueNotFound(nameof(MusicFolder), musicFolderId.ToString());
@@ -240,10 +241,10 @@ public class MusicFolderService
 
         var numberDuplicate = _dbContext.ScoreMusicFolders.Any(link =>
             link.MusicFolderId == musicFolderId &&
-            link.Number == updateScoreMusicFolder.Number);
+            link.Number == number);
 
         if (numberDuplicate)
-            return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder), $"MusicFolderId={musicFolderId}, Number={updateScoreMusicFolder.Number}");
+            return ErrorUtils.AlreadyExists(nameof(ScoreMusicFolder), $"MusicFolderId={musicFolderId}, Number={number}");
 
         var linkToCreate = new ScoreMusicFolder
         {
@@ -251,7 +252,7 @@ public class MusicFolderService
             MusicFolder = folder,
             ScoreId = updateScoreMusicFolder.ScoreId,
             Score = score,
-            Number = updateScoreMusicFolder.Number
+            Number = number
         };
 
         _dbContext.ScoreMusicFolders.Add(linkToCreate);
@@ -271,7 +272,7 @@ public class MusicFolderService
         if (!_permissionServiceLazy.Value.HasPermission(PermissionType.UpdateMusicFolder, link.MusicFolder.GroupId))
             return ErrorUtils.NotPermitted(nameof(ScoreMusicFolder), scoreMusicFolderId.ToString());
 
-        var newNumber = updateScoreMusicFolder.Number;
+        var newNumber = updateScoreMusicFolder.Number.Trim();
 
         var numberDuplicate = _dbContext.ScoreMusicFolders.Any(linkItem =>
             linkItem.ScoreMusicFolderId != scoreMusicFolderId &&

@@ -389,7 +389,7 @@ public class ScoreService
 
             if (existingLink != null)
             {
-                existingLink.Number = item.Number;
+                existingLink.Number = item.Number.Trim();
             }
             else
             {
@@ -401,7 +401,7 @@ public class ScoreService
                     Score = score,
                     MusicFolderId = item.MusicFolderId,
                     MusicFolder = existingFolder,
-                    Number = item.Number
+                    Number = item.Number.Trim()
                 });
             }
         }
