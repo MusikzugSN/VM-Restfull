@@ -1,12 +1,10 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
+using System.IO.Compression;
 using Syncfusion.Drawing;
 using Syncfusion.Pdf;
 using Syncfusion.Pdf.Graphics;
 using Syncfusion.Pdf.Parsing;
 using Vereinsmanager.Database;
 using Vereinsmanager.Database.ScoreManagment;
-using Vereinsmanager.Services.Models;
 using Vereinsmanager.Utils;
 
 namespace Vereinsmanager.Services.PrintManagementService;
@@ -14,17 +12,17 @@ namespace Vereinsmanager.Services.PrintManagementService;
 public class PrintService
 {
     private readonly ServerDatabaseContext _dbContext;
-    private readonly IMemoryCache _memoryCache;
     private readonly IWebHostEnvironment _hostingEnvironment;
+    private readonly ILogger<PrintService> _logger;
 
-    public PrintService(ServerDatabaseContext dbContext, IMemoryCache memoryCache, IWebHostEnvironment environment)
+    public PrintService(ServerDatabaseContext dbContext, IWebHostEnvironment environment, ILogger<PrintService> logger)
     {
         _dbContext = dbContext;
-        _memoryCache = memoryCache;
         _hostingEnvironment = environment;
+        _logger = logger;
     }
 
-    public ReturnValue<string> CreatePrintUrl(int[] musicSheetIds, bool marschbuch)
+    public ReturnValue<List<string>> CreatePrintUrl(int[] musicSheetIds, bool marschbuch)
     {
         if (musicSheetIds.Length == 0)
             return ErrorUtils.ValueNotFound("MusicSheetIds", "Keine MusicSheetIds übergeben.");
@@ -42,52 +40,195 @@ public class PrintService
                 nameof(MusicSheet),
                 $"Nicht gefunden: {string.Join(", ", missingIds)}");
         }
-        
 
-        byte[] pdfBytes = BuildPrintPdf(sheets, marschbuch);
 
-        string token = Guid.NewGuid().ToString("N");
+        // Für jede MusicSheetId erzeugen wir ein eigenes Token und liefern pro Datei eine URL zurück.
+        var urls = new List<string>();
 
-        _memoryCache.Set(
-            GetCacheKey(token),
-            pdfBytes,
-            new MemoryCacheEntryOptions
+        foreach (var sheet in sheets)
+        {
+            var token = Guid.NewGuid().ToString("N");
+            var pdfPath = GetTempFilePath(token);
+
+            // Erzeuge eine PDF, die genau dieses eine MusicSheet enthält
+            var pdfBytes = BuildPrintPdf(new List<MusicSheet> { sheet }, marschbuch);
+            File.WriteAllBytes(pdfPath, pdfBytes);
+
+            urls.Add($"/api/v1/print/download?token={token}");
+        }
+
+        return urls;
+    }
+
+    public ReturnValue<byte[]> GetDownloadBytesByToken(string token, out string contentType)
+    {
+        var zipPath = GetTempZipPath(token);
+        var pdfPath = GetTempFilePath(token);
+
+        if (File.Exists(zipPath)) return TryReadAndDeleteFile(zipPath, "application/zip", token, out contentType);
+
+        if (File.Exists(pdfPath)) return TryReadAndDeleteFile(pdfPath, "application/pdf", token, out contentType);
+
+        contentType = "application/json";
+        return ErrorUtils.ValueNotFound("PrintToken", "Ungültiger oder abgelaufener Token.");
+    }
+
+    private ReturnValue<byte[]> TryReadAndDeleteFile(string path, string mimeType, string token, out string contentType)
+    {
+        contentType = mimeType;
+        try
+        {
+            var bytes = File.ReadAllBytes(path);
+
+            try
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
-            });
+                File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to delete temporary file '{FilePath}'", path);
+            }
+
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to read/delete file '{Path}' for token '{Token}'", path, token);
+            return ErrorUtils.ValueNotFound("PrintToken", $"Fehler beim Lesen der Datei {Path.GetFileName(path)}.");
+        }
+    }
+
+    // Dateien werden nun als <ContentRoot>/data/temp/{token}.pdf abgelegt.
+
+    /// <summary>
+    ///     Liefert den vollständigen Dateipfad für einen Temp-Print-Token und stellt sicher,
+    ///     dass das Temp-Verzeichnis existiert.
+    /// </summary>
+    public ReturnValue<string> CreateDownloadUrl(int[] musicSheetIds, bool asZip, bool marschbuch)
+    {
+        if (musicSheetIds.Length == 0)
+            return ErrorUtils.ValueNotFound("MusicSheetIds", "Keine MusicSheetIds übergeben.");
+
+        var sheetsResult = LoadSheets(musicSheetIds);
+        if (!sheetsResult.IsSuccessful())
+            return sheetsResult.GetProblemDetails()!;
+
+        var sheets = sheetsResult.GetValue()!;
+
+        var token = Guid.NewGuid().ToString("N");
+
+        if (!asZip)
+        {
+            var saveResult = SaveCombinedPdf(token, sheets, marschbuch);
+            if (!saveResult.IsSuccessful())
+                return saveResult.GetProblemDetails()!;
+
+            return $"/api/v1/print/download?token={token}";
+        }
+
+        var zipResult = CreateZipForSheets(token, sheets);
+        if (!zipResult.IsSuccessful())
+            return zipResult.GetProblemDetails()!;
 
         return $"/api/v1/print/download?token={token}";
     }
 
-    public ReturnValue<byte[]> GetPrintPdfByToken(string token)
+    private ReturnValue<List<MusicSheet>> LoadSheets(int[] musicSheetIds)
     {
-        if (!_memoryCache.TryGetValue(GetCacheKey(token), out byte[]? pdfBytes) || pdfBytes == null)
-            return ErrorUtils.ValueNotFound("PrintToken", "Ungültiger oder abgelaufener Token.");
+        var sheets = _dbContext.MusicSheets
+            .Where(x => musicSheetIds.Contains(x.MusicSheetId))
+            .ToList();
 
-        _memoryCache.Remove(GetCacheKey(token));
+        if (sheets.Count != musicSheetIds.Length)
+        {
+            var foundIds = sheets.Select(x => x.MusicSheetId).ToHashSet();
+            var missingIds = musicSheetIds.Where(id => !foundIds.Contains(id));
+            return ErrorUtils.ValueNotFound(nameof(MusicSheet), $"Nicht gefunden: {string.Join(", ", missingIds)}");
+        }
 
-        return pdfBytes;
+        return sheets;
     }
 
-    private static string GetCacheKey(string token)
+    private ReturnValue<string> SaveCombinedPdf(string token, List<MusicSheet> sheets, bool marschbuch)
     {
-        return $"print-pdf:{token}";
+        try
+        {
+            var pdfBytes = BuildPrintPdf(sheets, marschbuch);
+            var pdfPath = GetTempFilePath(token);
+            File.WriteAllBytes(pdfPath, pdfBytes);
+            return pdfPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create combined PDF for token '{Token}'", token);
+            return ErrorUtils.ValueNotFound("PdfCreation", "Fehler beim Erstellen der kombinierten PDF.");
+        }
+    }
+
+    private ReturnValue<string> CreateZipForSheets(string token, List<MusicSheet> sheets)
+    {
+        try
+        {
+            var zipPath = GetTempZipPath(token);
+
+            using (var zipToOpen = new FileStream(zipPath, FileMode.Create))
+            using (var archive = new ZipArchive(zipToOpen, ZipArchiveMode.Create))
+            {
+                foreach (var sheet in sheets)
+                {
+                    var scoreFolder = Path.Combine(
+                        _hostingEnvironment.ContentRootPath,
+                        "Data",
+                        "Scores",
+                        sheet.ScoreId.ToString());
+
+                    var sourcePath = Path.Combine(scoreFolder, sheet.FileName);
+                    if (!File.Exists(sourcePath))
+                        throw new InvalidOperationException($"Datei nicht gefunden: {sourcePath}");
+
+                    var entryName = $"{sheet.MusicSheetId}_{Path.GetFileName(sourcePath)}";
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
+                    using (var entryStream = entry.Open())
+                    using (var fs = new FileStream(sourcePath, FileMode.Open, FileAccess.Read))
+                    {
+                        fs.CopyTo(entryStream);
+                    }
+                }
+            }
+
+            return zipPath;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create ZIP for token '{Token}'", token);
+            return ErrorUtils.ValueNotFound("ZipCreation", "Fehler beim Erstellen der ZIP-Datei.");
+        }
+    }
+
+    private string GetTempFilePath(string token)
+    {
+        var tempDir = Path.Combine(_hostingEnvironment.ContentRootPath, "data", "temp");
+        Directory.CreateDirectory(tempDir);
+        return Path.Combine(tempDir, $"{token}.pdf");
+    }
+
+    private string GetTempZipPath(string token)
+    {
+        var tempDir = Path.Combine(_hostingEnvironment.ContentRootPath, "data", "temp");
+        Directory.CreateDirectory(tempDir);
+        return Path.Combine(tempDir, $"{token}.zip");
     }
 
     private byte[] BuildPrintPdf(List<MusicSheet> sheets, bool marschbuch)
     {
-        using (PdfDocument outputDocument = new PdfDocument())
+        using (var outputDocument = new PdfDocument())
         {
             if (!marschbuch)
-            {
                 AppendNormalSheets(outputDocument, sheets);
-            }
             else
-            {
                 AppendMarschbuchSheets(outputDocument, sheets);
-            }
 
-            using (MemoryStream output = new MemoryStream())
+            using (var output = new MemoryStream())
             {
                 outputDocument.Save(output);
                 return output.ToArray();
@@ -99,14 +240,14 @@ public class PrintService
     {
         foreach (var sheet in sheets)
         {
-            string scoreFolder = Path.Combine(
+            var scoreFolder = Path.Combine(
                 _hostingEnvironment.ContentRootPath,
                 "Data",
                 "Scores",
                 sheet.ScoreId.ToString());
-            
+
             var filePath = Path.Combine(scoreFolder, sheet.FileName);
-            
+
             if (!File.Exists(filePath))
                 throw new InvalidOperationException($"Datei nicht gefunden: {filePath}");
 
@@ -120,14 +261,14 @@ public class PrintService
 
         foreach (var sheet in sheets)
         {
-            string scoreFolder = Path.Combine(
+            var scoreFolder = Path.Combine(
                 _hostingEnvironment.ContentRootPath,
                 "Data",
                 "Scores",
                 sheet.ScoreId.ToString());
-            
+
             var filePath = Path.Combine(scoreFolder, sheet.FileName);
-            
+
             if (!File.Exists(filePath))
                 throw new InvalidOperationException($"Datei nicht gefunden: {filePath}");
 
@@ -141,13 +282,13 @@ public class PrintService
     {
         var result = new List<PdfPageSource>();
 
-        using (FileStream input = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-        using (PdfLoadedDocument loadedDocument = new PdfLoadedDocument(input))
+        using (var input = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        using (var loadedDocument = new PdfLoadedDocument(input))
         {
-            for (int i = 0; i < loadedDocument.Pages.Count; i++)
+            for (var i = 0; i < loadedDocument.Pages.Count; i++)
             {
-                PdfLoadedPage sourcePage = (PdfLoadedPage)loadedDocument.Pages[i];
-                PdfTemplate template = sourcePage.CreateTemplate();
+                var sourcePage = (PdfLoadedPage)loadedDocument.Pages[i];
+                var template = sourcePage.CreateTemplate();
 
                 result.Add(new PdfPageSource
                 {
@@ -161,29 +302,28 @@ public class PrintService
 
     private static void AppendCollectedPagesAsMarschbuch(PdfDocument outputDocument, List<PdfPageSource> pages)
     {
-        int pageIndex = 0;
+        var pageIndex = 0;
 
         while (pageIndex < pages.Count)
         {
             outputDocument.PageSettings.Size = PdfPageSize.A4;
             outputDocument.PageSettings.Orientation = PdfPageOrientation.Landscape;
 
-            PdfPage outputPage = outputDocument.Pages.Add();
+            var outputPage = outputDocument.Pages.Add();
 
-            float pageWidth = outputPage.GetClientSize().Width;
-            float pageHeight = outputPage.GetClientSize().Height;
+            var pageWidth = outputPage.GetClientSize().Width;
+            var pageHeight = outputPage.GetClientSize().Height;
 
-            float margin = 0f;
-            float gap = 5f;
+            var margin = 0f;
+            var gap = 5f;
 
-            float availableWidth = pageWidth - (2 * margin) - gap;
-            float slotWidth = availableWidth / 2f;
-            float slotHeight = pageHeight - (2 * margin);
+            var availableWidth = pageWidth - 2 * margin - gap;
+            var slotWidth = availableWidth / 2f;
+            var slotHeight = pageHeight - 2 * margin;
 
             DrawTemplateIntoSlot(outputPage, pages[pageIndex].Template, margin, margin, slotWidth, slotHeight);
 
             if (pageIndex + 1 < pages.Count)
-            {
                 DrawTemplateIntoSlot(
                     outputPage,
                     pages[pageIndex + 1].Template,
@@ -191,7 +331,6 @@ public class PrintService
                     margin,
                     slotWidth,
                     slotHeight);
-            }
 
             pageIndex += 2;
         }
@@ -199,30 +338,30 @@ public class PrintService
 
     private static void AppendAllPagesFromPdf(PdfDocument outputDocument, string filePath)
     {
-        using (FileStream input = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-        using (PdfLoadedDocument loadedDocument = new PdfLoadedDocument(input))
+        using (var input = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+        using (var loadedDocument = new PdfLoadedDocument(input))
         {
-            for (int i = 0; i < loadedDocument.Pages.Count; i++)
+            for (var i = 0; i < loadedDocument.Pages.Count; i++)
             {
-                PdfLoadedPage sourcePage = (PdfLoadedPage)loadedDocument.Pages[i];
-                PdfTemplate template = sourcePage.CreateTemplate();
+                var sourcePage = (PdfLoadedPage)loadedDocument.Pages[i];
+                var template = sourcePage.CreateTemplate();
 
                 // Daten des Original PDF möglichst genau üernehmen
                 // Orientierung
-                bool isLandscape = sourcePage.Size.Width > sourcePage.Size.Height;
-                PdfSection section = outputDocument.Sections.Add();
+                var isLandscape = sourcePage.Size.Width > sourcePage.Size.Height;
+                var section = outputDocument.Sections.Add();
                 section.PageSettings.Orientation =
                     isLandscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
 
                 // Rotation
                 section.PageSettings.Rotate = sourcePage.Rotation;
-                
+
                 section.PageSettings.Margins.All = 0;
 
-                PdfPage outputPage = section.Pages.Add();
+                var outputPage = section.Pages.Add();
 
-                float pageWidth = outputPage.GetClientSize().Width;
-                float pageHeight = outputPage.GetClientSize().Height;
+                var pageWidth = outputPage.GetClientSize().Width;
+                var pageHeight = outputPage.GetClientSize().Height;
 
                 DrawTemplateIntoSlot(outputPage, template, 0f, 0f, pageWidth, pageHeight);
             }
@@ -237,16 +376,16 @@ public class PrintService
         float maxWidth,
         float maxHeight)
     {
-        float originalWidth = template.Size.Width;
-        float originalHeight = template.Size.Height;
+        var originalWidth = template.Size.Width;
+        var originalHeight = template.Size.Height;
 
-        float scale = Math.Min(maxWidth / originalWidth, maxHeight / originalHeight);
+        var scale = Math.Min(maxWidth / originalWidth, maxHeight / originalHeight);
 
-        float drawWidth = originalWidth * scale;
-        float drawHeight = originalHeight * scale;
+        var drawWidth = originalWidth * scale;
+        var drawHeight = originalHeight * scale;
 
-        float drawX = x + (maxWidth - drawWidth) / 2f;
-        float drawY = y + (maxHeight - drawHeight) / 2f;
+        var drawX = x + (maxWidth - drawWidth) / 2f;
+        var drawY = y + (maxHeight - drawHeight) / 2f;
 
         targetPage.Graphics.DrawPdfTemplate(
             template,
