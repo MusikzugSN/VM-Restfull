@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
 using Vereinsmanager.Services.Base;
+using Vereinsmanager.Services.PrintManagementService;
 using Vereinsmanager.Services.ScoreManagement;
 
 namespace Vereinsmanager.Autofac;
@@ -30,6 +31,7 @@ public class SeverModule : Module
         builder.RegisterType<RoleService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<PermissionService>().AsSelf().InstancePerLifetimeScope();
         builder.RegisterType<ConfigurationService>().AsSelf().InstancePerLifetimeScope();
+        builder.RegisterType<PrintService>().AsSelf().InstancePerLifetimeScope();
         
         //ScoreManagement
         builder.RegisterType<ScoreService>().AsSelf().InstancePerLifetimeScope();
@@ -48,7 +50,7 @@ public class SeverModule : Module
         builder.Register(container =>
         {
             var options = new DbContextOptionsBuilder<ServerDatabaseContext>();
-
+            options.EnableDetailedErrors();
             var type = connectionData?.Provider ?? "MySql";
 
             if (type == "MySql")

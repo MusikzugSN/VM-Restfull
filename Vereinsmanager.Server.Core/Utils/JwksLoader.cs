@@ -1,6 +1,7 @@
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 
 namespace Vereinsmanager.Utils;
 
@@ -19,12 +20,24 @@ public static class JwksLoader
             $"{issuer}/.well-known/openid-configuration",
             new OpenIdConnectConfigurationRetriever(),
             retriever);
+        
+        try
+        {
+            var config = await configManager.GetConfigurationAsync(default);
 
-        var config = await configManager.GetConfigurationAsync(default);
+            var loadedKeys = config.SigningKeys;
+            CachedKeys[issuer] = loadedKeys;
+
+            return loadedKeys;
+        }
+        catch (Exception ex)
+        {
+            // Fallback
+            Log.Fatal(ex, "Fehler beim Laden der OpenID-Konfiguration von '{Issuer}'. Server stoppt.", issuer);
+            Environment.Exit(1);
+        }
         
-        var loadedKeys = config.SigningKeys;
-        CachedKeys[issuer] = loadedKeys;
-        
-        return loadedKeys;
+        // Sollte es trotz allem hierher schaffen, ist das ein kritischer Fehler
+        throw new InvalidOperationException("Unbekannter Fehler beim Laden der OpenID-Konfiguration.");
     }
 }

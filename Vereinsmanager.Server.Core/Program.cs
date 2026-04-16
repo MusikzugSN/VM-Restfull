@@ -4,18 +4,19 @@ using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using MySqlConnector;
 using Newtonsoft.Json.Serialization;
 using Vereinsmanager.Autofac;
 using Vereinsmanager.Database;
 using Vereinsmanager.Services;
-using Vereinsmanager.Services.PrintManagementService;
 using Vereinsmanager.Utils;
 using Vereinsmanager.Utils.Middleware;
+using Serilog;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddHttpClient();
 builder.Services.AddHealthChecks();
 builder.Services.AddMemoryCache();
 
@@ -25,11 +26,17 @@ builder.Services.AddControllers().AddNewtonsoftJson(options =>
     options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
 });
 
-builder.Services.AddScoped<PrintService>();
-builder.Services.AddSingleton<CustomTokenService>();
-
 var licenseKey = File.ReadAllText("syncfusion-license.txt");
 Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(licenseKey);
+
+// Configure Serilog from appsettings.json
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
 
 var allowedOrigin = builder.Configuration["FRONTEND_URL"];
 builder.Services.AddCors(options => {
@@ -142,8 +149,49 @@ app.UseAuthorization();
 app.MapControllers();
 
 // Update database to latest version
-using var scope = app.Services.CreateScope();
-var db = scope.ServiceProvider.GetRequiredService<ServerDatabaseContext>();
-db.Database.Migrate();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ServerDatabaseContext>();
+
+    try
+    {
+        if (db.Database.CanConnect())
+        {
+            Log.Information("MySQL erfolgreich verbunden.");
+        }
+        else
+        {
+            Log.Fatal("MySQL nicht verfügbar. Server stoppt.");
+            Environment.Exit(1);
+        }
+        
+        var pendingMigations = db.Database.GetPendingMigrations().ToList();
+        if (pendingMigations.Count > 0)
+        {
+            Log.Information("MySQL Migrationen ausstehend: {Migrations} Migrationen", pendingMigations.Count);
+            db.Database.Migrate();
+            Log.Information("MySQL erfolgreich aktuallisiert");    
+        }
+        
+    }
+    catch (MySqlException ex)
+    {
+        Log.Fatal(ex, "MySQL nicht verfügbar. Server stoppt.");
+        Environment.Exit(1);
+    }
+    catch (DbUpdateException ex) when (ex.InnerException is MySqlException mysql)
+    {
+        // Migration oder Update schlägt wegen MySQL-Fehler fehl
+        Log.Fatal(mysql, "MySQL Migration fehlgeschlagen. Server stoppt.");
+        Environment.Exit(1);
+    }
+    catch (Exception ex)
+    {
+        // Fallback für alles andere
+        Log.Fatal(ex, "Unbekannter MySQL Fehler beim Start. Server stoppt.");
+        Environment.Exit(1);
+    }
+}
 
 app.Run();
