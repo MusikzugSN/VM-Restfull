@@ -96,7 +96,7 @@ var authService = builder.Services.AddAuthentication(options =>
     
 authService.AddJwtBearer(options =>
 {
-    var keyPath = builder.Configuration["Jwt:KeyPath"] ?? "data/keys" + "/public_key.pem";
+    var keyPath = (builder.Configuration["Jwt:KeyPath"] ?? "data/keys") + "/public_key.pem";
     var publicRsa = JwtTokenService.LoadPublicKey(keyPath); 
     
     options.TokenValidationParameters = new TokenValidationParameters
