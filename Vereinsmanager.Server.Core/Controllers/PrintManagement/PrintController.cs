@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Mvc;
 using Vereinsmanager.Controllers.DataTransferObjects;
 using Vereinsmanager.Services.PrintManagementService;
@@ -54,6 +55,16 @@ public class PrintController : ControllerBase
         if (!result.IsSuccessful())
             return (ObjectResult)result;
 
-        return File(result.GetValue()!, contentType, "print.zip");
+        // Wähle den Dateinamen passend zum Content-Type, damit der Browser korrekte Endung vorschlägt
+        var fileName = "print.bin";
+        if (!string.IsNullOrWhiteSpace(contentType))
+        {
+            if (contentType.Contains("zip", StringComparison.OrdinalIgnoreCase))
+                fileName = "print.zip";
+            else if (contentType.Contains("pdf", StringComparison.OrdinalIgnoreCase))
+                fileName = "print.pdf";
+        }
+
+        return File(result.GetValue()!, contentType, fileName);
     }
 }

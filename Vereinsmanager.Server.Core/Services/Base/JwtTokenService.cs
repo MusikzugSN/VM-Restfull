@@ -46,6 +46,9 @@ public class JwtTokenService
     
     public static RSA LoadPrivateKey(string path)
     {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Private key file not found: {path}");
+
         var rsa = RSA.Create();
         rsa.ImportFromPem(File.ReadAllText(path));
         return rsa;
@@ -53,6 +56,9 @@ public class JwtTokenService
 
     public static RsaSecurityKey LoadPublicKey(string path)
     {
+        if (!File.Exists(path))
+            throw new FileNotFoundException($"Public key file not found: {path}");
+
         var rsa = RSA.Create();
         rsa.ImportFromPem(File.ReadAllText(path));
         return new RsaSecurityKey(rsa);
