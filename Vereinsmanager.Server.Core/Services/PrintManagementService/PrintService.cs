@@ -178,8 +178,8 @@ public class PrintService
                 {
                     var scoreFolder = Path.Combine(
                         _hostingEnvironment.ContentRootPath,
-                        "Data",
-                        "Scores",
+                        "data",
+                        "scores",
                         sheet.ScoreId.ToString());
 
                     var sourcePath = Path.Combine(scoreFolder, sheet.FileName);
@@ -242,8 +242,8 @@ public class PrintService
         {
             var scoreFolder = Path.Combine(
                 _hostingEnvironment.ContentRootPath,
-                "Data",
-                "Scores",
+                "data",
+                "scores",
                 sheet.ScoreId.ToString());
 
             var filePath = Path.Combine(scoreFolder, sheet.FileName);
@@ -263,8 +263,8 @@ public class PrintService
         {
             var scoreFolder = Path.Combine(
                 _hostingEnvironment.ContentRootPath,
-                "Data",
-                "Scores",
+                "data",
+                "scores",
                 sheet.ScoreId.ToString());
 
             var filePath = Path.Combine(scoreFolder, sheet.FileName);

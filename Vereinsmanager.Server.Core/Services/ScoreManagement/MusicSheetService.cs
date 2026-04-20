@@ -183,7 +183,7 @@ public class MusicSheetService
         if (request.Files.Length == 0)
             return ErrorUtils.ValueNotFound("Files", "Keine Dateien übergeben.");
 
-        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "data", "scores");
         Directory.CreateDirectory(basePath);
 
         string scoreFolder = Path.Combine(basePath, request.ScoreId.ToString());
@@ -371,8 +371,8 @@ public class MusicSheetService
 
         string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
-            "Data",
-            "Scores",
+            "data",
+            "scores",
             sheet.ScoreId.ToString());
 
         Directory.CreateDirectory(scoreFolder);
@@ -418,7 +418,7 @@ public class MusicSheetService
                 $"mehrfache VoiceIds in ranges: {string.Join(", ", duplicateVoiceIds)}");
         }
 
-        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "data", "scores");
         Directory.CreateDirectory(basePath);
 
         List<MusicSheet> createdSheets = new List<MusicSheet>();
@@ -514,7 +514,7 @@ public class MusicSheetService
     {
         string basePath = Path.Combine(
             _hostingEnvironment.ContentRootPath,
-            "Data",
+            "data",
             "Scores");
 
         var oldFilePath = Path.Combine(basePath, sheet.ScoreId.ToString(), sheet.FileName);
@@ -534,8 +534,8 @@ public class MusicSheetService
         
         string scoreFolder = Path.Combine(
             _hostingEnvironment.ContentRootPath,
-            "Data",
-            "Scores",
+            "data",
+            "scores",
             sheet.ScoreId.ToString());
 
         var filePath = Path.Combine(scoreFolder, sheet.FileName);

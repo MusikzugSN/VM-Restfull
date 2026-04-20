@@ -78,7 +78,7 @@ public class PdfViewerController : ControllerBase
                             return Content(jsonObject["document"] + " is not found");
                         }
                         
-                        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "Data", "Scores");
+                        string basePath = Path.Combine(_hostingEnvironment.ContentRootPath, "data", "scores");
                         string scoreFolder = Path.Combine(basePath, musicSheet.ScoreId.ToString());
                         string filePath = Path.Combine(scoreFolder, musicSheet.FileName);
                         
