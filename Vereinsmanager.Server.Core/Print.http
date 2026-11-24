@@ -14,3 +14,9 @@ Content-Type: application/json
 
 ### R3 wrong token -> 404
 GET {{host}}/api/v1/print/print-information?token=falsch
+
+### R4 token-information wrong token -> 404
+GET {{host}}/api/v1/print/token-information?token=falsch
+
+### R5 file wrong token -> 404
+GET {{host}}/api/v1/print/file/1?token=falsch
