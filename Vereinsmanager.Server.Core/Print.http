@@ -1,0 +1,16 @@
+﻿@host = http://localhost:5036
+
+### R1 empty list -> 400
+POST {{host}}/api/v1/print/token
+Content-Type: application/json
+
+{ "musicSheetIds": [] }
+
+### R2 unknown id -> 404
+POST {{host}}/api/v1/print/token
+Content-Type: application/json
+
+{ "musicSheetIds": [999] }
+
+### R3 wrong token -> 404
+GET {{host}}/api/v1/print/print-information?token=falsch
