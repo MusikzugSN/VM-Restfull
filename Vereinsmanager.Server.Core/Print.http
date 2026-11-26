@@ -20,3 +20,22 @@ GET {{host}}/api/v1/print/token-information?token=falsch
 
 ### R5 file wrong token -> 404
 GET {{host}}/api/v1/print/file/1?token=falsch
+
+### R6 token for sheets 1,2,3 with folder 1 -> 200 + token
+# @name createToken
+POST {{host}}/api/v1/print/token
+Content-Type: application/json
+
+{ "musicSheetIds": [1, 2, 3], "musicFolderId": 1 }
+
+### R7 print-information with real token -> 200, 3 settings
+GET {{host}}/api/v1/print/print-information?token={{createToken.response.body.$.token}}
+
+### R8 token-information -> 200, numbers 12 / 12a / 2
+GET {{host}}/api/v1/print/token-information?token={{createToken.response.body.$.token}}
+
+### R9 file 1 -> 200, PDF
+GET {{host}}/api/v1/print/file/1?token={{createToken.response.body.$.token}}
+
+### R10 file 99 (not in token) -> 404
+GET {{host}}/api/v1/print/file/99?token={{createToken.response.body.$.token}}
