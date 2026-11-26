@@ -13,11 +13,13 @@ public class PrintFileController : ControllerBase
 {
     private readonly ServerDatabaseContext _dbContext;
     private readonly IMemoryCache _cache;
+    private readonly IWebHostEnvironment _env;
 
-    public PrintFileController(ServerDatabaseContext dbContext, IMemoryCache cache)
+    public PrintFileController(ServerDatabaseContext dbContext, IMemoryCache cache, IWebHostEnvironment env)
     {
         _dbContext = dbContext;
         _cache = cache;
+        _env = env;
     }
 
     // Route 2: welche Noten gehören zum Token (id + Nummer)
@@ -64,7 +66,7 @@ public class PrintFileController : ControllerBase
         if (sheet == null)
             return NotFound(new { fehler = "Notenblatt nicht gefunden" });
 
-        var path = Path.Combine("Data", "Scores", sheet.ScoreId.ToString(), sheet.FileName);
+        var path = Path.Combine(_env.ContentRootPath, "Data", "Scores", sheet.ScoreId.ToString(), sheet.FileName);
         if (!System.IO.File.Exists(path))
             return NotFound(new { fehler = "Datei nicht gefunden" });
 
